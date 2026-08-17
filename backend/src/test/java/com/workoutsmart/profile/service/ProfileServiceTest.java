@@ -15,6 +15,7 @@ import com.workoutsmart.auth.exception.ApiException;
 import com.workoutsmart.auth.repository.UserRepository;
 import com.workoutsmart.auth.security.JwtAuthFilter;
 import com.workoutsmart.auth.service.TokenService;
+import com.workoutsmart.plan.service.DraftExerciseService;
 import com.workoutsmart.profile.dto.ProfileResponse;
 import com.workoutsmart.profile.dto.UpdateProfileRequest;
 import com.workoutsmart.profile.dto.UpdateProfileResponse;
@@ -48,13 +49,15 @@ class ProfileServiceTest {
     private TokenService tokenService;
     @Mock
     private JwtAuthFilter jwtAuthFilter;
+    @Mock
+    private DraftExerciseService draftExerciseService;
 
     private ProfileService service;
 
     @BeforeEach
     void setUp() {
         service = new ProfileService(userRepository, sessionRepository, setRepository,
-                tokenService, jwtAuthFilter);
+                tokenService, jwtAuthFilter, draftExerciseService);
     }
 
     private User user() {
@@ -184,5 +187,19 @@ class ProfileServiceTest {
 
         ApiException ex = assertThrows(ApiException.class, () -> service.getSessionDetail(1L, 10L));
         assertEquals(404, ex.getStatus().value());
+    }
+
+    @Test
+    void completeSessionMarksCompletedAndCleansDraft() {
+        WorkoutSession session = WorkoutSession.builder()
+                .id(10L).userId(1L).status("active").startTime(Instant.now()).build();
+        when(sessionRepository.findById(10L)).thenReturn(Optional.of(session));
+        when(sessionRepository.save(any(WorkoutSession.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.completeSession(1L, 10L);
+
+        assertEquals("completed", session.getStatus());
+        assertNotNull(session.getEndTime());
+        verify(draftExerciseService).cleanupBySession(10L);
     }
 }

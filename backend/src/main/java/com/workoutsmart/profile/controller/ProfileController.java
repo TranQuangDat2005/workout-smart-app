@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -57,6 +58,11 @@ public class ProfileController {
     @GetMapping("/workout-sessions/{id}")
     public WorkoutSessionDetailResponse getSessionDetail(Authentication auth, @PathVariable Long id) {
         return profileService.getSessionDetail(currentUserId(auth), id);
+    }
+
+    @PostMapping("/workout-sessions/{id}/complete")
+    public MessageResponse completeSession(Authentication auth, @PathVariable Long id) {
+        return profileService.completeSession(currentUserId(auth), id);
     }
 
     private Long currentUserId(Authentication auth) {

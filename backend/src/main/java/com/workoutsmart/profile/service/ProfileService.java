@@ -16,6 +16,7 @@ import com.workoutsmart.profile.entity.WorkoutSession;
 import com.workoutsmart.profile.repository.WorkoutSessionRepository;
 import com.workoutsmart.profile.repository.WorkoutSetRepository;
 import com.workoutsmart.auth.exception.ApiException;
+import com.workoutsmart.plan.service.DraftExerciseService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -34,17 +35,20 @@ public class ProfileService {
     private final WorkoutSetRepository setRepository;
     private final TokenService tokenService;
     private final JwtAuthFilter jwtAuthFilter;
+    private final DraftExerciseService draftExerciseService;
 
     public ProfileService(UserRepository userRepository,
                           WorkoutSessionRepository sessionRepository,
                           WorkoutSetRepository setRepository,
                           TokenService tokenService,
-                          JwtAuthFilter jwtAuthFilter) {
+                          JwtAuthFilter jwtAuthFilter,
+                          DraftExerciseService draftExerciseService) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
         this.setRepository = setRepository;
         this.tokenService = tokenService;
         this.jwtAuthFilter = jwtAuthFilter;
+        this.draftExerciseService = draftExerciseService;
     }
 
     public ProfileResponse getProfile(Long userId) {
@@ -132,6 +136,24 @@ public class ProfileService {
                 session.getStatus(),
                 session.getFocusInterruptionsCount(),
                 sets);
+    }
+
+    /** FR-010 (009): kết thúc buổi tập → dọn draft queue của session. */
+    @Transactional
+    public MessageResponse completeSession(Long userId, Long sessionId) {
+        WorkoutSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Buổi tập không tồn tại"));
+        if (!session.getUserId().equals(userId)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Buổi tập không tồn tại");
+        }
+        if (!"active".equals(session.getStatus())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Buổi tập đã kết thúc");
+        }
+        session.setStatus("completed");
+        session.setEndTime(Instant.now());
+        sessionRepository.save(session);
+        draftExerciseService.cleanupBySession(sessionId);
+        return new MessageResponse("Buổi tập đã hoàn thành");
     }
 
     private User requireUser(Long userId) {

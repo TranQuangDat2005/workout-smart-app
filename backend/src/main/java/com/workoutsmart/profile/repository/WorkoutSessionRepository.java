@@ -13,6 +13,8 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
 
     List<WorkoutSession> findByUserIdAndStatus(Long userId, String status);
 
+    List<WorkoutSession> findByStatus(String status);
+
     List<WorkoutSession> findByUserIdAndStatusAndStartTimeBetween(
             Long userId, String status, Instant from, Instant to);
 

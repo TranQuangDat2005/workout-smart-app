@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-17
 
-**Status**: Draft
+**Status**: Ready
 
 **Input**: User description: "UC-04: Thiết lập mục tiêu; UC-05: Tạo Workout Plan (Rule-based); UC-06: Xem chi tiết bài tập — Nhóm 2: Workout Plan"
 

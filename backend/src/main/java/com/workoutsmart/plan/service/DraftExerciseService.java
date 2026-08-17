@@ -4,8 +4,17 @@ import com.workoutsmart.auth.exception.ApiException;
 import com.workoutsmart.exercise.entity.Exercise;
 import com.workoutsmart.exercise.repository.ExerciseRepository;
 import com.workoutsmart.plan.entity.DraftExercise;
+import com.workoutsmart.plan.entity.WorkoutPlanDay;
+import com.workoutsmart.plan.entity.WorkoutPlanExercise;
 import com.workoutsmart.plan.repository.DraftExerciseRepository;
+import com.workoutsmart.plan.repository.WorkoutPlanDayRepository;
+import com.workoutsmart.plan.repository.WorkoutPlanExerciseRepository;
+import com.workoutsmart.profile.entity.WorkoutSession;
+import com.workoutsmart.profile.repository.WorkoutSessionRepository;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -18,11 +27,20 @@ public class DraftExerciseService {
 
     private final DraftExerciseRepository draftRepository;
     private final ExerciseRepository exerciseRepository;
+    private final WorkoutPlanExerciseRepository planExerciseRepository;
+    private final WorkoutPlanDayRepository dayRepository;
+    private final WorkoutSessionRepository sessionRepository;
 
     public DraftExerciseService(DraftExerciseRepository draftRepository,
-                                ExerciseRepository exerciseRepository) {
+                                ExerciseRepository exerciseRepository,
+                                WorkoutPlanExerciseRepository planExerciseRepository,
+                                WorkoutPlanDayRepository dayRepository,
+                                WorkoutSessionRepository sessionRepository) {
         this.draftRepository = draftRepository;
         this.exerciseRepository = exerciseRepository;
+        this.planExerciseRepository = planExerciseRepository;
+        this.dayRepository = dayRepository;
+        this.sessionRepository = sessionRepository;
     }
 
     /**
@@ -41,6 +59,35 @@ public class DraftExerciseService {
                 .clonedExerciseId(exerciseId)
                 .replacementExerciseId(replacementId)
                 .build());
+    }
+
+    /**
+     * Khi Admin ẩn exercise: tìm tất cả workout session active có plan chứa exercise này
+     * và clone vào draft queue cho từng session. Trả về số session bị ảnh hưởng.
+     */
+    @Transactional
+    public int handleExerciseHidden(Long exerciseId) {
+        List<WorkoutPlanExercise> planExercises = planExerciseRepository.findByExerciseId(exerciseId);
+        if (planExercises.isEmpty()) {
+            return 0;
+        }
+        Set<Long> dayIds = planExercises.stream()
+                .map(WorkoutPlanExercise::getDayId)
+                .collect(Collectors.toSet());
+        Set<Long> planIds = dayRepository.findAllById(dayIds).stream()
+                .map(WorkoutPlanDay::getPlanId)
+                .collect(Collectors.toSet());
+        if (planIds.isEmpty()) {
+            return 0;
+        }
+
+        List<WorkoutSession> affected = sessionRepository.findByStatus("active").stream()
+                .filter(s -> s.getPlanId() != null && planIds.contains(s.getPlanId()))
+                .toList();
+        for (WorkoutSession session : affected) {
+            recordHiddenExercise(exerciseId, session.getId());
+        }
+        return affected.size();
     }
 
     @Transactional

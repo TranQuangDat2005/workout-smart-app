@@ -20,15 +20,15 @@
 
 **Purpose**: Cấu trúc project, migration, cấu hình chung
 
-- [ ] T001 Create Flyway migration `V3__workout_plan_tables.sql` với 4 bảng mới: `workout_plans`, `workout_plan_days`, `workout_plan_exercises`, `draft_exercises` + indexes theo data-model.md §7 tại `backend/src/main/resources/db/migration/V3__workout_plan_tables.sql`
-- [ ] T002 [P] Create `GoalSetupRequest` DTO với validation annotations (goalType enum, fitnessLevel enum, equipment array minSize=1, effectiveDate nullable) tại `backend/src/main/java/com/workoutsmart/dto/GoalSetupRequest.java`
-- [ ] T003 [P] Create `GoalSetupResponse` DTO tại `backend/src/main/java/com/workoutsmart/dto/GoalSetupResponse.java`
-- [ ] T004 [P] Create `WorkoutPlanResponse` DTO tại `backend/src/main/java/com/workoutsmart/dto/WorkoutPlanResponse.java`
-- [ ] T005 [P] Create `PlanDayResponse` DTO tại `backend/src/main/java/com/workoutsmart/dto/PlanDayResponse.java`
-- [ ] T006 [P] Create `PlanExerciseResponse` DTO tại `backend/src/main/java/com/workoutsmart/dto/PlanExerciseResponse.java`
-- [ ] T007 [P] Create `ExerciseDetailResponse` DTO tại `backend/src/main/java/com/workoutsmart/dto/ExerciseDetailResponse.java`
-- [ ] T008 [P] Create `ExerciseSearchRequest` DTO (equipment, category, bodyPart, muscleGroup, q, page, size) tại `backend/src/main/java/com/workoutsmart/dto/ExerciseSearchRequest.java`
-- [ ] T009 [P] Create `ExerciseSearchResponse` DTO tại `backend/src/main/java/com/workoutsmart/dto/ExerciseSearchResponse.java`
+- [x] T001 Create Flyway migration `V3__workout_plan_tables.sql` với 4 bảng mới: `workout_plans`, `workout_plan_days`, `workout_plan_exercises`, `draft_exercises` + indexes theo data-model.md §7 tại `backend/src/main/resources/db/migration/V3__workout_plan_tables.sql`
+- [x] T002 [P] Create `GoalSetupRequest` DTO với validation annotations (goalType enum, fitnessLevel enum, equipment array minSize=1, effectiveDate nullable) tại `backend/src/main/java/com/workoutsmart/dto/GoalSetupRequest.java`
+- [x] T003 [P] Create `GoalSetupResponse` DTO tại `backend/src/main/java/com/workoutsmart/dto/GoalSetupResponse.java`
+- [x] T004 [P] Create `WorkoutPlanResponse` DTO tại `backend/src/main/java/com/workoutsmart/dto/WorkoutPlanResponse.java`
+- [x] T005 [P] Create `PlanDayResponse` DTO tại `backend/src/main/java/com/workoutsmart/dto/PlanDayResponse.java`
+- [x] T006 [P] Create `PlanExerciseResponse` DTO tại `backend/src/main/java/com/workoutsmart/dto/PlanExerciseResponse.java`
+- [x] T007 [P] Create `ExerciseDetailResponse` DTO tại `backend/src/main/java/com/workoutsmart/dto/ExerciseDetailResponse.java`
+- [x] T008 [P] Create `ExerciseSearchRequest` DTO (equipment, category, bodyPart, muscleGroup, q, page, size) tại `backend/src/main/java/com/workoutsmart/dto/ExerciseSearchRequest.java`
+- [x] T009 [P] Create `ExerciseSearchResponse` DTO tại `backend/src/main/java/com/workoutsmart/dto/ExerciseSearchResponse.java`
 
 ---
 
@@ -38,10 +38,10 @@
 
 **⚠ CRITICAL**: Không thể bắt đầu US1/US2/US3 nếu phase này chưa xong
 
-- [ ] T010 [P] Create `Exercise` entity (JPA) với tất cả fields theo data-model.md §1, `@Entity`, `@Table(name="exercises")`, `@Enumerated` cho status, KHÔNG dùng `@Data` (Lombok) vì có lazy relationships tiềm ẩn tại `backend/src/main/java/com/workoutsmart/domain/exercise/Exercise.java`
-- [ ] T011 [P] Create `ExerciseRepository` extends `JpaRepository<Exercise, Long>` với custom query: `findByStatus(String status)`, `findByEquipmentInAndStatus(List<String> equipment, String status)` tại `backend/src/main/java/com/workoutsmart/domain/exercise/ExerciseRepository.java`
-- [ ] T012 Create `ExerciseService` với method `findActiveByEquipment(List<String> equipment)` — truy vấn bài active theo dụng cụ người dùng (dùng bởi Rule Engine tại US1) tại `backend/src/main/java/com/workoutsmart/domain/exercise/ExerciseService.java`
-- [ ] T013 Run `mvn test` để verify Exercise domain compile + chạy không lỗi tại `backend/`
+- [x] T010 [P] Create `Exercise` entity (JPA) với tất cả fields theo data-model.md §1, `@Entity`, `@Table(name="exercises")`, `@Enumerated` cho status, KHÔNG dùng `@Data` (Lombok) vì có lazy relationships tiềm ẩn tại `backend/src/main/java/com/workoutsmart/domain/exercise/Exercise.java`
+- [x] T011 [P] Create `ExerciseRepository` extends `JpaRepository<Exercise, Long>` với custom query: `findByStatus(String status)`, `findByEquipmentInAndStatus(List<String> equipment, String status)` tại `backend/src/main/java/com/workoutsmart/domain/exercise/ExerciseRepository.java`
+- [x] T012 Create `ExerciseService` với method `findActiveByEquipment(List<String> equipment)` — truy vấn bài active theo dụng cụ người dùng (dùng bởi Rule Engine tại US1) tại `backend/src/main/java/com/workoutsmart/domain/exercise/ExerciseService.java`
+- [x] T013 Run `mvn test` để verify Exercise domain compile + chạy không lỗi tại `backend/`
 
 **Checkpoint**: Exercise domain sẵn sàng — US1/US2/US3 có thể bắt đầu
 
@@ -57,21 +57,21 @@
 
 > **NOTE: Viết test TRƯỚC, chạy FAIL trước khi implement**
 
-- [ ] T014 [P] [US1] Unit test `RuleEngineService` tại `backend/src/test/java/com/workoutsmart/domain/workoutplan/RuleEngineServiceTest.java` — verify bảng luật goal_type × fitness_level × equipment (FR-008/009/010), số ngày, reps, rest time, sets, lọc equipment
-- [ ] T015 [P] [US1] Unit test `WorkoutPlanService` tại `backend/src/test/java/com/workoutsmart/domain/workoutplan/WorkoutPlanServiceTest.java` — verify generatePlan archive plan cũ, getActivePlan, archivePlan
-- [ ] T016 [US1] Integration test `WorkoutPlanController` tại `backend/src/test/java/com/workoutsmart/domain/workoutplan/WorkoutPlanControllerTest.java` — PUT goals happy path + 400 validation + 422 no matching exercise
+- [x] T014 [P] [US1] Unit test `RuleEngineService` tại `backend/src/test/java/com/workoutsmart/domain/workoutplan/RuleEngineServiceTest.java` — verify bảng luật goal_type × fitness_level × equipment (FR-008/009/010), số ngày, reps, rest time, sets, lọc equipment
+- [x] T015 [P] [US1] Unit test `WorkoutPlanService` tại `backend/src/test/java/com/workoutsmart/domain/workoutplan/WorkoutPlanServiceTest.java` — verify generatePlan archive plan cũ, getActivePlan, archivePlan
+- [x] T016 [US1] Integration test `WorkoutPlanController` tại `backend/src/test/java/com/workoutsmart/domain/workoutplan/WorkoutPlanControllerTest.java` — PUT goals happy path + 400 validation + 422 no matching exercise
 
 ### Implementation for User Story 1
 
-- [ ] T017 [US1] Create `WorkoutPlan` entity (JPA) với fields: id, userId, name, goalType, fitnessLevel, status, createdAt, updatedAt; `@ManyToOne` relationship với User (từ 007) tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlan.java`
-- [ ] T018 [US1] Create `WorkoutPlanDay` entity (JPA) với fields: id, planId, dayOfWeek, createdAt; `@ManyToOne` với WorkoutPlan tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanDay.java`
-- [ ] T019 [US1] Create `WorkoutPlanExercise` entity (JPA) với fields: id, dayId, exerciseId, targetSets, targetReps, restTimeSeconds, createdAt; `@ManyToOne` với WorkoutPlanDay và Exercise tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanExercise.java`
-- [ ] T020 [P] [US1] Create `WorkoutPlanRepository` extends `JpaRepository<WorkoutPlan, Long>` với query: `findByUserIdAndStatus(Long userId, String status)`, `countByUserIdAndStatus(Long userId, String status)` tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanRepository.java`
-- [ ] T021 [P] [US1] Create `WorkoutPlanDayRepository` extends `JpaRepository<WorkoutPlanDay, Long>` với query: `findByPlanId(Long planId)` tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanDayRepository.java`
-- [ ] T022 [P] [US1] Create `WorkoutPlanExerciseRepository` extends `JpaRepository<WorkoutPlanExercise, Long>` với query: `findByDayId(Long dayId)` tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanExerciseRepository.java`
-- [ ] T023 [US1] Create `RuleEngineService` với method `generatePlan(User user)` : đọc goal_type/fitness_level/equipment từ User → apply bảng luật Rule Engine v1 (FR-008, FR-009, FR-010) → tạo WorkoutPlan + WorkoutPlanDays + WorkoutPlanExercises. Logic: goal_type → số ngày/tuần + reps + rest_time; fitness_level → số bài/ngày + sets; equipment → filter exercises từ ExerciseService. Trả về WorkoutPlan entity tree tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/RuleEngineService.java`
-- [ ] T024 [US1] Create `WorkoutPlanService` với methods: `getActivePlan(Long userId)`, `generatePlan(Long userId, LocalDate effectiveDate)`, `archivePlan(Long planId)`. Method `generatePlan`: archive plan active hiện tại (nếu có) → gọi RuleEngineService → lưu plan mới. Method `getActivePlan`: query plan active + eager load days + exercises tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanService.java`
-- [ ] T025 [US1] Create `WorkoutPlanController` với endpoint: `PUT /api/v1/users/me/goals` — nhận `GoalSetupRequest` → validate → cập nhật User profile (goal_type, fitness_level, equipment) → gọi `WorkoutPlanService.generatePlan()` → trả `GoalSetupResponse` với planId + warning (nếu archive plan cũ). HTTP 400 nếu validation fail, 422 nếu không có exercise khớp tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanController.java`
+- [x] T017 [US1] Create `WorkoutPlan` entity (JPA) với fields: id, userId, name, goalType, fitnessLevel, status, createdAt, updatedAt; `@ManyToOne` relationship với User (từ 007) tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlan.java`
+- [x] T018 [US1] Create `WorkoutPlanDay` entity (JPA) với fields: id, planId, dayOfWeek, createdAt; `@ManyToOne` với WorkoutPlan tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanDay.java`
+- [x] T019 [US1] Create `WorkoutPlanExercise` entity (JPA) với fields: id, dayId, exerciseId, targetSets, targetReps, restTimeSeconds, createdAt; `@ManyToOne` với WorkoutPlanDay và Exercise tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanExercise.java`
+- [x] T020 [P] [US1] Create `WorkoutPlanRepository` extends `JpaRepository<WorkoutPlan, Long>` với query: `findByUserIdAndStatus(Long userId, String status)`, `countByUserIdAndStatus(Long userId, String status)` tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanRepository.java`
+- [x] T021 [P] [US1] Create `WorkoutPlanDayRepository` extends `JpaRepository<WorkoutPlanDay, Long>` với query: `findByPlanId(Long planId)` tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanDayRepository.java`
+- [x] T022 [P] [US1] Create `WorkoutPlanExerciseRepository` extends `JpaRepository<WorkoutPlanExercise, Long>` với query: `findByDayId(Long dayId)` tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanExerciseRepository.java`
+- [x] T023 [US1] Create `RuleEngineService` với method `generatePlan(User user)` : đọc goal_type/fitness_level/equipment từ User → apply bảng luật Rule Engine v1 (FR-008, FR-009, FR-010) → tạo WorkoutPlan + WorkoutPlanDays + WorkoutPlanExercises. Logic: goal_type → số ngày/tuần + reps + rest_time; fitness_level → số bài/ngày + sets; equipment → filter exercises từ ExerciseService. Trả về WorkoutPlan entity tree tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/RuleEngineService.java`
+- [x] T024 [US1] Create `WorkoutPlanService` với methods: `getActivePlan(Long userId)`, `generatePlan(Long userId, LocalDate effectiveDate)`, `archivePlan(Long planId)`. Method `generatePlan`: archive plan active hiện tại (nếu có) → gọi RuleEngineService → lưu plan mới. Method `getActivePlan`: query plan active + eager load days + exercises tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanService.java`
+- [x] T025 [US1] Create `WorkoutPlanController` với endpoint: `PUT /api/v1/users/me/goals` — nhận `GoalSetupRequest` → validate → cập nhật User profile (goal_type, fitness_level, equipment) → gọi `WorkoutPlanService.generatePlan()` → trả `GoalSetupResponse` với planId + warning (nếu archive plan cũ). HTTP 400 nếu validation fail, 422 nếu không có exercise khớp tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanController.java`
 
 **Checkpoint**: US1 hoàn tất — user có thể thiết lập mục tiêu và plan được tạo tự động
 
@@ -85,14 +85,14 @@
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T026 [US2] Integration test `WorkoutPlanController` mở rộng tại `backend/src/test/java/com/workoutsmart/domain/workoutplan/WorkoutPlanControllerTest.java` — GET active (happy + 404), POST generate (happy + effectiveDate today/tomorrow + 400/422)
+- [x] T026 [US2] Integration test `WorkoutPlanController` mở rộng tại `backend/src/test/java/com/workoutsmart/domain/workoutplan/WorkoutPlanControllerTest.java` — GET active (happy + 404), POST generate (happy + effectiveDate today/tomorrow + 400/422)
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Add `GET /api/v1/workout-plans/active` endpoint to `WorkoutPlanController` — query plan active của user → map entity → `WorkoutPlanResponse` (plan → days → exercises). HTTP 404 nếu chưa có plan tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanController.java`
-- [ ] T028 [US2] Add `POST /api/v1/workout-plans/generate` endpoint to `WorkoutPlanController` — trigger thủ công `WorkoutPlanService.generatePlan()` với effectiveDate optional. Dùng khi user muốn refresh plan tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanController.java`
-- [ ] T029 [US2] Implement `effectiveDate` logic trong `WorkoutPlanService.generatePlan()`: nếu effectiveDate = today → archive immediately; nếu effectiveDate = tomorrow → plan mới chỉ active từ ngày mai (plan cũ giữ active đến hết hôm nay). Dùng `LocalDate.now()` + timezone system tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanService.java`
-- [ ] T030 [US2] Implement exercise exclusion logic trong `RuleEngineService`: query exercises WHERE status='active' AND equipment IN (user's equipment). FR-006: bài inactive không xuất hiện trong plan mới tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/RuleEngineService.java`
+- [x] T027 [US2] Add `GET /api/v1/workout-plans/active` endpoint to `WorkoutPlanController` — query plan active của user → map entity → `WorkoutPlanResponse` (plan → days → exercises). HTTP 404 nếu chưa có plan tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanController.java`
+- [x] T028 [US2] Add `POST /api/v1/workout-plans/generate` endpoint to `WorkoutPlanController` — trigger thủ công `WorkoutPlanService.generatePlan()` với effectiveDate optional. Dùng khi user muốn refresh plan tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanController.java`
+- [x] T029 [US2] Implement `effectiveDate` logic trong `WorkoutPlanService.generatePlan()`: nếu effectiveDate = today → archive immediately; nếu effectiveDate = tomorrow → plan mới chỉ active từ ngày mai (plan cũ giữ active đến hết hôm nay). Dùng `LocalDate.now()` + timezone system tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/WorkoutPlanService.java`
+- [x] T030 [US2] Implement exercise exclusion logic trong `RuleEngineService`: query exercises WHERE status='active' AND equipment IN (user's equipment). FR-006: bài inactive không xuất hiện trong plan mới tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/RuleEngineService.java`
 
 **Checkpoint**: US2 hoàn tất — user xem được plan, goal change hoạt động đúng
 
@@ -106,14 +106,14 @@
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T031 [P] [US3] Unit test `ExerciseService` tại `backend/src/test/java/com/workoutsmart/domain/exercise/ExerciseServiceTest.java` — search filter + pagination + findById (404 khi không tồn tại)
-- [ ] T032 [US3] Integration test `ExerciseController` tại `backend/src/test/java/com/workoutsmart/domain/exercise/ExerciseControllerTest.java` — GET /exercises (filter + pagination) + GET /exercises/{id} (happy + 404)
+- [x] T031 [P] [US3] Unit test `ExerciseService` tại `backend/src/test/java/com/workoutsmart/domain/exercise/ExerciseServiceTest.java` — search filter + pagination + findById (404 khi không tồn tại)
+- [x] T032 [US3] Integration test `ExerciseController` tại `backend/src/test/java/com/workoutsmart/domain/exercise/ExerciseControllerTest.java` — GET /exercises (filter + pagination) + GET /exercises/{id} (happy + 404)
 
 ### Implementation for User Story 3
 
-- [ ] T033 [US3] Implement `ExerciseService.search()` method: build động query với Specifications hoặc `@Query` method filter theo equipment/category/bodyPart/muscleGroup/q + pagination (page/size). Trả `ExerciseSearchResponse` (content + totalElements + totalPages + page) tại `backend/src/main/java/com/workoutsmart/domain/exercise/ExerciseService.java`
-- [ ] T034 [US3] Implement `ExerciseService.findById()` method: query exercise theo ID, throw `NotFoundException` (404) nếu không tồn tại. Trả `ExerciseDetailResponse` với full fields (name, category, bodyPart, equipment, target, muscleGroup, image, gifUrl, instructions) tại `backend/src/main/java/com/workoutsmart/domain/exercise/ExerciseService.java`
-- [ ] T035 [US3] Create `ExerciseController` với endpoints: `GET /api/v1/exercises` (search), `GET /api/v1/exercises/{exerciseId}` (detail) — theo contracts/openapi.yaml paths `/exercises` và `/exercises/{exerciseId}` tại `backend/src/main/java/com/workoutsmart/domain/exercise/ExerciseController.java`
+- [x] T033 [US3] Implement `ExerciseService.search()` method: build động query với Specifications hoặc `@Query` method filter theo equipment/category/bodyPart/muscleGroup/q + pagination (page/size). Trả `ExerciseSearchResponse` (content + totalElements + totalPages + page) tại `backend/src/main/java/com/workoutsmart/domain/exercise/ExerciseService.java`
+- [x] T034 [US3] Implement `ExerciseService.findById()` method: query exercise theo ID, throw `NotFoundException` (404) nếu không tồn tại. Trả `ExerciseDetailResponse` với full fields (name, category, bodyPart, equipment, target, muscleGroup, image, gifUrl, instructions) tại `backend/src/main/java/com/workoutsmart/domain/exercise/ExerciseService.java`
+- [x] T035 [US3] Create `ExerciseController` với endpoints: `GET /api/v1/exercises` (search), `GET /api/v1/exercises/{exerciseId}` (detail) — theo contracts/openapi.yaml paths `/exercises` và `/exercises/{exerciseId}` tại `backend/src/main/java/com/workoutsmart/domain/exercise/ExerciseController.java`
 
 **Checkpoint**: US3 hoàn tất — exercise search + detail hoạt động
 
@@ -127,13 +127,13 @@
 
 ### Tests
 
-- [ ] T036 [P] Unit test `DraftExerciseService` tại `backend/src/test/java/com/workoutsmart/domain/draftqueue/DraftExerciseServiceTest.java` — handleExerciseHidden tạo clone + replacement, cleanupBySession xóa đúng session
+- [x] T036 [P] Unit test `DraftExerciseService` tại `backend/src/test/java/com/workoutsmart/domain/draftqueue/DraftExerciseServiceTest.java` — handleExerciseHidden tạo clone + replacement, cleanupBySession xóa đúng session
 
 ### Implementation
 
-- [ ] T037 [P] Create `DraftExercise` entity (JPA) với fields: id, sessionId, originalExerciseId, clonedExerciseId, replacementExerciseId, createdAt; `@ManyToOne` relationships tại `backend/src/main/java/com/workoutsmart/domain/draftqueue/DraftExercise.java`
-- [ ] T038 [P] Create `DraftExerciseRepository` extends `JpaRepository<DraftExercise, Long>` với query: `findBySessionId(Long sessionId)`, `deleteBySessionId(Long sessionId)` tại `backend/src/main/java/com/workoutsmart/domain/draftqueue/DraftExerciseRepository.java`
-- [ ] T039 Create `DraftExerciseService` với methods: `handleExerciseHidden(Long exerciseId)` — find all active plans containing this exercise → for each: create draft clone + find replacement (same muscle_group + body_part, ORDER BY RANDOM() LIMIT 1) → return list of affected users; `cleanupBySession(Long sessionId)` — delete all draft rows for completed session tại `backend/src/main/java/com/workoutsmart/domain/draftqueue/DraftExerciseService.java`
+- [x] T037 [P] Create `DraftExercise` entity (JPA) với fields: id, sessionId, originalExerciseId, clonedExerciseId, replacementExerciseId, createdAt; `@ManyToOne` relationships tại `backend/src/main/java/com/workoutsmart/domain/draftqueue/DraftExercise.java`
+- [x] T038 [P] Create `DraftExerciseRepository` extends `JpaRepository<DraftExercise, Long>` với query: `findBySessionId(Long sessionId)`, `deleteBySessionId(Long sessionId)` tại `backend/src/main/java/com/workoutsmart/domain/draftqueue/DraftExerciseRepository.java`
+- [x] T039 Create `DraftExerciseService` với methods: `handleExerciseHidden(Long exerciseId)` — find all active plans containing this exercise → for each: create draft clone + find replacement (same muscle_group + body_part, ORDER BY RANDOM() LIMIT 1) → return list of affected users; `cleanupBySession(Long sessionId)` — delete all draft rows for completed session tại `backend/src/main/java/com/workoutsmart/domain/draftqueue/DraftExerciseService.java`
 
 ---
 
@@ -141,12 +141,12 @@
 
 **Purpose**: Hoàn thiện, edge cases, validation, documentation
 
-- [ ] T040 [P] Add Bean Validation (`@Valid`) on all request DTOs and `@NotNull`/`@NotBlank` on required fields. Verify GlobalExceptionHandler (từ 007) xử lý 400/422 đúng tại `backend/src/main/java/com/workoutsmart/dto/`
-- [ ] T041 [P] Handle edge cases: "không có bài tập nào khớp" → 422 + message rõ ràng; "kho bài tập trống" → 422; "tất cả bài bị ẩn" → 422. Add trong `RuleEngineService.generatePlan()` tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/RuleEngineService.java`
-- [ ] T042 [P] Verify OpenAPI spec (`contracts/openapi.yaml`) khớp với controller implementations. Update nếu có endpoint mới/sửa tại `specs/008-workout-plan/contracts/openapi.yaml`
-- [ ] T043 Run quickstart.md validation scenarios: test từng endpoint theo quickstart.md §3 tại `backend/`
-- [ ] T044 [P] Run `mvn test` + jacoco để verify coverage ≥80% cho phần workout plan/exercise/draft queue. Sửa test nếu thiếu coverage tại `backend/`
-- [ ] T045 Update `specs/008-workout-plan/spec.md` status từ Draft thành Ready (nếu tất cả acceptance scenarios đã cover) tại `specs/008-workout-plan/spec.md`
+- [x] T040 [P] Add Bean Validation (`@Valid`) on all request DTOs and `@NotNull`/`@NotBlank` on required fields. Verify GlobalExceptionHandler (từ 007) xử lý 400/422 đúng tại `backend/src/main/java/com/workoutsmart/dto/`
+- [x] T041 [P] Handle edge cases: "không có bài tập nào khớp" → 422 + message rõ ràng; "kho bài tập trống" → 422; "tất cả bài bị ẩn" → 422. Add trong `RuleEngineService.generatePlan()` tại `backend/src/main/java/com/workoutsmart/domain/workoutplan/RuleEngineService.java`
+- [x] T042 [P] Verify OpenAPI spec (`contracts/openapi.yaml`) khớp với controller implementations. Update nếu có endpoint mới/sửa tại `specs/008-workout-plan/contracts/openapi.yaml`
+- [x] T043 Run quickstart.md validation scenarios: test từng endpoint theo quickstart.md §3 tại `backend/`
+- [x] T044 [P] Run `mvn test` + jacoco để verify coverage ≥80% cho phần workout plan/exercise/draft queue. Sửa test nếu thiếu coverage tại `backend/`
+- [x] T045 Update `specs/008-workout-plan/spec.md` status từ Draft thành Ready (nếu tất cả acceptance scenarios đã cover) tại `specs/008-workout-plan/spec.md`
 
 ---
 
