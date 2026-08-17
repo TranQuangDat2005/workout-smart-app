@@ -3,6 +3,10 @@ import { useAuth } from '../context/useAuth';
 import Button from '../components/Button';
 
 const NAV = [
+  { to: '/goal-setup', label: 'Thiết lập mục tiêu' },
+  { to: '/plan', label: 'Lộ trình tập' },
+  { to: '/exercises', label: 'Thư viện bài tập' },
+  { to: '/workout', label: 'Bắt đầu tập' },
   { to: '/profile', label: 'Hồ sơ' },
   { to: '/history', label: 'Lịch sử tập' },
   { to: '/nutrition', label: 'Dinh dưỡng' },
@@ -11,6 +15,8 @@ const NAV = [
   { to: '/friends', label: 'Bạn bè' },
   { to: '/leaderboard', label: 'Bảng xếp hạng' },
   { to: '/stats', label: 'Thống kê' },
+  { to: '/admin/users', label: 'Admin: Users' },
+  { to: '/admin/exercises', label: 'Admin: Exercises' },
 ];
 
 /** Trang chủ tạm — chứng minh auth hoạt động end-to-end. */

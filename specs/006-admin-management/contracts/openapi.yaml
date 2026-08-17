@@ -1,0 +1,76 @@
+openapi: 3.0.3
+info:
+  title: WorkoutSmartApp — Admin API
+  version: 0.1.0
+servers:
+  - url: /api/v1
+paths:
+  /admin/users:
+    get:
+      summary: Tìm kiếm user (email/tên/ID)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Danh sách user
+  /admin/users/{id}:
+    get:
+      summary: Chi tiết user + lịch sử tập
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200": { description: Chi tiết }
+  /admin/users/{id}/ban:
+    post:
+      summary: Khóa tài khoản
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { reason: { type: string } } }
+      responses:
+        "204": { description: Đã khóa }
+  /admin/users/{id}/unban:
+    post:
+      summary: Mở khóa tài khoản
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Đã mở khóa }
+  /admin/exercises:
+    post:
+      summary: Thêm bài tập
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Đã tạo }
+  /admin/exercises/{id}:
+    put:
+      summary: Sửa bài tập
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Đã sửa }
+  /admin/exercises/{id}/status:
+    patch:
+      summary: Ẩn/hiện bài tập
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Đã đổi trạng thái }
+  /admin/exercises/import:
+    post:
+      summary: Import bài tập (upsert)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Báo cáo inserted/updated/skipped }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -22,6 +22,8 @@ import com.workoutsmart.auth.service.TokenService;
 import com.workoutsmart.exercise.entity.Exercise;
 import com.workoutsmart.exercise.repository.ExerciseRepository;
 import com.workoutsmart.plan.service.DraftExerciseService;
+import com.workoutsmart.profile.entity.WorkoutSession;
+import com.workoutsmart.profile.repository.WorkoutSessionRepository;
 import com.workoutsmart.profile.service.ProfileService;
 import java.util.List;
 import java.util.Optional;
@@ -49,13 +51,15 @@ class AdminServiceTest {
     private TokenService tokenService;
     @Mock
     private JwtAuthFilter jwtAuthFilter;
+    @Mock
+    private WorkoutSessionRepository sessionRepository;
 
     private AdminService service;
 
     @BeforeEach
     void setUp() {
         service = new AdminService(userRepository, exerciseRepository, auditLogRepository,
-                draftExerciseService, profileService, tokenService, jwtAuthFilter);
+                draftExerciseService, profileService, tokenService, jwtAuthFilter, sessionRepository);
     }
 
     private User user() {
@@ -64,9 +68,12 @@ class AdminServiceTest {
     }
 
     @Test
-    void banUserRevokesTokensAndAudits() {
+    void banUserRevokesTokensAndInterruptsActiveSessions() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user()));
         when(auditLogRepository.save(any(AuditLog.class))).thenAnswer(i -> i.getArgument(0));
+        when(sessionRepository.findByUserIdAndStatus(1L, "active")).thenReturn(List.of(
+                WorkoutSession.builder().id(10L).userId(1L).status("active").build()));
+        when(sessionRepository.save(any(WorkoutSession.class))).thenAnswer(i -> i.getArgument(0));
 
         service.banUser(1L, "spam", 9L);
 
@@ -74,6 +81,7 @@ class AdminServiceTest {
         verify(tokenService).revokeAll(1L);
         verify(jwtAuthFilter).invalidate(1L);
         verify(auditLogRepository).save(any(AuditLog.class));
+        verify(sessionRepository).save(any(WorkoutSession.class));
     }
 
     @Test

@@ -17,6 +17,8 @@ import com.workoutsmart.exercise.entity.Exercise;
 import com.workoutsmart.exercise.repository.ExerciseRepository;
 import com.workoutsmart.plan.service.DraftExerciseService;
 import com.workoutsmart.profile.dto.WorkoutSessionResponse;
+import com.workoutsmart.profile.entity.WorkoutSession;
+import com.workoutsmart.profile.repository.WorkoutSessionRepository;
 import com.workoutsmart.profile.service.ProfileService;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -39,6 +41,7 @@ public class AdminService {
     private final ProfileService profileService;
     private final TokenService tokenService;
     private final JwtAuthFilter jwtAuthFilter;
+    private final WorkoutSessionRepository sessionRepository;
 
     public AdminService(UserRepository userRepository,
                         ExerciseRepository exerciseRepository,
@@ -46,7 +49,8 @@ public class AdminService {
                         DraftExerciseService draftExerciseService,
                         ProfileService profileService,
                         TokenService tokenService,
-                        JwtAuthFilter jwtAuthFilter) {
+                        JwtAuthFilter jwtAuthFilter,
+                        WorkoutSessionRepository sessionRepository) {
         this.userRepository = userRepository;
         this.exerciseRepository = exerciseRepository;
         this.auditLogRepository = auditLogRepository;
@@ -54,6 +58,7 @@ public class AdminService {
         this.profileService = profileService;
         this.tokenService = tokenService;
         this.jwtAuthFilter = jwtAuthFilter;
+        this.sessionRepository = sessionRepository;
     }
 
     // ---------- User management (UC-18) ----------
@@ -87,6 +92,11 @@ public class AdminService {
         userRepository.save(user);
         tokenService.revokeAll(userId);
         jwtAuthFilter.invalidate(userId);
+        // FR-007 (009): giữ dữ liệu đã ghi, đánh dấu session đang tập thành interrupted
+        sessionRepository.findByUserIdAndStatus(userId, "active").forEach(session -> {
+            session.setStatus("interrupted");
+            sessionRepository.save(session);
+        });
         audit(adminId, "ban_user", "user", userId, reason);
     }
 

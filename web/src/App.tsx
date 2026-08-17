@@ -14,6 +14,12 @@ import BodyMetricsPage from './pages/nutrition/BodyMetricsPage';
 import FriendsPage from './pages/social/FriendsPage';
 import LeaderboardPage from './pages/social/LeaderboardPage';
 import StatsPage from './pages/stats/StatsPage';
+import GoalSetupPage from './pages/plan/GoalSetupPage';
+import PlanPage from './pages/plan/PlanPage';
+import ExerciseSearchPage from './pages/plan/ExerciseSearchPage';
+import WorkoutPage from './pages/tracking/WorkoutPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminExercisesPage from './pages/admin/AdminExercisesPage';
 
 export default function App() {
   return (
@@ -92,6 +98,54 @@ export default function App() {
         element={
           <RequireAuth>
             <StatsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/goal-setup"
+        element={
+          <RequireAuth>
+            <GoalSetupPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/plan"
+        element={
+          <RequireAuth>
+            <PlanPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/exercises"
+        element={
+          <RequireAuth>
+            <ExerciseSearchPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/workout"
+        element={
+          <RequireAuth>
+            <WorkoutPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <RequireAuth>
+            <AdminUsersPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/exercises"
+        element={
+          <RequireAuth>
+            <AdminExercisesPage />
           </RequireAuth>
         }
       />

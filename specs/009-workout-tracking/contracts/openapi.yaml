@@ -1,0 +1,74 @@
+openapi: 3.0.3
+info:
+  title: WorkoutSmartApp — Workout Tracking API
+  version: 0.1.0
+servers:
+  - url: /api/v1
+paths:
+  /workout-sessions:
+    post:
+      summary: Bắt đầu buổi tập
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                planId: { type: integer, format: int64 }
+                startTime: { type: string, format: date-time }
+      responses:
+        "201": { description: Đã tạo session }
+        "409": { description: Còn session active chưa hoàn thành }
+  /workout-sessions/{id}/sets:
+    post:
+      summary: Ghi nhận hiệp (UPSERT)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [setNumber]
+              properties:
+                exerciseId: { type: integer, format: int64 }
+                setNumber: { type: integer }
+                repsCompleted: { type: integer }
+                weightUsed: { type: number }
+                restTimeSeconds: { type: integer }
+      responses:
+        "200": { description: Đã lưu hiệp }
+  /workout-sessions/{id}/focus-interruption:
+    post:
+      summary: Tăng số lần phân tâm
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200": { description: Đã tăng }
+  /workout-sessions/{id}/complete:
+    post:
+      summary: Kết thúc buổi tập
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200": { description: Đã hoàn thành }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
