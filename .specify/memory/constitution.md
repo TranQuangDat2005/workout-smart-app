@@ -2,15 +2,15 @@
 
 <!--
   Sync Impact Report
-  Version change: template → 1.0.0 (khởi tạo)
-  Thay thế toàn bộ nội dung template ban đầu.
-  Nguyên tắc chốt từ: AGENTS.md v1.5.0 + specs/General Spec.md v0.4 + 8 feature specs đã duyệt.
+  Version change: 1.0.0 → 2.0.0
+  Modified principles:
+  - Immutable Tech Stack: PostgreSQL 16 → PostgreSQL 18 (khớp container thực tế đang chạy).
   Templates requiring updates: không.
-  Runtime guidance updated: AGENTS.md (đã đồng bộ ghi chú constitution).
+  Runtime guidance updated: AGENTS.md (đã đồng bộ).
   Follow-up TODOs: không.
 -->
 
-**Version**: 1.0.0
+**Version**: 2.0.0
 **Ratified**: 2026-08-17
 **Last Amended**: 2026-08-17
 **Status**: Active
@@ -47,7 +47,7 @@ Out of scope (`General Spec.md` §9):
 - Backend: Spring Boot 3.3 + Java 17 + Maven (`mvn` / `./mvnw`) — Web API (REST JSON), KHÔNG dùng server-rendered MVC (Thymeleaf/JSP).
 - Web: React 18 + TypeScript (strict) + Vite — SPA gọi REST API; giao diện tuân thủ `DESIGN.md` (theme tối). Không dùng MVC pattern phía web.
 - Mobile: Flutter (Dart) + `flutter_lints`; triển khai SAU web; khi code phải thống nhất MỘT giải pháp state management duy nhất (không trộn nhiều giải pháp).
-- Database: PostgreSQL 16.
+- Database: PostgreSQL 18.
 - ORM: Spring Data JPA / Hibernate. Code ứng dụng KHÔNG dùng raw SQL.
 - Auth: JWT (access token 15 phút + refresh token 7 ngày) + bcrypt.
 - DB migration: Flyway.

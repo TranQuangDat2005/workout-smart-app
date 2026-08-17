@@ -16,7 +16,7 @@ Backend (Spring Boot 3.3) là trái tim của feature này: toàn bộ endpoint 
 
 **Primary Dependencies**: Spring Security, Spring Web, Spring Data JPA, Jakarta Validation, thư viện JWT (jjwt — xem research.md), SendGrid hoặc AWS SES (qua interface EmailService), Flyway, springdoc-openapi
 
-**Storage**: PostgreSQL 16 — bảng `users` (đã có trong General Spec), thêm `otp_verifications`, `refresh_tokens`
+**Storage**: PostgreSQL 18 — bảng `users` (đã có trong General Spec), thêm `otp_verifications`, `refresh_tokens`
 
 **Testing**: JUnit 5 + Mockito (backend ≥80% coverage), Jest + React Testing Library (web), flutter test (mobile)
 

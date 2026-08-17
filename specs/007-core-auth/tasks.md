@@ -15,7 +15,7 @@
 **Purpose**: Khởi tạo 3 project rỗng theo stack constitution §2
 
 - [x] T001 Khởi tạo backend Spring Boot 3.3 + Java 17 + Maven tại `backend/` (pom.xml với spring-boot-starter-web, security, data-jpa, validation, flyway-core, jjwt 0.12.x, springdoc-openapi, postgresql driver, lombok)
-- [x] T002 [P] Tạo `backend/src/main/resources/application.yml` (datasource PostgreSQL 16, JPA, Flyway enable, cấu hình JWT secret/expiry qua env, server port)
+- [x] T002 [P] Tạo `backend/src/main/resources/application.yml` (datasource PostgreSQL 18, JPA, Flyway enable, cấu hình JWT secret/expiry qua env, server port)
 - [x] T003 [P] Khởi tạo web React 18 + TypeScript strict + Vite tại `web/` (eslint, prettier, react-router-dom, axios) — tuân thủ DESIGN.md
 - [ ] T004 [P] [DEFERRED] Khởi tạo mobile Flutter tại `mobile/` — thực hiện SAU khi web hoàn thành
 

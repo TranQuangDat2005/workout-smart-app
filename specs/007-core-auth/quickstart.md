@@ -4,7 +4,7 @@ Hướng dẫn kiểm chứng feature chạy đúng end-to-end. Chi tiết kỹ 
 
 ## Prerequisites
 
-- PostgreSQL 16 chạy local (hoặc docker), đã chạy Flyway migration V1 + V2 (bảng `users`, `otp_verifications`, `refresh_tokens`).
+- PostgreSQL 18 chạy local (hoặc docker), đã chạy Flyway migration V1 + V2 (bảng `users`, `otp_verifications`, `refresh_tokens`).
 - Backend Spring Boot: `cd backend && ./mvnw spring-boot:run`
 - Email: chạy MailHog (dev) hoặc stub `EmailService` ghi OTP ra log để lấy mã trong test.
 - Web: `cd web && npm run dev` · Mobile: `flutter run` (tùy theo client đang kiểm).

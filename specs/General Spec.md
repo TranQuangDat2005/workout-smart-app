@@ -12,7 +12,7 @@
 - 60% người dùng báo cáo rằng họ tập trung hơn nhờ tính năng kiểm soát thời gian nghỉ và nhắc nhở phân tâm.
 
 **Tech context:**
-Stack: React 18 (Web App), Flutter (Mobile App), Spring Boot 3.3, PostgreSQL 16.
+Stack: React 18 (Web App), Flutter (Mobile App), Spring Boot 3.3, PostgreSQL 18.
 Kiến trúc: Backend Spring Boot = Web API (REST JSON thuần, không server-rendered MVC/Thymeleaf); Web = React SPA gọi REST API; Mobile = Flutter gọi cùng REST API. Thứ tự triển khai: Web trước, Flutter sau.
 
 ## 2. Actors & Roles
@@ -89,7 +89,7 @@ Kiến trúc: Backend Spring Boot = Web API (REST JSON thuần, không server-re
 * **Tính sẵn sàng (Offline Cache):** Ứng dụng Flutter cần cache dữ liệu lộ trình tập (Plan) của tuần hiện tại bằng Local Storage (SQLite/SharedPreferences) để người dùng có thể mở app xem bài tập và chạy timer ngay cả khi không có mạng.
 
 ## 5. Data Model
-Sử dụng PostgreSQL 16. Các bảng cốt lõi:
+Sử dụng PostgreSQL 18. Các bảng cốt lõi:
 
 ### Bảng gốc (UC-01 → UC-09, UC-20)
 * **`users`:** `id`, `email`, `password_hash`, `email_verified` (boolean, mặc định false — kích hoạt sau khi xác thực OTP), `role` (user/admin), `goal_type` (weight_loss, muscle_gain, endurance), `fitness_level`, `sex` (male/female), `activity_level` (sedentary/light/moderate/active/very_active), `display_name`, `avatar_url`, `age`, `weight_kg` (snapshot auto-sync từ `body_metrics`), `height_cm`, `account_status` (active/banned/deleted), `created_at`.

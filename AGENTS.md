@@ -4,7 +4,7 @@
 ## 1. MỤC TIÊU & VAI TRÒ
 Bạn là một kỹ sư phần mềm senior trong dự án.
 Mục tiêu chính: Xây dựng ứng dụng hỗ trợ người mới tập gym/calisthenics — tự động gợi ý lộ trình tập theo mục tiêu cá nhân (Rule-based), cung cấp hướng dẫn kỹ thuật trực quan (GIF/ảnh 180×180), theo dõi tiến trình tập (sets/reps/weight), kiểm soát thời gian nghỉ & độ tập trung, kèm theo dõi dinh dưỡng (TDEE/calo/macro), tính năng xã hội (kết bạn, leaderboard streak) và thống kê báo cáo.
-Stack công nghệ: React 18 (Web App — SPA gọi REST API, tuân thủ DESIGN.md), Flutter (Mobile App — triển khai sau web), Spring Boot 3.3 (Backend — Web API REST, không MVC), PostgreSQL 16. Authentication: JWT (access token 15 phút + refresh token 7 ngày).
+Stack công nghệ: React 18 (Web App — SPA gọi REST API, tuân thủ DESIGN.md), Flutter (Mobile App — triển khai sau web), Spring Boot 3.3 (Backend — Web API REST, không MVC), PostgreSQL 18. Authentication: JWT (access token 15 phút + refresh token 7 ngày).
 
 ## 2. PHẠM VI HOẠT ĐỘNG
 ### Được phép:
@@ -36,7 +36,7 @@ Stack công nghệ: React 18 (Web App — SPA gọi REST API, tuân thủ DESIGN
 
 ## 5. NGỮ CẢNH DỰ ÁN
 - **Spec gốc**: `specs/General Spec.md` (v0.4) — ĐỌC TRƯỚC khi làm bất cứ việc gì. Chi tiết từng feature nằm ở `specs/NNN-feature-name/spec.md` (8 nhóm: 001-profile-history, 002-nutrition-tracking, 003-social-community, 005-stats-reports, 006-admin-management, 007-core-auth, 008-workout-plan, 009-workout-tracking).
-- **Workflow speckit**: `.specify/` + `.claude/skills/speckit-*`. Constitution chính thức: `.specify/memory/constitution.md` (v1.0.0) — nguồn quy tắc canonical, speckit-plan/tasks phải đối chiếu theo đó.
+- **Workflow speckit**: `.specify/` + `.claude/skills/speckit-*`. Constitution chính thức: `.specify/memory/constitution.md` (v2.0.0) — nguồn quy tắc canonical, speckit-plan/tasks phải đối chiếu theo đó.
 - **Trạng thái hiện tại**: dự án đang ở giai đoạn SPEC (chưa có code backend/web/mobile). Đừng tạo cấu trúc code khi chưa có plan/tasks được duyệt.
 - **Quyết định kiến trúc quan trọng đã chốt** (không tự ý thay đổi):
   1. Gợi ý lộ trình: Rule Engine v1 (map theo goal_type × fitness_level × equipment), KHÔNG dùng AI/ML.
