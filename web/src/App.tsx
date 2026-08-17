@@ -11,6 +11,8 @@ import WorkoutHistoryPage from './pages/profile/WorkoutHistoryPage';
 import NutritionPage from './pages/nutrition/NutritionPage';
 import FoodLibraryPage from './pages/nutrition/FoodLibraryPage';
 import BodyMetricsPage from './pages/nutrition/BodyMetricsPage';
+import FriendsPage from './pages/social/FriendsPage';
+import LeaderboardPage from './pages/social/LeaderboardPage';
 
 export default function App() {
   return (
@@ -65,6 +67,22 @@ export default function App() {
         element={
           <RequireAuth>
             <BodyMetricsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/friends"
+        element={
+          <RequireAuth>
+            <FriendsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/leaderboard"
+        element={
+          <RequireAuth>
+            <LeaderboardPage />
           </RequireAuth>
         }
       />

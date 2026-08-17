@@ -1,0 +1,100 @@
+openapi: 3.0.3
+info:
+  title: WorkoutSmartApp — Social API
+  version: 0.1.0
+servers:
+  - url: /api/v1
+
+paths:
+  /users/search:
+    get:
+      summary: Tìm user theo tên/email (email chỉ hiện cho bạn bè)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        "200": { description: List UserSearchResponse }
+
+  /friendships:
+    post:
+      summary: Gửi lời mời kết bạn (max 5/ngày; chéo → auto accept)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [targetUserId], properties: { targetUserId: { type: integer } } }
+      responses:
+        "201": { description: FriendshipResponse }
+        "409": { description: Đã là bạn / đang pending }
+        "422": { description: Kết bạn chính mình }
+        "429": { description: Rate limit / cooldown từ chối }
+
+  /friendships/pending:
+    get:
+      summary: Lời mời đang chờ tôi
+      responses: { "200": { description: List FriendshipResponse } }
+
+  /friendships/{id}/accept:
+    post:
+      summary: Chấp nhận (chỉ người nhận)
+      responses: { "200": { description: OK }, "422": { description: Không phải người nhận } }
+
+  /friendships/{id}/reject:
+    post:
+      summary: Từ chối (chỉ người nhận)
+      responses: { "200": { description: OK }, "422": { description: Không phải người nhận } }
+
+  /friendships/{id}:
+    delete:
+      summary: Hủy kết bạn
+      responses: { "200": { description: OK }, "422": { description: Không phải quan hệ accepted } }
+
+  /friends:
+    get:
+      summary: Danh sách bạn bè
+      responses: { "200": { description: List FriendshipResponse } }
+
+  /feed:
+    get:
+      summary: Feed hoạt động bạn bè (50 gần nhất)
+      responses: { "200": { description: List FeedItemResponse } }
+
+  /leaderboard:
+    get:
+      summary: Bảng xếp hạng streak (kỳ thi vô tận, top 100)
+      responses: { "200": { description: List LeaderboardResponse } }
+
+  /challenges:
+    get:
+      summary: Thử thách đang mở
+      responses: { "200": { description: List ChallengeResponse } }
+    post:
+      summary: Tạo thử thách (chỉ Admin)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, durationDays]
+              properties:
+                name: { type: string }
+                goalType: { type: string }
+                durationDays: { type: integer, minimum: 1 }
+                startDate: { type: string, format: date }
+      responses:
+        "201": { description: ChallengeResponse }
+        "403": { description: Không phải Admin }
+
+  /challenges/mine:
+    get:
+      summary: Thử thách tôi đã tham gia
+      responses: { "200": { description: List ChallengeResponse } }
+
+  /challenges/{id}/join:
+    post:
+      summary: Tham gia thử thách
+      responses:
+        "200": { description: OK }
+        "404": { description: Không tồn tại }
+        "422": { description: Đã tham gia / không còn mở }
