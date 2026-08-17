@@ -1,0 +1,237 @@
+openapi: 3.0.3
+info:
+  title: WorkoutSmartApp — Auth API
+  version: 0.1.0
+  description: >
+    Endpoint xác thực cho feature 007-core-auth. Quy ước lỗi theo constitution §3:
+    400 validation, 401 chưa xác thực, 403 bị ban/chưa verify, 409 xung đột,
+    422 vi phạm nghiệp vụ, 429 rate limit.
+servers:
+  - url: /api/v1
+
+paths:
+  /auth/register:
+    post:
+      summary: Đăng ký tài khoản (FR-001..FR-003)
+      description: >
+        Tạo tài khoản trạng thái chờ xác thực (email_verified=false) và gửi OTP qua email.
+        Nếu email thuộc tài khoản soft-delete <30 ngày → gửi OTP purpose=restore (FR-010).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                  description: "≥8 ký tự, ≥1 hoa, ≥1 thường, ≥1 số"
+      responses:
+        "201":
+          description: Tài khoản chờ xác thực đã tạo; OTP đã gửi
+        "400":
+          description: Email/password không hợp lệ
+        "409":
+          description: Email đã tồn tại (account active/banned)
+        "429":
+          description: Vượt rate limit
+
+  /auth/verify-otp:
+    post:
+      summary: Xác thực OTP (FR-004, FR-010)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email:
+                  type: string
+                  format: email
+                code:
+                  type: string
+                  pattern: '^\d{6}$'
+      responses:
+        "200":
+          description: >
+            Kích hoạt tài khoản (email_verified=true). Nếu purpose=restore →
+            trả trạng thái yêu cầu đặt mật khẩu mới (bước tiếp theo).
+        "400":
+          description: OTP sai/hết hạn/quá số lần thử
+        "404":
+          description: Không có OTP pending cho email
+        "422":
+          description: Tài khoản không ở trạng thái chờ xác thực
+
+  /auth/resend-otp:
+    post:
+      summary: Gửi lại OTP (cooldown 60s, ≤3 lần/giờ)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: OTP mới đã gửi
+        "429":
+          description: Cooldown/rate limit
+
+  /auth/login:
+    post:
+      summary: Đăng nhập (FR-005, FR-006)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Cấp access token (15 phút) + refresh token (7 ngày)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+                  expiresInSeconds:
+                    type: integer
+                    example: 900
+        "401":
+          description: Sai email/mật khẩu (thông báo chung, không tiết lộ trường nào sai)
+        "403":
+          description: Tài khoản chưa xác thực email hoặc đã bị khóa
+        "429":
+          description: Quá số lần thử sai (khóa tạm 15 phút)
+
+  /auth/refresh:
+    post:
+      summary: Silent refresh (FR-008, FR-009)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        "200":
+          description: Cặp token mới (rotation — token cũ bị revoke)
+        "401":
+          description: Refresh token hết hạn/đã revoke → client phải đăng nhập lại
+
+  /auth/logout:
+    post:
+      summary: Đăng xuất — revoke refresh token hiện tại
+      responses:
+        "204":
+          description: Revoked
+
+  /auth/forgot-password:
+    post:
+      summary: Quên mật khẩu (FR-007) — gửi OTP reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: >
+            Luôn trả 200 (không tiết lộ email có tồn tại). Chỉ gửi OTP khi email tồn tại
+            và account active.
+        "429":
+          description: Rate limit
+
+  /auth/reset-password:
+    post:
+      summary: Đặt lại mật khẩu (FR-007)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code, newPassword]
+              properties:
+                email:
+                  type: string
+                code:
+                  type: string
+                  pattern: '^\d{6}$'
+                newPassword:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: Mật khẩu đã cập nhật
+        "400":
+          description: OTP sai/hết hạn hoặc mật khẩu yếu
+
+  /auth/restore-password:
+    post:
+      summary: Đặt mật khẩu mới khi khôi phục tài khoản soft-delete (FR-010)
+      description: >
+        Sau khi verify OTP purpose=restore, user đặt mật khẩu mới →
+        account_status chuyển về active, giữ nguyên toàn bộ dữ liệu liên kết.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code, newPassword]
+              properties:
+                email:
+                  type: string
+                code:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: Tài khoản đã khôi phục và kích hoạt
+        "400":
+          description: OTP sai/hết hạn hoặc mật khẩu yếu
+        "422":
+          description: Email không ở trạng thái soft-delete
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

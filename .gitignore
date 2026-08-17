@@ -1,0 +1,19 @@
+# Backend
+backend/target/
+
+# Web
+web/node_modules/
+web/dist/
+
+# Mobile (sẽ thêm khi khởi tạo)
+mobile/build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Secrets (constitution §5)
+.env
+*.secret
+credentials/

@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: workoutsmart-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/workoutsmart}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+  error:
+    include-stacktrace: never
+
+app:
+  jwt:
+    # Bắt buộc set qua biến môi trường. KHÔNG commit giá trị thật (constitution §5).
+    secret: ${JWT_SECRET:}
+    access-expiry-minutes: 15
+    refresh-expiry-days: 7
+  email:
+    # log = ghi OTP ra log (dev); sendgrid = gửi qua SendGrid API (production)
+    provider: ${EMAIL_PROVIDER:log}
+    sendgrid-api-key: ${SENDGRID_API_KEY:}
+    from-address: ${EMAIL_FROM:noreply@workoutsmart.app}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

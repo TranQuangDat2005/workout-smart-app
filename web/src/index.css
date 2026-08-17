@@ -1,0 +1,76 @@
+/* Design tokens — tuân thủ DESIGN.md (Spotify-inspired dark theme) */
+
+:root {
+  /* Primary brand */
+  --green: #1ed760;
+  --green-border: #1db954;
+  --near-black: #121212;
+  --dark-surface: #181818;
+  --mid-dark: #1f1f1f;
+  --dark-card: #252525;
+
+  /* Text */
+  --text-base: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #cbcbcb;
+
+  /* Semantic */
+  --text-negative: #f3727f;
+  --text-warning: #ffa42b;
+  --text-announcement: #539df5;
+
+  /* Borders */
+  --border-dark: #4d4d4d;
+  --border-light: #7c7c7c;
+
+  /* Shadows */
+  --shadow-heavy: rgba(0, 0, 0, 0.5) 0px 8px 24px;
+  --shadow-medium: rgba(0, 0, 0, 0.3) 0px 8px 8px;
+
+  /* Radius */
+  --radius-card: 8px;
+  --radius-pill: 500px;
+  --radius-full: 9999px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--near-black);
+  color: var(--text-base);
+  font-family:
+    'SpotifyMixUI',
+    'CircularSp-Arab',
+    'CircularSp-Hebr',
+    'Helvetica Neue',
+    helvetica,
+    arial,
+    'Hiragino Sans',
+    'Hiragino Kaku Gothic ProN',
+    Meiryo,
+    'MS Gothic',
+    sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-base);
+}
+
+a {
+  color: var(--text-base);
+  text-decoration: none;
+}
