@@ -8,9 +8,14 @@ import com.workoutsmart.profile.repository.WorkoutSetRepository;
 import com.workoutsmart.tracking.dto.RecordSetRequest;
 import com.workoutsmart.tracking.dto.SessionResponse;
 import com.workoutsmart.tracking.dto.SetResponse;
+import com.workoutsmart.tracking.dto.SyncRequest;
+import com.workoutsmart.tracking.dto.SyncResponse;
+import com.workoutsmart.tracking.dto.SyncSessionRequest;
+import com.workoutsmart.tracking.dto.SyncSetRequest;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -83,6 +88,59 @@ public class TrackingService {
                     s.setStatus("expired");
                     sessionRepository.save(s);
                 });
+    }
+
+    /** FR-009 (009): sync offline session/set — UPSERT + LWW theo client_timestamp, reject session đã hết hạn. */
+    @Transactional
+    public SyncResponse sync(Long userId, SyncRequest request) {
+        List<Long> rejectedSetIds = new ArrayList<>();
+        int acceptedSessions = 0;
+        int acceptedSets = 0;
+        LocalDate today = LocalDate.now();
+
+        for (SyncSessionRequest syncSession : request.sessions()) {
+            WorkoutSession session;
+            if (syncSession.serverSessionId() != null) {
+                session = sessionRepository.findById(syncSession.serverSessionId())
+                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Buổi tập không tồn tại"));
+                if (!session.getUserId().equals(userId)) {
+                    throw new ApiException(HttpStatus.NOT_FOUND, "Buổi tập không tồn tại");
+                }
+                if (session.getStartTime() != null
+                        && session.getStartTime().atZone(ZoneId.systemDefault()).toLocalDate().isBefore(today)) {
+                    syncSession.sets().forEach(s -> rejectedSetIds.add(s.setNumber().longValue()));
+                    continue;
+                }
+            } else {
+                session = sessionRepository.save(WorkoutSession.builder()
+                        .userId(userId)
+                        .planId(syncSession.planId())
+                        .status("active")
+                        .startTime(syncSession.startTime() != null ? syncSession.startTime() : Instant.now())
+                        .build());
+                acceptedSessions++;
+            }
+
+            for (SyncSetRequest setReq : syncSession.sets()) {
+                WorkoutSet set = setRepository.findBySessionIdAndSetNumber(session.getId(), setReq.setNumber())
+                        .orElse(null);
+                if (set != null && set.getClientTimestamp() != null && setReq.clientTimestamp() != null
+                        && set.getClientTimestamp().isAfter(setReq.clientTimestamp())) {
+                    continue; // LWW: bản ghi hiện có mới hơn thắng
+                }
+                if (set == null) {
+                    set = WorkoutSet.builder().sessionId(session.getId()).setNumber(setReq.setNumber()).build();
+                }
+                set.setExerciseId(setReq.exerciseId());
+                set.setRepsCompleted(setReq.repsCompleted());
+                set.setWeightUsed(setReq.weightUsed());
+                set.setRestTimeSeconds(setReq.restTimeSeconds());
+                set.setClientTimestamp(setReq.clientTimestamp());
+                setRepository.save(set);
+                acceptedSets++;
+            }
+        }
+        return new SyncResponse(acceptedSessions, acceptedSets, rejectedSetIds);
     }
 
     private WorkoutSession requireOwnedActiveSession(Long userId, Long sessionId) {

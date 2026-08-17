@@ -4,6 +4,8 @@ import com.workoutsmart.tracking.dto.RecordSetRequest;
 import com.workoutsmart.tracking.dto.SessionResponse;
 import com.workoutsmart.tracking.dto.SetResponse;
 import com.workoutsmart.tracking.dto.StartSessionRequest;
+import com.workoutsmart.tracking.dto.SyncRequest;
+import com.workoutsmart.tracking.dto.SyncResponse;
 import com.workoutsmart.tracking.service.TrackingService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -45,6 +47,11 @@ public class TrackingController {
     @PostMapping("/{id}/focus-interruption")
     public SessionResponse incrementFocus(Authentication auth, @PathVariable Long id) {
         return trackingService.incrementFocus(currentUserId(auth), id);
+    }
+
+    @PostMapping("/sync")
+    public SyncResponse sync(Authentication auth, @Valid @RequestBody SyncRequest request) {
+        return trackingService.sync(currentUserId(auth), request);
     }
 
     private Long currentUserId(Authentication auth) {

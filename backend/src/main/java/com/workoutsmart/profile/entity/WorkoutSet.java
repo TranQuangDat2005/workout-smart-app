@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -43,4 +44,7 @@ public class WorkoutSet {
 
     @Column(name = "rest_time_seconds")
     private Integer restTimeSeconds;
+
+    @Column(name = "client_timestamp")
+    private Instant clientTimestamp;
 }

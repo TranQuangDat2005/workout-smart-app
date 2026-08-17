@@ -13,7 +13,13 @@ import com.workoutsmart.profile.repository.WorkoutSetRepository;
 import com.workoutsmart.tracking.dto.RecordSetRequest;
 import com.workoutsmart.tracking.dto.SessionResponse;
 import com.workoutsmart.tracking.dto.SetResponse;
+import com.workoutsmart.tracking.dto.SyncRequest;
+import com.workoutsmart.tracking.dto.SyncResponse;
+import com.workoutsmart.tracking.dto.SyncSessionRequest;
+import com.workoutsmart.tracking.dto.SyncSetRequest;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -107,5 +113,35 @@ class TrackingServiceTest {
         SessionResponse res = service.incrementFocus(1L, 10L);
 
         assertEquals(1, res.focusInterruptionsCount());
+    }
+
+    @Test
+    void syncRejectsExpiredSession() {
+        WorkoutSession expired = WorkoutSession.builder().id(10L).userId(1L).status("expired")
+                .startTime(Instant.now().minus(2, ChronoUnit.DAYS)).build();
+        when(sessionRepository.findById(10L)).thenReturn(Optional.of(expired));
+
+        SyncResponse res = service.sync(1L, new SyncRequest(List.of(new SyncSessionRequest(10L, null, null, List.of(
+                new SyncSetRequest(null, 1, 10, null, null, Instant.now()))))));
+
+        assertEquals(0, res.acceptedSets());
+        assertEquals(1, res.rejectedSetIds().size());
+    }
+
+    @Test
+    void syncCreatesNewSessionAndSets() {
+        when(sessionRepository.save(any(WorkoutSession.class))).thenAnswer(i -> {
+            WorkoutSession s = i.getArgument(0);
+            s.setId(100L);
+            return s;
+        });
+        when(setRepository.findBySessionIdAndSetNumber(100L, 1)).thenReturn(Optional.empty());
+        when(setRepository.save(any(WorkoutSet.class))).thenAnswer(i -> i.getArgument(0));
+
+        SyncResponse res = service.sync(1L, new SyncRequest(List.of(new SyncSessionRequest(null, null, Instant.now(), List.of(
+                new SyncSetRequest(null, 1, 10, null, null, Instant.now()))))));
+
+        assertEquals(1, res.acceptedSessions());
+        assertEquals(1, res.acceptedSets());
     }
 }
