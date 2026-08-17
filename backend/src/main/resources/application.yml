@@ -2,6 +2,10 @@ spring:
   application:
     name: workoutsmart-backend
 
+  config:
+    # Đọc file .env nếu tồn tại (bỏ qua khi không có) — format .properties
+    import: optional:file:.env[.properties]
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/workoutsmart}
     username: ${DB_USERNAME:postgres}

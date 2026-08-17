@@ -1,0 +1,169 @@
+================================================================================
+WORKOUTSMARTAPP — API DOCUMENTATION
+================================================================================
+Version: 0.1.0 | Date: 2026-08-17 | Base URL: http://localhost:8080/api/v1
+
+Quy ước chung:
+- Auth: JWT Bearer token (access 15 phút, refresh 7 ngày)
+- Content-Type: application/json
+- Status code chuẩn: 400 validation | 401 chưa xác thực | 403 bị ban/chưa
+  verify | 404 không tồn tại | 409 xung đột | 422 vi phạm nghiệp vụ | 429 rate limit
+- Lỗi trả về JSON: { timestamp, status, error, message, fields? }
+
+================================================================================
+PHẦN 1 — API ĐÃ TRIỂN KHAI (backend/src/main/java)
+================================================================================
+
+--------------------------------------------------------------------------------
+1. HEALTH CHECK
+--------------------------------------------------------------------------------
+GET /api/v1/health
+  Mô tả    : Kiểm tra server sống. KHÔNG cần auth.
+  Response : 200 {"status":"UP"}
+
+--------------------------------------------------------------------------------
+2. AUTH — ĐĂNG KÝ
+--------------------------------------------------------------------------------
+POST /api/v1/auth/register
+  Mô tả    : Tạo tài khoản chờ xác thực + gửi OTP qua email.
+             Nếu email thuộc tài khoản soft-delete (<30 ngày) -> gửi OTP khôi phục.
+  Body     : { "email": "string", "password": "string" }
+             (password: >=8 ký tự, gồm hoa + thường + số)
+  Response : 201 {"message": "..."}       - thành công
+             400 {"fields": {...}}        - email/password sai định dạng
+             409 {"message": "Email đã tồn tại"}
+             429                            - rate limit
+
+POST /api/v1/auth/verify-otp
+  Mô tả    : Xác thực mã OTP (đăng ký hoặc khôi phục).
+  Body     : { "email": "string", "code": "6 chữ số" }
+  Response : 200 {"verified": bool, "restoreRequired": bool, "message": "..."}
+             restoreRequired=true -> chuyển sang bước đặt mật khẩu mới (restore-password)
+             400                            - OTP sai/hết hạn/quá số lần thử
+
+POST /api/v1/auth/resend-otp
+  Mô tả    : Gửi lại OTP (cooldown 60 giây, tối đa 3 lần/giờ).
+  Body     : { "email": "string" }
+  Response : 200 {"message": "..."}
+             404                            - không có yêu cầu xác thực cho email
+             429                            - cooldown/rate limit
+
+--------------------------------------------------------------------------------
+3. AUTH — ĐĂNG NHẬP & PHIÊN
+--------------------------------------------------------------------------------
+POST /api/v1/auth/login
+  Mô tả    : Đăng nhập, cấp access + refresh token.
+  Body     : { "email": "string", "password": "string" }
+  Response : 200 {"accessToken": "...", "refreshToken": "...", "expiresInSeconds": 900}
+             401                            - sai email/mật khẩu
+             403                            - chưa verify email hoặc bị ban
+             429                            - quá 5 lần sai/15 phút
+
+POST /api/v1/auth/refresh
+  Mô tả    : Silent refresh — đổi refresh token lấy cặp token mới (rotation).
+  Body     : { "refreshToken": "string" }
+  Response : 200 {"accessToken": "...", "refreshToken": "...", "expiresInSeconds": 900}
+             401                            - token hết hạn/đã revoke
+
+POST /api/v1/auth/logout
+  Mô tả    : Revoke refresh token hiện tại.
+  Body     : { "refreshToken": "string" }
+  Response : 204 (no content)
+
+--------------------------------------------------------------------------------
+4. AUTH — QUÊN MẬT KHẨU
+--------------------------------------------------------------------------------
+POST /api/v1/auth/forgot-password
+  Mô tả    : Gửi OTP đặt lại mật khẩu. LUÔN trả 200 (không lộ email tồn tại).
+  Body     : { "email": "string" }
+  Response : 200 {"message": "Nếu email tồn tại, mã đặt lại mật khẩu đã được gửi."}
+
+POST /api/v1/auth/reset-password
+  Mô tả    : Đặt lại mật khẩu bằng OTP. Revoke mọi phiên cũ.
+  Body     : { "email": "string", "code": "6 chữ số", "newPassword": "string" }
+  Response : 200 {"message": "..."}
+             400                            - OTP sai/hết hạn hoặc mật khẩu yếu
+
+POST /api/v1/auth/restore-password
+  Mô tả    : Khôi phục tài khoản soft-delete: đặt mật khẩu mới -> kích hoạt lại.
+  Body     : { "email": "string", "code": "6 chữ số", "newPassword": "string" }
+  Response : 200 {"message": "..."}
+             400                            - OTP sai/hết hạn hoặc mật khẩu yếu
+             422                            - tài khoản không ở trạng thái soft-delete
+
+--------------------------------------------------------------------------------
+5. SWAGGER UI (tài liệu tự động)
+--------------------------------------------------------------------------------
+GET /swagger-ui.html            - giao diện Swagger UI
+GET /v3/api-docs                - OpenAPI spec dạng JSON (tự sinh từ code)
+
+================================================================================
+PHẦN 2 — API DỰ KIẾN (từ spec, CHƯA TRIỂN KHAI)
+================================================================================
+Ghi chú: các nhóm dưới đây đã có spec (specs/NNN-*/spec.md) nhưng chưa có
+endpoint contract chi tiết. Liệt kê theo nhóm chức năng dự kiến.
+
+[001-profile-history] Hồ sơ & Lịch sử tập
+  - GET    /api/v1/profile                    - xem hồ sơ cá nhân
+  - PUT    /api/v1/profile                    - sửa hồ sơ (tên, ảnh, tuổi, chiều cao, mục tiêu)
+  - DELETE /api/v1/account                    - xóa tài khoản (soft-delete 30 ngày)
+  - GET    /api/v1/workout-sessions           - lịch sử buổi tập (phân trang 20/trang)
+  - GET    /api/v1/workout-sessions/{id}      - chi tiết 1 buổi tập (từng hiệp)
+
+[002-nutrition-tracking] Dinh dưỡng & Calories
+  - POST   /api/v1/meals                      - ghi nhận bữa ăn (nhiều món)
+  - PUT    /api/v1/meals/{id}                 - sửa bữa ăn (không xóa)
+  - GET    /api/v1/foods                      - tìm kiếm thực phẩm (kho chung + kho cá nhân)
+  - POST   /api/v1/foods                      - tạo thực phẩm custom (kho cá nhân)
+  - PUT/DELETE /api/v1/foods/{id}             - sửa/xóa thực phẩm custom
+  - POST   /api/v1/body-metrics               - cập nhật chỉ số cơ thể
+  - GET    /api/v1/body-metrics               - lịch sử chỉ số cơ thể
+
+[003-social-community] Xã hội & Cộng đồng
+  - GET    /api/v1/users/search               - tìm kiếm người dùng
+  - POST   /api/v1/friendships                - gửi lời mời kết bạn (max 5/ngày)
+  - POST   /api/v1/friendships/{id}/accept    - chấp nhận lời mời
+  - POST   /api/v1/friendships/{id}/reject    - từ chối lời mời
+  - DELETE /api/v1/friendships/{id}           - hủy kết bạn
+  - GET    /api/v1/feed                       - feed hoạt động bạn bè
+  - GET    /api/v1/leaderboard                - bảng xếp hạng streak (vô tận)
+  - GET    /api/v1/challenges                 - danh sách thử thách
+  - POST   /api/v1/challenges/{id}/join       - tham gia thử thách
+
+[005-stats-reports] Thống kê & Báo cáo
+  - GET    /api/v1/stats/dashboard            - tổng hợp biểu đồ (cân nặng, volume,
+                                               streak, hoàn thành plan, calo)
+  - GET    /api/v1/stats/dashboard?range=7d|30d|90d|custom - lọc theo khoảng thời gian
+
+[006-admin-management] Quản trị hệ thống
+  - GET    /api/v1/admin/users                - tìm kiếm user (email/tên/ID)
+  - GET    /api/v1/admin/users/{id}           - chi tiết hồ sơ + lịch sử tập
+  - POST   /api/v1/admin/users/{id}/ban       - khóa tài khoản (kèm lý do)
+  - POST   /api/v1/admin/users/{id}/unban     - mở khóa tài khoản
+  - POST   /api/v1/admin/exercises            - thêm bài tập
+  - PUT    /api/v1/admin/exercises/{id}       - sửa bài tập
+  - POST   /api/v1/admin/exercises/{id}/hide  - ẩn bài tập
+  - POST   /api/v1/admin/import               - import bulk 1324 bài tập (upsert)
+
+[008-workout-plan] Lộ trình tập
+  - POST   /api/v1/goals                      - thiết lập mục tiêu (goal_type, equipment)
+  - POST   /api/v1/workout-plans/generate     - sinh lộ trình rule-based
+  - GET    /api/v1/workout-plans/active       - xem lộ trình tuần hiện tại
+  - GET    /api/v1/exercises/{id}             - chi tiết bài tập (GIF, thumbnail, hướng dẫn)
+  - GET    /api/v1/exercises?equipment=...    - tìm kiếm bài tập theo thiết bị
+
+[009-workout-tracking] Theo dõi buổi tập
+  - POST   /api/v1/workout-sessions/start     - bắt đầu buổi tập
+  - POST   /api/v1/workout-sessions/{id}/sets - ghi nhận hiệp (reps, weight) + tự động
+                                               bắt đầu rest timer
+  - POST   /api/v1/workout-sessions/{id}/finish - kết thúc buổi tập
+  - (client-side: focus detection + rest timer chạy trên app, chỉ sync dữ liệu)
+
+================================================================================
+GHI CHÚ
+================================================================================
+- Phần 1: endpoint đã code và test (46 tests pass) trong backend.
+- Phần 2: đường dẫn chỉ là DỰ KIẾN dựa trên spec — sẽ được chốt chính thức
+  trong contracts/openapi.yaml của từng feature khi triển khai.
+- Nguồn tham chiếu chính xác nhất của phần 1:
+  specs/007-core-auth/contracts/openapi.yaml
