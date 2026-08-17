@@ -10,6 +10,8 @@ public interface MealLogRepository extends JpaRepository<MealLog, Long> {
 
     List<MealLog> findByUserIdAndLogDateOrderByMealNumberAsc(Long userId, LocalDate logDate);
 
+    List<MealLog> findByUserIdAndLogDateBetween(Long userId, LocalDate from, LocalDate to);
+
     Optional<MealLog> findByUserIdAndLogDateAndMealNumber(Long userId, LocalDate logDate, int mealNumber);
 
     List<MealLog> findByLogDateBefore(LocalDate date);

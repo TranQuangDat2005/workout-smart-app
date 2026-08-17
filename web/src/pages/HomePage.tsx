@@ -1,5 +1,17 @@
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import Button from '../components/Button';
+
+const NAV = [
+  { to: '/profile', label: 'Hồ sơ' },
+  { to: '/history', label: 'Lịch sử tập' },
+  { to: '/nutrition', label: 'Dinh dưỡng' },
+  { to: '/foods', label: 'Kho thực phẩm' },
+  { to: '/body-metrics', label: 'Chỉ số cơ thể' },
+  { to: '/friends', label: 'Bạn bè' },
+  { to: '/leaderboard', label: 'Bảng xếp hạng' },
+  { to: '/stats', label: 'Thống kê' },
+];
 
 /** Trang chủ tạm — chứng minh auth hoạt động end-to-end. */
 export default function HomePage() {
@@ -34,6 +46,27 @@ export default function HomePage() {
       </span>
       <h1>Chào mừng đến WorkoutSmartApp</h1>
       <p style={{ color: 'var(--text-secondary)' }}>Bạn đã đăng nhập thành công.</p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, maxWidth: 560, justifyContent: 'center' }}>
+        {NAV.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            style={{
+              background: 'var(--dark-surface)',
+              color: 'var(--text-base)',
+              borderRadius: 9999,
+              padding: '10px 18px',
+              fontSize: 13,
+              fontWeight: 700,
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              textDecoration: 'none',
+            }}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>
       <Button variant="dark" onClick={logout}>
         Đăng xuất
       </Button>

@@ -13,6 +13,7 @@ import FoodLibraryPage from './pages/nutrition/FoodLibraryPage';
 import BodyMetricsPage from './pages/nutrition/BodyMetricsPage';
 import FriendsPage from './pages/social/FriendsPage';
 import LeaderboardPage from './pages/social/LeaderboardPage';
+import StatsPage from './pages/stats/StatsPage';
 
 export default function App() {
   return (
@@ -83,6 +84,14 @@ export default function App() {
         element={
           <RequireAuth>
             <LeaderboardPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/stats"
+        element={
+          <RequireAuth>
+            <StatsPage />
           </RequireAuth>
         }
       />

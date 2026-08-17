@@ -1,0 +1,104 @@
+openapi: 3.0.3
+info:
+  title: WorkoutSmartApp — Stats & Reports API (005)
+  version: 1.0.0
+paths:
+  /api/v1/stats/dashboard:
+    get:
+      summary: Lấy dashboard thống kê của người dùng hiện tại (UC-17)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Ngày bắt đầu (mặc định: 30 ngày trước)
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Ngày kết thúc (mặc định: hôm nay)
+      responses:
+        '200':
+          description: Dashboard thống kê
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsDashboardResponse'
+        '401':
+          description: Thiếu/hết hạn token
+        '422':
+          description: Khoảng thời gian không hợp lệ (from > to hoặc > 366 ngày)
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    WeightPoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        weightKg:
+          type: number
+    VolumePoint:
+      type: object
+      properties:
+        weekStart:
+          type: string
+          format: date
+        totalKg:
+          type: number
+    StreakStats:
+      type: object
+      properties:
+        currentStreakWeeks:
+          type: integer
+        longestStreakWeeks:
+          type: integer
+    PlanCompletion:
+      type: object
+      properties:
+        completedSessions:
+          type: integer
+        plannedDays:
+          type: integer
+        completionPct:
+          type: number
+    CaloriePoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        caloriesIn:
+          type: number
+        caloriesBurned:
+          type: number
+    StatsDashboardResponse:
+      type: object
+      properties:
+        weight:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeightPoint'
+        volume:
+          type: array
+          items:
+            $ref: '#/components/schemas/VolumePoint'
+        streak:
+          $ref: '#/components/schemas/StreakStats'
+        planCompletion:
+          $ref: '#/components/schemas/PlanCompletion'
+        calories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CaloriePoint'
