@@ -1,5 +1,6 @@
 package com.workoutsmart.admin.service;
 
+import com.workoutsmart.admin.dto.AdminExerciseResponse;
 import com.workoutsmart.admin.dto.AdminUserDetailResponse;
 import com.workoutsmart.admin.dto.AdminUserResponse;
 import com.workoutsmart.admin.dto.CreateExerciseRequest;
@@ -26,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -110,6 +113,19 @@ public class AdminService {
     }
 
     // ---------- Exercise management (UC-19) ----------
+
+    public List<AdminExerciseResponse> listExercises(String q) {
+        Specification<Exercise> spec = (root, cq, cb) -> cb.conjunction();
+        if (q != null && !q.isBlank()) {
+            String like = "%" + q.toLowerCase() + "%";
+            spec = (root, cq, cb) -> cb.like(cb.lower(root.get("name")), like);
+        }
+        return exerciseRepository.findAll(spec, Sort.by("id")).stream()
+                .limit(200)
+                .map(e -> new AdminExerciseResponse(e.getId(), e.getName(), e.getEquipment(),
+                        e.getMuscleGroup(), e.getStatus()))
+                .toList();
+    }
 
     @Transactional
     public Exercise createExercise(CreateExerciseRequest request, Long adminId) {

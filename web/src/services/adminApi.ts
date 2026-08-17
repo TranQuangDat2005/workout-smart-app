@@ -34,6 +34,14 @@ export interface ExerciseInput {
   instructions?: string;
 }
 
+export interface AdminExercise {
+  id: number;
+  name: string;
+  equipment: string | null;
+  muscleGroup: string | null;
+  status: string;
+}
+
 export const adminApi = {
   searchUsers: (q: string) => client.get<AdminUser[]>(`/admin/users?q=${encodeURIComponent(q)}`).then((r) => r.data),
 
@@ -53,4 +61,7 @@ export const adminApi = {
 
   setExerciseStatus: (id: number, status: 'active' | 'inactive', reason?: string) =>
     client.patch(`/admin/exercises/${id}/status`, { status, reason }).then((r) => r.data),
+
+  listExercises: (q: string) =>
+    client.get<AdminExercise[]>(`/admin/exercises?q=${encodeURIComponent(q)}`).then((r) => r.data),
 };

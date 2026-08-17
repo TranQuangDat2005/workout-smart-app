@@ -18,3 +18,4 @@ app:
     refresh-expiry-days: 7
   email:
     provider: log
+  exercises-dataset-path: ""

@@ -1,5 +1,6 @@
 package com.workoutsmart.admin.controller;
 
+import com.workoutsmart.admin.dto.AdminExerciseResponse;
 import com.workoutsmart.admin.dto.AdminUserDetailResponse;
 import com.workoutsmart.admin.dto.AdminUserResponse;
 import com.workoutsmart.admin.dto.BanUserRequest;
@@ -58,6 +59,11 @@ public class AdminController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unbanUser(Authentication auth, @PathVariable Long id) {
         adminService.unbanUser(id, (Long) auth.getPrincipal());
+    }
+
+    @GetMapping("/exercises")
+    public List<AdminExerciseResponse> listExercises(@RequestParam(defaultValue = "") String q) {
+        return adminService.listExercises(q);
     }
 
     @PostMapping("/exercises")
