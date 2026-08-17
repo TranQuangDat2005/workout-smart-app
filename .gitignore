@@ -4,6 +4,7 @@ backend/target/
 # Web
 web/node_modules/
 web/dist/
+web/*.tsbuildinfo
 
 # Mobile (sẽ thêm khi khởi tạo)
 mobile/build/
