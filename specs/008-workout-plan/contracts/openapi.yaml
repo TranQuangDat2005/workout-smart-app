@@ -1,0 +1,321 @@
+openapi: 3.0.3
+info:
+  title: WorkoutSmartApp — Workout Plan API
+  version: 0.1.0
+  description: >
+    Endpoint cho feature 008-workout-plan: thiết lập mục tiêu, tạo lộ trình tập
+    (Rule Engine v1), xem chi tiết bài tập, tìm kiếm bài tập. Quy ước lỗi
+    theo constitution §3: 400 validation, 401 chưa xác thực, 403 bị ban,
+    404 not found, 422 vi phạm nghiệp vụ.
+servers:
+  - url: /api/v1
+
+paths:
+  /users/me/goals:
+    put:
+      summary: Thiết lập mục tiêu cá nhân (FR-001, FR-002, FR-005)
+      description: >
+        Lưu goal_type, fitness_level, equipment vào profile user.
+        Nếu đã có goal → cảnh báo archive plan cũ và cho chọn effectiveDate.
+        Sau khi lưu → tự động trigger Rule Engine tạo plan mới.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [goalType, fitnessLevel, equipment]
+              properties:
+                goalType:
+                  type: string
+                  enum: [weight_loss, muscle_gain, endurance]
+                fitnessLevel:
+                  type: string
+                  enum: [beginner, intermediate, advanced]
+                equipment:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+                  description: "Danh sách dụng cụ: dumbbell, barbell, body_weight, machine, resistance_band..."
+                effectiveDate:
+                  type: string
+                  format: date
+                  description: >
+                    Ngày bắt đầu plan mới. Nếu null → immediate (plan cũ archived ngay).
+                    Nếu là ngày mai → plan cũ giữ active đến hết hôm nay.
+      responses:
+        "200":
+          description: Mục tiêu đã lưu, plan mới đã tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoalSetupResponse'
+        "400":
+          description: Thiếu required fields hoặc giá trị enum không hợp lệ
+        "403":
+          description: Tài khoản chưa xác thực hoặc bị ban
+        "422":
+          description: >
+            Đã có active plan và goal_type mới giống goal_type cũ
+            hoặc vi phạm nghiệp vụ khác
+
+  /workout-plans/active:
+    get:
+      summary: Xem lộ trình tập hiện tại (FR-002, FR-008, FR-009)
+      description: >
+        Trả workout plan active của user kèm danh sách ngày và bài tập.
+        Nếu không có plan active → trả 404.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Workout plan active
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkoutPlanResponse'
+        "404":
+          description: Chưa có workout plan active
+
+  /workout-plans/generate:
+    post:
+      summary: Tạo lại lộ trình tập thủ công (FR-002)
+      description: >
+        Trigger Rule Engine tạo plan mới với goal_type + fitness_level +
+        equipment hiện tại của user. Plan cũ tự chuyển archived.
+        Dùng khi user muốn refresh plan (ví dụ: thay đổi equipment).
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                effectiveDate:
+                  type: string
+                  format: date
+                  description: Ngày plan mới có hiệu lực (default: immediate)
+      responses:
+        "201":
+          description: Plan mới đã tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkoutPlanResponse'
+        "400":
+          description: User chưa thiết lập mục tiêu
+        "422":
+          description: Không có bài tập nào khớp với goal + equipment
+
+  /exercises:
+    get:
+      summary: Tìm kiếm bài tập (FR-003, FR-006)
+      description: >
+        Tìm kiếm và lọc bài tập từ library. Chỉ trả bài có status=active.
+        Hỗ trợ filter: equipment, category, body_part, muscle_group.
+        Phân trang offset-based.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: equipment
+          in: query
+          schema:
+            type: string
+          description: Lọc theo dụng cụ
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Lọc theo category
+        - name: bodyPart
+          in: query
+          schema:
+            type: string
+          description: Lọc theo bộ phận cơ thể
+        - name: muscleGroup
+          in: query
+          schema:
+            type: string
+          description: Lọc theo nhóm cơ
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Tìm theo tên (LIKE)
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Danh sách bài tập phân trang
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExerciseSearchResponse'
+
+  /exercises/{exerciseId}:
+    get:
+      summary: Xem chi tiết bài tập (FR-004, FR-007)
+      description: >
+        Trả thông tin chi tiết bài tập: tên, category, body_part, equipment,
+        target, muscle_group, image (180×180), gifUrl, instructions.
+        Nếu gifUrl null/rỗng → client fallback sang image.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: exerciseId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Chi tiết bài tập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExerciseDetailResponse'
+        "404":
+          description: Không tìm thấy bài tập
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    GoalSetupResponse:
+      type: object
+      properties:
+        goalType:
+          type: string
+        fitnessLevel:
+          type: string
+        equipment:
+          type: array
+          items:
+            type: string
+        planId:
+          type: integer
+          format: int64
+          description: ID plan mới vừa tạo
+        warning:
+          type: string
+          nullable: true
+          description: Cảnh báo archive plan cũ (nếu có)
+
+    WorkoutPlanResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        goalType:
+          type: string
+        fitnessLevel:
+          type: string
+        status:
+          type: string
+          enum: [active, archived]
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanDayResponse'
+
+    PlanDayResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        dayOfWeek:
+          type: integer
+          description: "0=CN, 1=T2, ..., 6=T7"
+        exercises:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanExerciseResponse'
+
+    PlanExerciseResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        exerciseId:
+          type: integer
+          format: int64
+        exerciseName:
+          type: string
+        targetSets:
+          type: integer
+        targetReps:
+          type: integer
+        restTimeSeconds:
+          type: integer
+        image:
+          type: string
+          nullable: true
+        gifUrl:
+          type: string
+          nullable: true
+
+    ExerciseDetailResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        category:
+          type: string
+        bodyPart:
+          type: string
+        equipment:
+          type: string
+        target:
+          type: string
+          nullable: true
+        muscleGroup:
+          type: string
+        image:
+          type: string
+          nullable: true
+        gifUrl:
+          type: string
+          nullable: true
+        instructions:
+          type: object
+          description: "JSONB: {\"en\": [\"Step 1...\", \"Step 2...\"]}"
+
+    ExerciseSearchResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExerciseDetailResponse'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        page:
+          type: integer
