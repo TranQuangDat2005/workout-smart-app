@@ -8,6 +8,9 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/profile/ProfilePage';
 import WorkoutHistoryPage from './pages/profile/WorkoutHistoryPage';
+import NutritionPage from './pages/nutrition/NutritionPage';
+import FoodLibraryPage from './pages/nutrition/FoodLibraryPage';
+import BodyMetricsPage from './pages/nutrition/BodyMetricsPage';
 
 export default function App() {
   return (
@@ -38,6 +41,30 @@ export default function App() {
         element={
           <RequireAuth>
             <WorkoutHistoryPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/nutrition"
+        element={
+          <RequireAuth>
+            <NutritionPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/foods"
+        element={
+          <RequireAuth>
+            <FoodLibraryPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/body-metrics"
+        element={
+          <RequireAuth>
+            <BodyMetricsPage />
           </RequireAuth>
         }
       />

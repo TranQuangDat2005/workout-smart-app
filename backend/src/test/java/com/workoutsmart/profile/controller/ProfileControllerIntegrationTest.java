@@ -51,10 +51,22 @@ class ProfileControllerIntegrationTest {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private com.workoutsmart.auth.repository.RefreshTokenRepository refreshTokenRepository;
+    @Autowired
+    private com.workoutsmart.nutrition.repository.BodyMetricRepository bodyMetricRepository;
+    @Autowired
+    private com.workoutsmart.nutrition.repository.MealEntryRepository mealEntryRepository;
+    @Autowired
+    private com.workoutsmart.nutrition.repository.MealLogRepository mealLogRepository;
+    @Autowired
+    private com.workoutsmart.nutrition.repository.FoodItemRepository foodItemRepository;
 
     @BeforeEach
     void clean() {
         refreshTokenRepository.deleteAll();
+        bodyMetricRepository.deleteAll();
+        mealEntryRepository.deleteAll();
+        mealLogRepository.deleteAll();
+        foodItemRepository.deleteAll();
         setRepository.deleteAll();
         sessionRepository.deleteAll();
         otpRepository.deleteAll();

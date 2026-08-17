@@ -1,0 +1,118 @@
+openapi: 3.0.3
+info:
+  title: WorkoutSmartApp — Nutrition API
+  version: 0.1.0
+servers:
+  - url: /api/v1
+
+paths:
+  /foods:
+    get:
+      summary: Tìm thực phẩm (kho chung + kho cá nhân, chưa xóa)
+      parameters:
+        - { name: query, in: query, schema: { type: string, default: "" } }
+        - { name: page, in: query, schema: { type: integer, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        "200": { description: Page FoodResponse }
+    post:
+      summary: Tạo thực phẩm custom (kho cá nhân) — đủ 4 macro
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, caloriesPer100g, proteinPer100g, carbPer100g, fatPer100g]
+              properties:
+                name: { type: string }
+                caloriesPer100g: { type: number, exclusiveMinimum: 0 }
+                proteinPer100g: { type: number, minimum: 0 }
+                carbPer100g: { type: number, minimum: 0 }
+                fatPer100g: { type: number, minimum: 0 }
+      responses:
+        "201": { description: FoodResponse }
+        "400": { description: Thiếu/sai macro }
+
+  /foods/{id}:
+    put:
+      summary: Sửa food của chính mình
+      responses:
+        "200": { description: OK }
+        "403": { description: Không phải food của bạn }
+        "404": { description: Không tồn tại }
+    delete:
+      summary: Xóa (soft-delete) food của chính mình
+      responses:
+        "200": { description: OK }
+        "403": { description: Không phải food của bạn }
+
+  /meals:
+    get:
+      summary: Danh sách bữa trong ngày
+      parameters:
+        - { name: date, in: query, schema: { type: string, format: date } }
+      responses:
+        "200": { description: List MealResponse }
+    post:
+      summary: Tạo bữa (nhiều món, tự tính macro)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mealNumber, logDate, entries]
+              properties:
+                mealNumber: { type: integer, minimum: 1, maximum: 20 }
+                logDate: { type: string, format: date }
+                entries:
+                  type: array
+                  items:
+                    type: object
+                    required: [foodItemId, portionGrams]
+                    properties:
+                      foodItemId: { type: integer }
+                      portionGrams: { type: number, exclusiveMinimum: 0 }
+      responses:
+        "201": { description: MealResponse }
+        "409": { description: Trùng bữa trong ngày }
+
+  /meals/{id}:
+    put:
+      summary: Sửa bữa (ghi đè entries) — không hỗ trợ xóa
+      responses:
+        "200": { description: MealResponse }
+        "404": { description: Không tồn tại }
+
+  /nutrition/summary:
+    get:
+      summary: Tổng calo/macro ngày so với mục tiêu TDEE
+      parameters:
+        - { name: date, in: query, schema: { type: string, format: date } }
+      responses:
+        "200": { description: NutritionSummaryResponse (status: đủ/thiếu/thừa) }
+        "422": { description: Thiếu thông số cơ thể để tính TDEE }
+
+  /body-metrics:
+    get:
+      summary: Lịch sử chỉ số cơ thể (100 bản ghi gần nhất)
+      responses:
+        "200": { description: List BodyMetricResponse }
+    post:
+      summary: Nhập chỉ số (cân nặng bắt buộc) + sync users.weight_kg
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [weightKg]
+              properties:
+                weightKg: { type: number, exclusiveMinimum: 0 }
+                bodyFatPct: { type: number }
+                waistCm: { type: number }
+                chestCm: { type: number }
+                armCm: { type: number }
+      responses:
+        "201": { description: BodyMetricResponse (kèm deltaWeightKg) }
