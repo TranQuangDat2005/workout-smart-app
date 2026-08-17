@@ -294,4 +294,135 @@ class AuthServiceTest {
         verify(tokenService).revokeAll(4L);
         verify(jwtAuthFilter).invalidate(4L);
     }
+
+    @Test
+    void applyUnbanRestoresActiveAndInvalidatesCache() {
+        User user = User.builder()
+                .id(5L)
+                .email("user@example.com")
+                .accountStatus(AccountStatus.BANNED)
+                .build();
+        when(userRepository.findById(5L)).thenReturn(Optional.of(user));
+
+        authService.applyUnban(5L);
+
+        assertEquals(AccountStatus.ACTIVE, user.getAccountStatus());
+        verify(jwtAuthFilter).invalidate(5L);
+    }
+
+    @Test
+    void applyBanUnknownUserThrowsNotFound() {
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+        ApiException ex = assertThrows(ApiException.class, () -> authService.applyBan(999L));
+        assertEquals(404, ex.getStatus().value());
+    }
+
+    @Test
+    void resendOtpForUnverifiedUserUsesRegisterPurpose() {
+        User user = User.builder()
+                .id(6L)
+                .email("pending@example.com")
+                .accountStatus(AccountStatus.ACTIVE)
+                .emailVerified(false)
+                .build();
+        when(userRepository.findByEmail("pending@example.com")).thenReturn(Optional.of(user));
+
+        authService.resendOtp("pending@example.com");
+
+        verify(otpService).send(6L, "pending@example.com", OtpPurpose.REGISTER);
+    }
+
+    @Test
+    void resendOtpForUnknownEmailThrowsNotFound() {
+        when(userRepository.findByEmail("ghost@example.com")).thenReturn(Optional.empty());
+
+        ApiException ex = assertThrows(ApiException.class,
+                () -> authService.resendOtp("ghost@example.com"));
+        assertEquals(404, ex.getStatus().value());
+    }
+
+    @Test
+    void restorePasswordActivatesDeletedAccountWithNewPassword() {
+        User deleted = User.builder()
+                .id(11L)
+                .email("gone@example.com")
+                .passwordHash(passwordEncoder.encode("OldPass1"))
+                .accountStatus(AccountStatus.DELETED)
+                .emailVerified(true)
+                .deletedAt(Instant.now().minus(5, ChronoUnit.DAYS))
+                .build();
+        when(userRepository.findByEmail("gone@example.com")).thenReturn(Optional.of(deleted));
+
+        MessageResponse response = authService.restorePassword("gone@example.com", "123456", "FreshPass1");
+
+        verify(otpService).verify(11L, OtpPurpose.RESTORE, "123456");
+        assertEquals(AccountStatus.ACTIVE, deleted.getAccountStatus());
+        org.junit.jupiter.api.Assertions.assertNull(deleted.getDeletedAt());
+        assertTrue(passwordEncoder.matches("FreshPass1", deleted.getPasswordHash()));
+        assertTrue(response.message().contains("khôi phục"));
+    }
+
+    @Test
+    void restorePasswordOnActiveAccountThrows422() {
+        User active = User.builder()
+                .id(12L)
+                .email("alive@example.com")
+                .accountStatus(AccountStatus.ACTIVE)
+                .build();
+        when(userRepository.findByEmail("alive@example.com")).thenReturn(Optional.of(active));
+
+        ApiException ex = assertThrows(ApiException.class,
+                () -> authService.restorePassword("alive@example.com", "123456", "FreshPass1"));
+        assertEquals(422, ex.getStatus().value());
+    }
+
+    @Test
+    void verifyOtpUnknownEmailThrowsNotFound() {
+        when(userRepository.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
+
+        ApiException ex = assertThrows(ApiException.class,
+                () -> authService.verifyOtp("nobody@example.com", "123456"));
+        assertEquals(404, ex.getStatus().value());
+    }
+
+    @Test
+    void loginDeletedAccountReturns401() {
+        User deleted = User.builder()
+                .id(13L)
+                .email("dead@example.com")
+                .passwordHash("x")
+                .accountStatus(AccountStatus.DELETED)
+                .emailVerified(true)
+                .build();
+        when(userRepository.findByEmail("dead@example.com")).thenReturn(Optional.of(deleted));
+
+        ApiException ex = assertThrows(ApiException.class,
+                () -> authService.login("dead@example.com", "Password1"));
+        assertEquals(401, ex.getStatus().value());
+    }
+
+    @Test
+    void loginUnknownEmailReturns401() {
+        when(userRepository.findByEmail("ghost@example.com")).thenReturn(Optional.empty());
+
+        ApiException ex = assertThrows(ApiException.class,
+                () -> authService.login("ghost@example.com", "Password1"));
+        assertEquals(401, ex.getStatus().value());
+    }
+
+    @Test
+    void refreshDelegatesToTokenService() {
+        when(tokenService.rotate("some-token")).thenReturn(new AuthResponse("a", "r", 900));
+
+        AuthResponse res = authService.refresh("some-token");
+        assertEquals("a", res.accessToken());
+        verify(tokenService).rotate("some-token");
+    }
+
+    @Test
+    void logoutDelegatesToTokenService() {
+        authService.logout("some-token");
+        verify(tokenService).revoke("some-token");
+    }
 }

@@ -122,9 +122,9 @@
 **Purpose**: Hoàn thiện trước khi merge
 
 - [x] T042 Cron job hard-delete tài khoản soft-delete quá 30 ngày tại `backend/src/main/java/com/workoutsmart/auth/service/AccountCleanupJob.java` (FR-011)
-- [ ] T043 [P] Cập nhật OpenAPI (`specs/007-core-auth/contracts/openapi.yaml` khớp thực tế) + springdoc config
-- [ ] T044 Chạy toàn bộ kịch bản `specs/007-core-auth/quickstart.md` và sửa lỗi phát sinh
-- [ ] T045 [P] Coverage check: `mvn test` đạt ≥80% cho package auth (jacoco report)
+- [x] T043 [P] Cập nhật OpenAPI (`specs/007-core-auth/contracts/openapi.yaml` khớp thực tế) + springdoc config — ĐÃ XÁC MINH: /v3/api-docs trả spec đầy đủ, Swagger UI hoạt động
+- [x] T044 Chạy toàn bộ kịch bản `specs/007-core-auth/quickstart.md` và sửa lỗi phát sinh — ĐÃ CHẠY với PostgreSQL thật: 6/6 smoke test pass
+- [x] T045 [P] Coverage check: `mvn test` đạt ≥80% cho package auth (jacoco report) — service 88%, security 100%, exception 100%
 - [ ] T046 Commit theo Conventional Commits + `git flow feature finish 007-core-auth` (merge về develop)
 
 ---
