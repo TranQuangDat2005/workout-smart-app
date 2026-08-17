@@ -2,6 +2,7 @@ package com.workoutsmart.exercise.repository;
 
 import com.workoutsmart.exercise.entity.Exercise;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
@@ -17,4 +18,6 @@ public interface ExerciseRepository extends JpaRepository<Exercise, Long>,
     List<Exercise> findByNameContainingIgnoreCaseAndStatus(String keyword, String status);
 
     boolean existsByNameIgnoreCase(String name);
+
+    Optional<Exercise> findByNameIgnoreCaseAndEquipmentIgnoreCase(String name, String equipment);
 }
