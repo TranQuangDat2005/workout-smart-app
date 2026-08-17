@@ -6,6 +6,8 @@ import VerifyOtpPage from './pages/auth/VerifyOtpPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import HomePage from './pages/HomePage';
+import ProfilePage from './pages/profile/ProfilePage';
+import WorkoutHistoryPage from './pages/profile/WorkoutHistoryPage';
 
 export default function App() {
   return (
@@ -20,6 +22,22 @@ export default function App() {
         element={
           <RequireAuth>
             <HomePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <RequireAuth>
+            <ProfilePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/history"
+        element={
+          <RequireAuth>
+            <WorkoutHistoryPage />
           </RequireAuth>
         }
       />
