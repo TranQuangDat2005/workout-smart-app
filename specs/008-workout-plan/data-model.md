@@ -4,7 +4,7 @@
 
 ## Tổng quan
 
-3 bảng mới liên quan feature này: `workout_plans`, `workout_plan_days`, `workout_plan_exercises`. Bảng `exercises` đã có từ General Spec (không thêm cột mới trong feature này). Bảng `draft_exercises` (mới) cho draft queue. Migration Flyway: `V3__workout_plan_tables.sql` (bảng `exercises` nằm ở `V1__init.sql`).
+Feature này mở rộng `workout_plans`, `workout_plan_days`, `workout_plan_exercises` (đã có ở `V5__workout_plans.sql`) và thêm bảng `draft_exercises`. Bảng `exercises` đã có ở `V3__exercises.sql`. Migration mới `V9__workout_plan_feature.sql` thêm `users.equipment`, `workout_plans.fitness_level` + `effective_date`, `workout_plan_exercises.rest_time_seconds` và tạo `draft_exercises`.
 
 ## 1. Bảng `exercises` (đã có — không thay đổi)
 
@@ -19,7 +19,7 @@
 | `muscle_group` | VARCHAR(50) | NOT NULL | Nhóm cơ: chest, back, legs, shoulders, arms, core |
 | `image` | VARCHAR(500) | NULL | URL ảnh tĩnh 180×180 |
 | `gif_url` | VARCHAR(500) | NULL | URL ảnh động GIF |
-| `instructions` | JSONB | NULL | Hướng dẫn đa ngôn ngữ, ví dụ: `{"en": ["Step 1...", "Step 2..."]}` |
+| `instructions` | TEXT | NULL | Hướng dẫn đa ngôn ngữ (chuỗi JSON) |
 | `status` | VARCHAR(20) | NOT NULL, default 'active' | active / inactive |
 | `created_at` | TIMESTAMPTZ | NOT NULL | |
 | `updated_at` | TIMESTAMPTZ | NOT NULL | |
@@ -38,7 +38,8 @@ Quy tắc nghiệp vụ:
 | `name` | VARCHAR(255) | NOT NULL | Tên plan, ví dụ: "Giảm cân - Tuần 1" |
 | `goal_type` | VARCHAR(30) | NOT NULL | weight_loss / muscle_gain / endurance |
 | `fitness_level` | VARCHAR(30) | NOT NULL | beginner / intermediate / advanced |
-| `status` | VARCHAR(20) | NOT NULL, default 'active' | active / archived |
+| `status` | VARCHAR(20) | NOT NULL, default 'active' | active / archived / scheduled |
+| `effective_date` | DATE | NULL | Ngày bắt đầu hiệu lực; null = active ngay |
 | `created_at` | TIMESTAMPTZ | NOT NULL | |
 | `updated_at` | TIMESTAMPTZ | NOT NULL | |
 
@@ -118,13 +119,12 @@ exercises 1 ──── n draft_exercises (replacement_exercise_id, nullable)
 
 ## 7. Migration impact
 
-- `V1__init.sql` (đã có): bảng `exercises` — KHÔNG thay đổi.
-- `V3__workout_plan_tables.sql` (mới): tạo `workout_plans`, `workout_plan_days`, `workout_plan_exercises`, `draft_exercises` + indexes:
-  - `idx_workout_plans_user_id` ON `workout_plans(user_id)`
-  - `uniq_active_plan_per_user` UNIQUE ON `workout_plans(user_id) WHERE status = 'active'`
-  - `idx_plan_days_plan_id` ON `workout_plan_days(plan_id)`
-  - `uniq_day_per_plan` UNIQUE ON `workout_plan_days(plan_id, day_of_week)`
-  - `idx_plan_exercises_day_id` ON `workout_plan_exercises(day_id)`
-  - `idx_plan_exercises_exercise_id` ON `workout_plan_exercises(exercise_id)`
-  - `idx_draft_exercises_session_id` ON `draft_exercises(session_id)`
+- `V3__exercises.sql` (đã có): bảng `exercises` — KHÔNG thay đổi.
+- `V5__workout_plans.sql` (đã có): bảng `workout_plans`, `workout_plan_days`, `workout_plan_exercises` — KHÔNG thay đổi.
+- `V9__workout_plan_feature.sql` (mới): thêm cột + tạo bảng:
+  - `users.equipment` (comma-separated)
+  - `workout_plans.fitness_level`, `workout_plans.effective_date`
+  - `workout_plan_exercises.rest_time_seconds`
+  - tạo `draft_exercises` + `idx_draft_exercises_session`
+- Ràng buộc "1 plan active/user" và "1 ngày duy nhất/plan" được thực thi ở service layer (tránh partial index không tương thích H2 test).
 - Không sửa migration đã chạy (constitution §7).

@@ -36,4 +36,7 @@ public class WorkoutPlanExercise {
 
     @Column(name = "target_reps", nullable = false)
     private int targetReps;
+
+    @Column(name = "rest_time_seconds", nullable = false)
+    private int restTimeSeconds;
 }

@@ -8,44 +8,37 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
-import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Bản sao tạm thời của bài tập bị Admin ẩn để user tập nốt buổi hiện tại (FR-011). */
 @Entity
-@Table(name = "workout_plans")
+@Table(name = "draft_exercises")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class WorkoutPlan {
+public class DraftExercise {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(name = "session_id", nullable = false)
+    private Long sessionId;
 
-    private String name;
+    @Column(name = "original_exercise_id", nullable = false)
+    private Long originalExerciseId;
 
-    @Column(name = "goal_type")
-    private String goalType;
+    @Column(name = "cloned_exercise_id", nullable = false)
+    private Long clonedExerciseId;
 
-    @Column(name = "fitness_level")
-    private String fitnessLevel;
-
-    /** Ngày plan bắt đầu hiệu lực; null = active ngay. */
-    @Column(name = "effective_date")
-    private LocalDate effectiveDate;
-
-    /** active / archived / scheduled. */
-    @Column(nullable = false)
-    private String status;
+    @Column(name = "replacement_exercise_id")
+    private Long replacementExerciseId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

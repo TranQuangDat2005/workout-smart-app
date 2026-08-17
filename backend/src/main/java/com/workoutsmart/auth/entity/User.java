@@ -46,6 +46,9 @@ public class User {
     @Column(name = "fitness_level")
     private String fitnessLevel;
 
+    /** Danh sách dụng cụ sẵn có, phân tách bằng dấu phẩy: body_weight,dumbbell,... */
+    private String equipment;
+
     private String sex;
 
     @Column(name = "activity_level")

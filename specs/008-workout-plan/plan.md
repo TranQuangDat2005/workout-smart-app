@@ -60,50 +60,34 @@ specs/008-workout-plan/
 ```text
 backend/
 ├── src/main/java/com/workoutsmart/
-│   ├── domain/
-│   │   ├── exercise/
-│   │   │   ├── Exercise.java                    # Entity
-│   │   │   ├── ExerciseRepository.java          # Repository
-│   │   │   ├── ExerciseService.java             # Service
-│   │   │   └── ExerciseController.java          # Controller
-│   │   ├── workoutplan/
-│   │   │   ├── WorkoutPlan.java                 # Entity
-│   │   │   ├── WorkoutPlanDay.java              # Entity
-│   │   │   ├── WorkoutPlanExercise.java         # Entity
-│   │   │   ├── WorkoutPlanRepository.java       # Repository
-│   │   │   ├── WorkoutPlanService.java          # Service
-│   │   │   ├── WorkoutPlanController.java       # Controller
-│   │   │   └── RuleEngineService.java           # Service — Rule Engine v1 logic
-│   │   └── draftqueue/
-│   │       ├── DraftExercise.java               # Entity
-│   │       ├── DraftExerciseRepository.java     # Repository
-│   │       └── DraftExerciseService.java        # Service
-│   ├── dto/
-│   │   ├── GoalSetupRequest.java               # DTO: goal_type, fitness_level, equipment
-│   │   ├── GoalSetupResponse.java              # DTO
-│   │   ├── WorkoutPlanResponse.java            # DTO: plan + days + exercises
-│   │   ├── ExerciseDetailResponse.java         # DTO: full exercise info
-│   │   ├── ExerciseSearchRequest.java           # DTO: filter params
-│   │   └── ExerciseSearchResponse.java          # DTO: paginated results
-│   ├── common/
-│   │   └── exception/
-│   │       └── GlobalExceptionHandler.java     #已有 từ 007
+│   ├── exercise/
+│   │   ├── entity/Exercise.java
+│   │   ├── repository/ExerciseRepository.java
+│   │   ├── service/ExerciseService.java
+│   │   ├── controller/ExerciseController.java
+│   │   └── dto/ExerciseDetailResponse.java, ExerciseSearchResponse.java
+│   ├── plan/
+│   │   ├── entity/WorkoutPlan.java, WorkoutPlanDay.java,
+│   │   │        WorkoutPlanExercise.java, DraftExercise.java
+│   │   ├── repository/WorkoutPlanRepository.java, WorkoutPlanDayRepository.java,
+│   │   │            WorkoutPlanExerciseRepository.java, DraftExerciseRepository.java
+│   │   ├── service/RuleEngineService.java, WorkoutPlanService.java, DraftExerciseService.java
+│   │   ├── controller/WorkoutPlanController.java
+│   │   └── dto/GoalSetupRequest.java, GoalSetupResponse.java, GeneratePlanRequest.java,
+│   │            WorkoutPlanResponse.java, PlanDayResponse.java, PlanExerciseResponse.java
 │   └── WorkoutSmartApplication.java
 ├── src/main/resources/db/migration/
-│   └── V3__workout_plan_tables.sql             # Flyway migration mới
+│   └── V9__workout_plan_feature.sql
 └── src/test/java/com/workoutsmart/
-    ├── domain/exercise/
-    │   ├── ExerciseServiceTest.java
-    │   └── ExerciseControllerTest.java
-    ├── domain/workoutplan/
-    │   ├── WorkoutPlanServiceTest.java
-    │   ├── RuleEngineServiceTest.java
-    │   └── WorkoutPlanControllerTest.java
-    └── domain/draftqueue/
-        └── DraftExerciseServiceTest.java
+    ├── exercise/service/ExerciseServiceTest.java
+    ├── exercise/controller/ExerciseControllerIntegrationTest.java
+    ├── plan/service/RuleEngineServiceTest.java
+    ├── plan/service/WorkoutPlanServiceTest.java
+    ├── plan/service/DraftExerciseServiceTest.java
+    └── plan/controller/WorkoutPlanControllerIntegrationTest.java
 ```
 
-**Structure Decision**: Tuân thủ kiến trúc phân lớp Backend-only (REST API) theo constitution §3. Feature này không có frontend code — web/mobile sẽ consume API. Mỗi domain (exercise, workoutplan, draftqueue) tách riêng entity/service/controller.
+**Structure Decision**: Tuân thủ kiến trúc phân lớp Backend-only (REST API) theo constitution §3 và convention package hiện có `com.workoutsmart.<domain>`. Feature này không có frontend code — web/mobile sẽ consume API. Exercise và Plan được triển khai trong package `exercise`/`plan` tương ứng; DraftExercise nằm trong `plan` (gắn chặt với lộ trình).
 
 ## Complexity Tracking
 
