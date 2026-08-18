@@ -137,7 +137,9 @@ export default function App() {
         path="/admin/users"
         element={
           <RequireAuth>
-            <AdminUsersPage />
+            <RequireAdmin>
+              <AdminUsersPage />
+            </RequireAdmin>
           </RequireAuth>
         }
       />
@@ -145,7 +147,9 @@ export default function App() {
         path="/admin/exercises"
         element={
           <RequireAuth>
-            <AdminExercisesPage />
+            <RequireAdmin>
+              <AdminExercisesPage />
+            </RequireAdmin>
           </RequireAuth>
         }
       />
@@ -157,4 +161,9 @@ export default function App() {
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
+
+function RequireAdmin({ children }: { children: JSX.Element }) {
+  const { isAdmin } = useAuth();
+  return isAdmin ? children : <Navigate to="/" replace />;
 }

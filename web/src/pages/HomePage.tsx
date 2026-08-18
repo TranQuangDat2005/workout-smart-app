@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import Button from '../components/Button';
 
-const NAV = [
+const USER_NAV = [
   { to: '/goal-setup', label: 'Thiết lập mục tiêu' },
   { to: '/plan', label: 'Lộ trình tập' },
   { to: '/exercises', label: 'Thư viện bài tập' },
@@ -15,13 +15,41 @@ const NAV = [
   { to: '/friends', label: 'Bạn bè' },
   { to: '/leaderboard', label: 'Bảng xếp hạng' },
   { to: '/stats', label: 'Thống kê' },
-  { to: '/admin/users', label: 'Admin: Users' },
-  { to: '/admin/exercises', label: 'Admin: Exercises' },
 ];
 
-/** Trang chủ tạm — chứng minh auth hoạt động end-to-end. */
+const ADMIN_NAV = [
+  { to: '/admin/users', label: 'Quản lý người dùng' },
+  { to: '/admin/exercises', label: 'Quản lý bài tập' },
+];
+
+function NavLinks({ items }: { items: { to: string; label: string }[] }) {
+  return (
+    <>
+      {items.map((item) => (
+        <Link
+          key={item.to}
+          to={item.to}
+          style={{
+            background: 'var(--dark-surface)',
+            color: 'var(--text-base)',
+            borderRadius: 9999,
+            padding: '10px 18px',
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            textDecoration: 'none',
+          }}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </>
+  );
+}
+
 export default function HomePage() {
-  const { logout } = useAuth();
+  const { logout, isAdmin } = useAuth();
   return (
     <div
       style={{
@@ -51,28 +79,22 @@ export default function HomePage() {
         W
       </span>
       <h1>Chào mừng đến WorkoutSmartApp</h1>
-      <p style={{ color: 'var(--text-secondary)' }}>Bạn đã đăng nhập thành công.</p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, maxWidth: 560, justifyContent: 'center' }}>
-        {NAV.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            style={{
-              background: 'var(--dark-surface)',
-              color: 'var(--text-base)',
-              borderRadius: 9999,
-              padding: '10px 18px',
-              fontSize: 13,
-              fontWeight: 700,
-              letterSpacing: '1px',
-              textTransform: 'uppercase',
-              textDecoration: 'none',
-            }}
-          >
-            {item.label}
-          </Link>
-        ))}
+      <p style={{ color: 'var(--text-secondary)' }}>
+        {isAdmin ? 'Bạn đã đăng nhập với vai trò Quản trị viên.' : 'Bạn đã đăng nhập thành công.'}
+      </p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, maxWidth: 640, justifyContent: 'center' }}>
+        <NavLinks items={USER_NAV} />
       </div>
+      {isAdmin && (
+        <>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-announcement)' }}>
+            Khu vực quản trị
+          </h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, maxWidth: 640, justifyContent: 'center' }}>
+            <NavLinks items={ADMIN_NAV} />
+          </div>
+        </>
+      )}
       <Button variant="dark" onClick={logout}>
         Đăng xuất
       </Button>
