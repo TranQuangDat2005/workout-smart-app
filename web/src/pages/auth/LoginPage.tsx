@@ -67,6 +67,11 @@ export default function LoginPage() {
           Tạo tài khoản
         </Link>
       </div>
+      <div style={{ textAlign: 'center', fontSize: 14 }}>
+        <Link to="/verify-otp" style={{ color: 'var(--text-secondary)' }}>
+          Chưa xác thực email? Nhập mã OTP
+        </Link>
+      </div>
     </AuthLayout>
   );
 }
