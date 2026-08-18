@@ -20,7 +20,7 @@ Kiến trúc: Backend Spring Boot = Web API (REST JSON thuần, không server-re
 |-------|------|-------|-------------|
 | **Người tập (Trainee)** | Internal | Người dùng cuối đăng nhập qua Email/Password. | Thiết lập mục tiêu, nhận lộ trình, tracking buổi tập (sets/reps), xem hướng dẫn, xem hồ sơ & lịch sử tập, xóa tài khoản, ghi nhận dinh dưỡng, theo dõi chỉ số cơ thể, kết bạn, xem xếp hạng, xem thống kê. |
 | **Admin** | Internal | Nhân sự nội bộ (truy cập qua portal riêng). | Quản lý kho 1324+ bài tập (thêm/sửa/ẩn), trigger import data bulk, quản lý tài khoản người dùng (khóa/mở khóa). Mọi thao tác ghi audit log. |
-| **Email Service** | External | Dịch vụ gửi email bên ngoài (ví dụ: SendGrid, AWS SES). Backend gọi API để gửi mã OTP xác thực khi đăng ký/đặt lại mật khẩu. | Gửi email OTP theo yêu cầu từ backend; không truy cập trực tiếp vào dữ liệu hệ thống. |
+| **Email Service** | External | Dịch vụ gửi email bên ngoài (ví dụ: SendGrid, AWS SES, SMTP Gmail). Backend gọi API để gửi mã OTP xác thực khi đăng ký/đặt lại mật khẩu. | Gửi email OTP theo yêu cầu từ backend; không truy cập trực tiếp vào dữ liệu hệ thống. |
 | **Push Notification Service** | External | Dịch vụ gửi push notification (FCM — Firebase Cloud Messaging). Chỉ áp dụng trên Mobile (Flutter). | Gửi remote push notification theo yêu cầu từ backend (ví dụ: nhắc lịch tập, thông báo streak). Không áp dụng cho Web. |
 
 **Actors KHÔNG có trong scope:**

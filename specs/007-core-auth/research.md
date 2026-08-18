@@ -22,10 +22,10 @@ Tất cả các điểm NEEDS CLARIFICATION trong Technical Context đã đượ
 - **Rationale**: bcrypt-hash chống lộ OTP khi DB bị đọc; giới hạn attempt chống brute-force 6 chữ số (không gian 10⁶, 5 lần thử là an toàn). Cooldown + cap chống spam email.
 - **Alternatives**: lưu OTP thô (rủi ro khi DB leak); TTL dài hơn (tăng cửa sổ tấn công); không giới hạn resend (tốn phí email + spam).
 
-## R4. Email provider: SendGrid vs AWS SES
+## R4. Email provider: SendGrid / AWS SES / SMTP Gmail
 
-- **Decision**: Định nghĩa interface `EmailService` (sendOtp(email, code, purpose)). Default implementation **SendGrid**; AWS SES là implementation thứ 2 có thể swap qua config. Email OTP template chung: mã 6 số + thời hạn 10 phút + cảnh báo không chia sẻ mã.
-- **Rationale**: cả 2 đều nằm trong allowlist của AGENTS.md; interface trừu tượng giúp đổi provider không đụng business code; đây là quyết định vận hành (chọn 1 khi deploy), không phải kiến trúc.
+- **Decision**: Định nghĩa interface `EmailService` (sendOtp(email, code, purpose)). Default implementation **SendGrid**; AWS SES và **SMTP Gmail** là các implementation thay thế có thể swap qua config. Email OTP template chung: mã 6 số + thời hạn 10 phút + cảnh báo không chia sẻ mã.
+- **Rationale**: các provider đều nằm trong allowlist của AGENTS.md; interface trừu tượng giúp đổi provider không đụng business code; đây là quyết định vận hành (chọn 1 khi deploy), không phải kiến trúc.
 - **Alternatives**: SMTP tự dựng (phải quản lý rate limit/reputation — không đáng cho MVP); gọi trực tiếp SDK không qua interface (khóa cứng provider).
 
 ## R5. Middleware kiểm tra trạng thái ban trên mọi request

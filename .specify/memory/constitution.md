@@ -88,7 +88,7 @@ Functional Requirements viết bằng cú pháp EARS (WHEN/WHERE/THE hệ thốn
 
 - Mọi thao tác Admin (khóa/mở khóa user, thêm/sửa/ẩn bài tập) phải ghi audit log: actor, action, target type/id, reason, timestamp. Audit log append-only.
 - KHÔNG commit secrets/mật khẩu/API key/JWT secret; KHÔNG đọc `.env`, `*.secret`, `credentials/*`.
-- External API allowlist: Email Service (SendGrid/AWS SES — gửi OTP), FCM (push — chỉ Mobile). Media chỉ từ `exercises-dataset/` local.
+- External API allowlist: Email Service (SendGrid / AWS SES / SMTP Gmail — gửi OTP), FCM (push — chỉ Mobile). Media chỉ từ `exercises-dataset/` local.
 - JWT middleware phải check trạng thái ban ở mọi request, kể cả token còn hạn; ban → revoke token ngay, hiệu lực khi user kết nối lại (chặn ≤ 3 giây ở request kế tiếp).
 - Mật khẩu lưu bằng bcrypt; không lưu mật khẩu thô.
 - Master data soft-delete; dữ liệu giao dịch (session, bữa ăn) không xóa cứng trước thời hạn retention đã chốt.

@@ -17,7 +17,7 @@ Stack công nghệ: React 18 (Web App — SPA gọi REST API, tuân thủ DESIGN
 - KHÔNG được xóa migration files.
 - KHÔNG được commit trực tiếp vào `main` và `develop` — mọi thay đổi phải đi qua nhánh feature/hotfix và merge bằng `git flow finish`.
 - KHÔNG được đọc: `.env`, `*.secret`, `credentials/*`.
-- KHÔNG được gọi external API ngoài allowlist: Email Service (SendGrid/AWS SES — gửi OTP), Push Notification (FCM — chỉ Mobile). Media bài tập dùng từ thư mục local `exercises-dataset/`.
+- KHÔNG được gọi external API ngoài allowlist: Email Service (SendGrid / AWS SES / SMTP Gmail — gửi OTP), Push Notification (FCM — chỉ Mobile). Media bài tập dùng từ thư mục local `exercises-dataset/`.
 - KHÔNG được tự ý thêm tính năng ngoài scope đã loại trừ trong `specs/General Spec.md` §9 (Social Login, AI/ML, wearable, chat, live coaching, upload media mới, thanh toán).
 
 ## 3. QUY TẮC CODE

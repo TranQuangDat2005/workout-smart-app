@@ -14,7 +14,7 @@ Backend (Spring Boot 3.3) là trái tim của feature này: toàn bộ endpoint 
 
 **Language/Version**: Java 17 (Spring Boot 3.3), TypeScript strict (React 18), Dart (Flutter)
 
-**Primary Dependencies**: Spring Security, Spring Web, Spring Data JPA, Jakarta Validation, thư viện JWT (jjwt — xem research.md), SendGrid hoặc AWS SES (qua interface EmailService), Flyway, springdoc-openapi
+**Primary Dependencies**: Spring Security, Spring Web, Spring Data JPA, Jakarta Validation, thư viện JWT (jjwt — xem research.md), SendGrid / AWS SES / SMTP Gmail (qua interface EmailService), Flyway, springdoc-openapi
 
 **Storage**: PostgreSQL 18 — bảng `users` (đã có trong General Spec), thêm `otp_verifications`, `refresh_tokens`
 
@@ -26,7 +26,7 @@ Backend (Spring Boot 3.3) là trái tim của feature này: toàn bộ endpoint 
 
 **Performance Goals**: API auth < 300ms (P95); đăng nhập thành công trong < 10 giây theo cảm nhận người dùng (SC-003); middleware ban-check không làm chậm đáng kể request thường (lookup PK + cache ngắn)
 
-**Constraints**: bcrypt cho mật khẩu; OTP 10 phút hiệu lực; không commit secret; email provider nằm trong allowlist (SendGrid/AWS SES); mọi request qua middleware phải check trạng thái ban (FR-013/014)
+**Constraints**: bcrypt cho mật khẩu; OTP 10 phút hiệu lực; không commit secret; email provider nằm trong allowlist (SendGrid / AWS SES / SMTP Gmail); mọi request qua middleware phải check trạng thái ban (FR-013/014)
 
 **Scale/Scope**: MVP — hàng nghìn user; 3 màn hình web + 3 màn hình mobile; 8 endpoint auth; 3 bảng dữ liệu (1 bảng mở rộng `users` + 2 bảng mới)
 
@@ -40,7 +40,7 @@ Backend (Spring Boot 3.3) là trái tim của feature này: toàn bộ endpoint 
 | 2 | Bean Validation cho DTO; lỗi tập trung: 400/401/403/409/422 | ✅ Tuân thủ — ghi rõ trong contracts |
 | 3 | Không raw SQL; JPA + Flyway; không xóa migration | ✅ Tuân thủ — migration mới cho `otp_verifications`, `refresh_tokens` |
 | 4 | JWT + bcrypt; middleware check ban mọi request; revoke token khi ban | ✅ Tuân thủ — là yêu cầu cốt lõi FR-012/013/014 |
-| 5 | Email trong allowlist (SendGrid/AWS SES) | ✅ Tuân thủ — interface EmailService, provider swap được |
+| 5 | Email trong allowlist (SendGrid / AWS SES / SMTP Gmail) | ✅ Tuân thủ — interface EmailService, provider swap được |
 | 6 | Audit log cho thao tác Admin | ✅ N/A trong feature này (ban thuộc 006-admin-management, auth chỉ thực thi hiệu lực) |
 | 7 | Test ≥80% coverage service + integration happy/error | ✅ Tuân thủ — đưa vào DoD |
 | 8 | OpenAPI cập nhật cho mọi endpoint | ✅ Tuân thủ — contracts/openapi.yaml |

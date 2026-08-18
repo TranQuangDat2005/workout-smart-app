@@ -106,7 +106,7 @@ Người dùng quên mật khẩu muốn đặt lại mật khẩu mới một c
 
 ## Assumptions
 
-- Hệ thống có tích hợp dịch vụ gửi email (SendGrid/AWS SES) để gửi OTP.
+- Hệ thống có tích hợp dịch vụ gửi email (SendGrid / AWS SES / SMTP Gmail) để gửi OTP.
 - OTP có thời hạn hiệu lực cố định (mặc định 10 phút) và giới hạn số lần gửi lại.
 - Đăng nhập áp dụng cho cả Web và Mobile với cùng cơ chế token.
 - Social login (Google/Facebook/Apple) nằm ngoài scope phase này — chỉ hỗ trợ email/password.

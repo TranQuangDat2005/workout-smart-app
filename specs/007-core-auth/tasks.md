@@ -38,7 +38,7 @@
 - [x] T013 `JwtProvider` tại `backend/src/main/java/com/workoutsmart/auth/security/JwtProvider.java` — ký/verify access (HS256, 15 phút) theo research R1
 - [x] T014 `SecurityConfig` + `JwtAuthFilter` tại `backend/src/main/java/com/workoutsmart/auth/security/` — filter check `account_status` (cache 60s) trả 403 khi banned (research R5)
 - [x] T015 `GlobalExceptionHandler` tại `backend/src/main/java/com/workoutsmart/auth/exception/GlobalExceptionHandler.java` — map lỗi 400/401/403/409/422/429 theo constitution §3
-- [x] T016 [P] Interface `EmailService` tại `backend/src/main/java/com/workoutsmart/auth/service/EmailService.java` + impl `LogEmailService` (dev, ghi OTP ra log) + impl `SendGridEmailService` (production, API key từ env) theo research R4
+- [x] T016 [P] Interface `EmailService` tại `backend/src/main/java/com/workoutsmart/auth/service/EmailService.java` + impl `LogEmailService` (dev, ghi OTP ra log) + impl `SendGridEmailService` (production, API key từ env) + impl `SmtpEmailService` (Gmail SMTP, username/app-password từ env) theo research R4
 
 **Checkpoint**: Foundation ready — các story có thể bắt đầu
 
