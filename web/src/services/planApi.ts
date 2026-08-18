@@ -1,18 +1,4 @@
-import axios from 'axios';
-import { tokenStorage } from './tokenStorage';
-
-const client = axios.create({
-  baseURL: '/api/v1',
-  headers: { 'Content-Type': 'application/json' },
-});
-
-client.interceptors.request.use((config) => {
-  const token = tokenStorage.getAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import { http } from './http';
 
 export interface PlanExercise {
   id: number;
@@ -67,17 +53,17 @@ export const planApi = {
     equipment: string[];
     effectiveDate?: string;
   }) =>
-    client
+    http
       .put<{ goalType: string; fitnessLevel: string; equipment: string[]; planId: number; warning: string | null }>(
         '/users/me/goals',
         body,
       )
       .then((r) => r.data),
 
-  getActivePlan: () => client.get<WorkoutPlan>('/workout-plans/active').then((r) => r.data),
+  getActivePlan: () => http.get<WorkoutPlan>('/workout-plans/active').then((r) => r.data),
 
   generatePlan: (effectiveDate?: string) =>
-    client.post<WorkoutPlan>('/workout-plans/generate', { effectiveDate }).then((r) => r.data),
+    http.post<WorkoutPlan>('/workout-plans/generate', { effectiveDate }).then((r) => r.data),
 
   searchExercises: (params: {
     equipment?: string;
@@ -96,10 +82,10 @@ export const planApi = {
     if (params.q) search.set('q', params.q);
     search.set('page', String(params.page ?? 0));
     search.set('size', String(params.size ?? 20));
-    return client
+    return http
       .get<{ content: ExerciseDetail[]; totalElements: number; totalPages: number }>(`/exercises?${search}`)
       .then((r) => r.data);
   },
 
-  getExercise: (id: number) => client.get<ExerciseDetail>(`/exercises/${id}`).then((r) => r.data),
+  getExercise: (id: number) => http.get<ExerciseDetail>(`/exercises/${id}`).then((r) => r.data),
 };

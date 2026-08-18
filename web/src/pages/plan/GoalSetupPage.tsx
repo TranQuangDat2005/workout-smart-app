@@ -4,25 +4,30 @@ import Button from '../../components/Button';
 import { planApi } from '../../services/planApi';
 
 const GOALS = [
-  { value: 'weight_loss', label: 'Giảm cân' },
-  { value: 'muscle_gain', label: 'Tăng cơ' },
-  { value: 'endurance', label: 'Sức bền' },
+  { value: 'weight_loss', label: 'Giảm cân',  icon: '⚡', desc: 'Cardio + full-body · 4–5 ngày/tuần · 12–15 reps · nghỉ 45–60s' },
+  { value: 'muscle_gain', label: 'Tăng cơ',   icon: '💪', desc: 'Push/Pull/Legs split · 4 ngày/tuần · 8–12 reps · nghỉ 60–90s' },
+  { value: 'endurance',   label: 'Sức bền',   icon: '🏃', desc: 'Circuit toàn thân · 3–4 ngày/tuần · 15–20 reps · nghỉ 30–45s' },
 ];
 
 const LEVELS = [
-  { value: 'beginner', label: 'Mới bắt đầu' },
-  { value: 'intermediate', label: 'Trung bình' },
-  { value: 'advanced', label: 'Nâng cao' },
+  { value: 'beginner',     label: 'Mới bắt đầu', icon: '🌱', desc: '2–3 bài/ngày × 3 sets' },
+  { value: 'intermediate', label: 'Trung bình',   icon: '📈', desc: '4–5 bài/ngày × 4 sets' },
+  { value: 'advanced',     label: 'Nâng cao',     icon: '🔥', desc: '5–6 bài/ngày × 4–5 sets' },
 ];
 
-const EQUIPMENT_OPTIONS = ['body_weight', 'dumbbell', 'barbell', 'machine', 'resistance_band'];
+const EQUIPMENT_OPTIONS = [
+  { value: 'body_weight',     label: 'Tự trọng',       icon: '🤸' },
+  { value: 'dumbbell',        label: 'Tạ đơn',          icon: '🏋️' },
+  { value: 'barbell',         label: 'Tạ đòn',          icon: '🏋️‍♂️' },
+  { value: 'machine',         label: 'Máy tập',         icon: '🔧' },
+  { value: 'resistance_band', label: 'Dây kháng lực',   icon: '🪢' },
+];
 
 export default function GoalSetupPage() {
   const navigate = useNavigate();
   const [goalType, setGoalType] = useState('weight_loss');
   const [fitnessLevel, setFitnessLevel] = useState('beginner');
   const [equipment, setEquipment] = useState<string[]>(['body_weight']);
-  const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -35,15 +40,9 @@ export default function GoalSetupPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setNotice('');
     setLoading(true);
     try {
-      const res = await planApi.setupGoal({ goalType, fitnessLevel, equipment });
-      setNotice(
-        res.warning
-          ? `${res.warning} Lộ trình mới đã tạo (#${res.planId}).`
-          : `Đã tạo lộ trình #${res.planId}.`,
-      );
+      await planApi.setupGoal({ goalType, fitnessLevel, equipment });
       navigate('/plan');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -53,39 +52,107 @@ export default function GoalSetupPage() {
     }
   };
 
+  const selectedGoal = GOALS.find((g) => g.value === goalType);
+  const selectedLevel = LEVELS.find((l) => l.value === fitnessLevel);
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--dark-surface)', borderRadius: 8, padding: 32, width: '100%', maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>Thiết lập mục tiêu</h1>
-        <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <label style={{ fontWeight: 700 }}>Mục tiêu</label>
-            <select value={goalType} onChange={(e) => setGoalType(e.target.value)} style={{ width: '100%', padding: 12, borderRadius: 8, background: 'var(--mid-dark)', color: 'var(--text-base)' }}>
-              {GOALS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-            </select>
+    <div className="page-container" style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div>
+        <h1>🎯 Thiết lập mục tiêu</h1>
+        <p className="text-secondary text-sm" style={{ marginTop: 4 }}>
+          Hệ thống Rule Engine sẽ tự động tạo lộ trình phù hợp với bạn.
+        </p>
+      </div>
+
+      <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* Goal type */}
+        <div className="card" style={{ padding: 24 }}>
+          <label className="input-label" style={{ display: 'block', marginBottom: 14 }}>Mục tiêu tập luyện</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {GOALS.map((g) => (
+              <button
+                key={g.value}
+                type="button"
+                onClick={() => setGoalType(g.value)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '14px 18px',
+                  borderRadius: 10,
+                  border: `1.5px solid ${goalType === g.value ? 'var(--green)' : 'var(--border-dark)'}`,
+                  background: goalType === g.value ? 'rgba(30,215,96,0.07)' : 'var(--mid-dark)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all var(--t-fast)',
+                }}
+              >
+                <span style={{ fontSize: 28 }}>{g.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 700, color: goalType === g.value ? 'var(--green)' : 'var(--text-base)' }}>{g.label}</div>
+                  <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>{g.desc}</div>
+                </div>
+              </button>
+            ))}
           </div>
-          <div>
-            <label style={{ fontWeight: 700 }}>Trình độ</label>
-            <select value={fitnessLevel} onChange={(e) => setFitnessLevel(e.target.value)} style={{ width: '100%', padding: 12, borderRadius: 8, background: 'var(--mid-dark)', color: 'var(--text-base)' }}>
-              {LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
-            </select>
+        </div>
+
+        {/* Fitness level */}
+        <div className="card" style={{ padding: 24 }}>
+          <label className="input-label" style={{ display: 'block', marginBottom: 14 }}>Trình độ hiện tại</label>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {LEVELS.map((l) => (
+              <button
+                key={l.value}
+                type="button"
+                className={`chip ${fitnessLevel === l.value ? 'selected' : ''}`}
+                onClick={() => setFitnessLevel(l.value)}
+              >
+                <span>{l.icon}</span>
+                <span>{l.label}</span>
+              </button>
+            ))}
           </div>
-          <div>
-            <label style={{ fontWeight: 700 }}>Dụng cụ sẵn có</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-              {EQUIPMENT_OPTIONS.map((e) => (
-                <button key={e} type="button" onClick={() => toggleEquipment(e)}
-                  style={{ padding: '8px 12px', borderRadius: 500, border: '1px solid var(--mid-dark)', background: equipment.includes(e) ? 'var(--text-base)' : 'transparent', color: equipment.includes(e) ? 'var(--near-black)' : 'var(--text-base)' }}>
-                  {e}
-                </button>
-              ))}
+          {selectedLevel && (
+            <p className="text-muted" style={{ fontSize: 12, marginTop: 10 }}>{selectedLevel.desc}</p>
+          )}
+        </div>
+
+        {/* Equipment */}
+        <div className="card" style={{ padding: 24 }}>
+          <label className="input-label" style={{ display: 'block', marginBottom: 14 }}>Dụng cụ sẵn có <span style={{ fontWeight: 400, textTransform: 'none' }}>(chọn tất cả phù hợp)</span></label>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {EQUIPMENT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`chip ${equipment.includes(opt.value) ? 'selected' : ''}`}
+                onClick={() => toggleEquipment(opt.value)}
+              >
+                <span>{opt.icon}</span>
+                <span>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Summary */}
+        {selectedGoal && (
+          <div className="notice notice-info">
+            <span style={{ fontSize: 18 }}>{selectedGoal.icon}</span>
+            <div>
+              <div className="fw-600">{selectedGoal.label} · {selectedLevel?.label}</div>
+              <div style={{ fontSize: 12, marginTop: 2 }}>{selectedGoal.desc}</div>
             </div>
           </div>
-          {notice && <span style={{ color: 'var(--text-announcement)' }}>{notice}</span>}
-          {error && <span style={{ color: 'var(--text-negative)' }}>{error}</span>}
-          <Button type="submit" fullWidth disabled={loading}>{loading ? 'Đang tạo…' : 'Tạo lộ trình'}</Button>
-        </form>
-      </div>
+        )}
+
+        {error && <div className="notice notice-error">{error}</div>}
+
+        <Button type="submit" fullWidth loading={loading} size="lg">
+          Tạo lộ trình tập luyện
+        </Button>
+      </form>
     </div>
   );
 }

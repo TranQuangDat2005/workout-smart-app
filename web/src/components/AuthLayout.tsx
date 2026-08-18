@@ -1,7 +1,13 @@
 import type { ReactNode } from 'react';
 
-/** Khung trang auth — card tối #181818, shadow heavy, logo xanh (DESIGN.md). */
-export default function AuthLayout({ title, children }: { title: string; children: ReactNode }) {
+interface AuthLayoutProps {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}
+
+/** Auth card — DESIGN.md: #181818 card, green logo, slide-up animation. */
+export default function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
   return (
     <div
       style={{
@@ -9,42 +15,56 @@ export default function AuthLayout({ title, children }: { title: string; childre
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--near-black)',
+        background:
+          'radial-gradient(ellipse at 50% 0%, rgba(30,215,96,0.07) 0%, transparent 60%), var(--near-black)',
         padding: 16,
       }}
     >
       <div
+        className="animate-slide-up"
         style={{
           background: 'var(--dark-surface)',
-          borderRadius: 8,
+          borderRadius: 16,
           boxShadow: 'var(--shadow-heavy)',
-          padding: '40px 32px',
+          padding: '40px 36px',
           width: '100%',
           maxWidth: 420,
           display: 'flex',
           flexDirection: 'column',
-          gap: 24,
+          gap: 28,
         }}
       >
-        <div style={{ textAlign: 'center' }}>
-          <span
+        {/* Logo + heading */}
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+          <div
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 48,
-              height: 48,
+              width: 56,
+              height: 56,
               borderRadius: '50%',
               background: 'var(--green)',
-              color: '#000',
-              fontWeight: 700,
-              fontSize: 24,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 24px rgba(30,215,96,0.3)',
             }}
           >
-            W
-          </span>
-          <h1 style={{ marginTop: 16 }}>{title}</h1>
+            {/* Dumbbell icon */}
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <rect x="2" y="10" width="3" height="4" rx="1" fill="#000" />
+              <rect x="19" y="10" width="3" height="4" rx="1" fill="#000" />
+              <rect x="5" y="8" width="3" height="8" rx="1.5" fill="#000" />
+              <rect x="16" y="8" width="3" height="8" rx="1.5" fill="#000" />
+              <rect x="8" y="11" width="8" height="2" rx="1" fill="#000" />
+            </svg>
+          </div>
+          <div>
+            <h1 style={{ fontSize: 22, marginBottom: 4 }}>{title}</h1>
+            {subtitle && (
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>{subtitle}</p>
+            )}
+          </div>
         </div>
+
         {children}
       </div>
     </div>

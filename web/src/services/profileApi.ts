@@ -1,18 +1,4 @@
-import axios from 'axios';
-import { tokenStorage } from './tokenStorage';
-
-const client = axios.create({
-  baseURL: '/api/v1',
-  headers: { 'Content-Type': 'application/json' },
-});
-
-client.interceptors.request.use((config) => {
-  const token = tokenStorage.getAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import { http } from './http';
 
 export interface Profile {
   id: number;
@@ -54,7 +40,7 @@ export interface WorkoutSessionDetail extends WorkoutSessionItem {
 }
 
 export const profileApi = {
-  getProfile: () => client.get<Profile>('/profile').then((r) => r.data),
+  getProfile: () => http.get<Profile>('/profile').then((r) => r.data),
 
   updateProfile: (body: {
     displayName?: string;
@@ -62,17 +48,20 @@ export const profileApi = {
     age?: number;
     heightCm?: number;
     goalType?: string;
-  }) => client.put<{ profile: Profile; goalChanged: boolean }>('/profile', body).then((r) => r.data),
+  }) => http.put<{ profile: Profile; goalChanged: boolean }>('/profile', body).then((r) => r.data),
 
-  deleteAccount: () => client.delete<{ message: string }>('/account').then((r) => r.data),
+  deleteAccount: (password?: string) =>
+    http
+      .delete<{ message: string }>('/account', { data: password ? { password } : undefined })
+      .then((r) => r.data),
 
   getSessions: (page = 0, size = 20) =>
-    client
+    http
       .get<{ content: WorkoutSessionItem[]; totalElements: number; totalPages: number }>(
         `/workout-sessions?page=${page}&size=${size}`,
       )
       .then((r) => r.data),
 
   getSessionDetail: (id: number) =>
-    client.get<WorkoutSessionDetail>(`/workout-sessions/${id}`).then((r) => r.data),
+    http.get<WorkoutSessionDetail>(`/workout-sessions/${id}`).then((r) => r.data),
 };

@@ -1,28 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
+import Icon from '../components/Icon';
 import { adminApi } from '../services/adminApi';
 import type { AdminExercise, AdminUser } from '../services/adminApi';
-
-const cardStyle: CSSProperties = {
-  background: 'var(--dark-surface)',
-  borderRadius: 12,
-  padding: 20,
-  flex: '1 1 200px',
-  minWidth: 200,
-  textAlign: 'center',
-};
-
-const actionStyle: CSSProperties = {
-  background: 'var(--dark-surface)',
-  color: 'var(--text-base)',
-  borderRadius: 9999,
-  padding: '12px 20px',
-  fontSize: 14,
-  fontWeight: 700,
-  textDecoration: 'none',
-  border: '1px solid var(--text-announcement)',
-};
 
 /** Dashboard Admin — tổng quan người dùng, bài tập + hành động quản trị. */
 export default function AdminDashboard() {
@@ -38,75 +18,105 @@ export default function AdminDashboard() {
   const activeExercises = exercises.filter((e) => e.status === 'active').length;
 
   return (
-    <div style={{ width: '100%', maxWidth: 960, display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div>
-        <h1 style={{ fontSize: 26, fontWeight: 700 }}>Bảng điều khiển quản trị</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-          Quản lý người dùng và thư viện bài tập của WorkoutSmartApp.
-        </p>
-      </div>
-
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 32, fontWeight: 700 }}>{users.length}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1 }}>
-            Người dùng (hiển thị tối đa 50)
-          </div>
+    <div className="page-container" style={{ maxWidth: 960, display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div className="page-header">
+        <div>
+          <h1>🛡️ Bảng điều khiển quản trị</h1>
+          <p className="text-secondary text-sm" style={{ marginTop: 4 }}>
+            Quản lý người dùng và thư viện bài tập WorkoutSmart.
+          </p>
         </div>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--text-negative)' }}>{bannedCount}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1 }}>
-            Tài khoản bị khóa
-          </div>
-        </div>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--green)' }}>{exercises.length}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1 }}>
-            Bài tập (hiển thị tối đa 200)
-          </div>
-        </div>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 32, fontWeight: 700 }}>{activeExercises}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1 }}>
-            Bài tập đang hoạt động
-          </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Link to="/admin/users" className="btn btn-outlined btn-sm">Quản lý người dùng</Link>
+          <Link to="/admin/exercises" className="btn btn-primary btn-sm">Quản lý bài tập</Link>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <Link to="/admin/users" style={actionStyle}>Quản lý người dùng</Link>
-        <Link to="/admin/exercises" style={actionStyle}>Quản lý bài tập</Link>
+      {/* Stat cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+        <div className="stat-card">
+          <div className="stat-icon stat-icon-blue"><Icon name="users" /></div>
+          <div className="stat-value">{users.length}</div>
+          <div className="stat-label">Người dùng</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon stat-icon-red"><Icon name="block" /></div>
+          <div className="stat-value text-negative">{bannedCount}</div>
+          <div className="stat-label">Tài khoản bị khóa</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon stat-icon-green"><Icon name="strength" /></div>
+          <div className="stat-value text-green">{activeExercises}</div>
+          <div className="stat-label">Bài tập đang hoạt động</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon stat-icon-orange"><Icon name="box" /></div>
+          <div className="stat-value">{exercises.length}</div>
+          <div className="stat-label">Tổng bài tập</div>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        <div style={{ background: 'var(--dark-surface)', borderRadius: 12, padding: 20, flex: '1 1 320px' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700 }}>Người dùng gần đây</h2>
+      {/* Tables */}
+      <div className="grid-two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {/* Recent users */}
+        <div className="card">
+          <div className="section-header">
+            <h2 className="section-title">Người dùng gần đây</h2>
+            <Link to="/admin/users" className="section-link">Xem tất cả →</Link>
+          </div>
           {users.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)' }}>Chưa có người dùng.</p>
+            <div className="empty-state" style={{ padding: '20px 0' }}>
+              <p className="empty-state-text">Chưa có người dùng.</p>
+            </div>
           ) : (
-            users.slice(0, 5).map((u) => (
-              <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--mid-dark)' }}>
-                <span>{u.email}</span>
-                <span style={{ color: u.accountStatus === 'BANNED' ? 'var(--text-negative)' : 'var(--text-secondary)' }}>
-                  {u.accountStatus}
-                </span>
-              </div>
-            ))
+            <table className="data-table">
+              <thead>
+                <tr><th>Email</th><th>Trạng thái</th></tr>
+              </thead>
+              <tbody>
+                {users.slice(0, 5).map((u) => (
+                  <tr key={u.id}>
+                    <td className="truncate" style={{ maxWidth: 160 }}>{u.email}</td>
+                    <td>
+                      <span className={`badge ${u.accountStatus === 'BANNED' ? 'badge-negative' : u.accountStatus === 'ACTIVE' ? 'badge-green' : 'badge-neutral'}`}>
+                        {u.accountStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
-        <div style={{ background: 'var(--dark-surface)', borderRadius: 12, padding: 20, flex: '1 1 320px' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700 }}>Bài tập gần đây</h2>
+
+        {/* Recent exercises */}
+        <div className="card">
+          <div className="section-header">
+            <h2 className="section-title">Bài tập gần đây</h2>
+            <Link to="/admin/exercises" className="section-link">Xem tất cả →</Link>
+          </div>
           {exercises.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)' }}>Chưa có bài tập.</p>
+            <div className="empty-state" style={{ padding: '20px 0' }}>
+              <p className="empty-state-text">Chưa có bài tập.</p>
+            </div>
           ) : (
-            exercises.slice(0, 5).map((e) => (
-              <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--mid-dark)' }}>
-                <span>{e.name}</span>
-                <span style={{ color: 'var(--text-secondary)' }}>
-                  {e.equipment} · {e.status}
-                </span>
-              </div>
-            ))
+            <table className="data-table">
+              <thead>
+                <tr><th>Tên</th><th>Trạng thái</th></tr>
+              </thead>
+              <tbody>
+                {exercises.slice(0, 5).map((e) => (
+                  <tr key={e.id}>
+                    <td className="truncate" style={{ maxWidth: 160 }}>{e.name}</td>
+                    <td>
+                      <span className={`badge ${e.status === 'active' ? 'badge-green' : 'badge-neutral'}`}>
+                        {e.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </div>

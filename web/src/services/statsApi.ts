@@ -1,18 +1,4 @@
-import axios from 'axios';
-import { tokenStorage } from './tokenStorage';
-
-const client = axios.create({
-  baseURL: '/api/v1',
-  headers: { 'Content-Type': 'application/json' },
-});
-
-client.interceptors.request.use((config) => {
-  const token = tokenStorage.getAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import { http } from './http';
 
 export interface WeightPoint {
   date: string;
@@ -55,7 +41,7 @@ export const statsApi = {
     if (from) params.set('from', from);
     if (to) params.set('to', to);
     const qs = params.toString();
-    return client
+    return http
       .get<StatsDashboard>(`/stats/dashboard${qs ? `?${qs}` : ''}`)
       .then((r) => r.data);
   },

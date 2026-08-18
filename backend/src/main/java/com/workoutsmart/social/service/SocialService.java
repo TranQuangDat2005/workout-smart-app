@@ -228,7 +228,22 @@ public class SocialService {
 
     @Transactional
     public List<LeaderboardResponse> leaderboard() {
-        List<User> users = userRepository.findAll();
+        return computeLeaderboard(userRepository.findAll(), 100);
+    }
+
+    /** Bảng xếp hạng nhóm bạn bè (bao gồm chính mình) — FR-007 (003). */
+    @Transactional
+    public List<LeaderboardResponse> friendsLeaderboard(Long userId) {
+        List<Long> friendIds = friendshipRepository.findAcceptedFor(userId).stream()
+                .map(f -> f.getUserId1().equals(userId) ? f.getUserId2() : f.getUserId1())
+                .toList();
+        List<Long> ids = new ArrayList<>();
+        ids.add(userId);
+        ids.addAll(friendIds);
+        return computeLeaderboard(userRepository.findAllById(ids), ids.size());
+    }
+
+    private List<LeaderboardResponse> computeLeaderboard(List<User> users, int limit) {
         for (User user : users) {
             List<Instant> starts = sessionRepository
                     .findByUserIdOrderByStartTimeDesc(user.getId(), org.springframework.data.domain.PageRequest.of(0, 1000))
@@ -244,12 +259,14 @@ public class SocialService {
             leaderboardRepository.save(entry);
         }
 
-        List<LeaderboardEntry> entries = leaderboardRepository.findAll().stream()
+        List<LeaderboardEntry> entries = users.stream()
+                .map(u -> leaderboardRepository.findByUserId(u.getId()).orElse(null))
+                .filter(java.util.Objects::nonNull)
                 .sorted(Comparator
                         .comparingInt(LeaderboardEntry::getCurrentStreakWeeks).reversed()
                         .thenComparing(Comparator.comparingInt(LeaderboardEntry::getLongestStreakWeeks).reversed())
                         .thenComparingLong(LeaderboardEntry::getUserId))
-                .limit(100)
+                .limit(limit)
                 .toList();
 
         List<LeaderboardResponse> result = new ArrayList<>();

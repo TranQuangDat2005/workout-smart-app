@@ -1,5 +1,6 @@
 package com.workoutsmart.admin.controller;
 
+import com.workoutsmart.admin.dto.AdminExerciseDetailResponse;
 import com.workoutsmart.admin.dto.AdminExerciseResponse;
 import com.workoutsmart.admin.dto.AdminUserDetailResponse;
 import com.workoutsmart.admin.dto.AdminUserResponse;
@@ -64,6 +65,11 @@ public class AdminController {
     @GetMapping("/exercises")
     public List<AdminExerciseResponse> listExercises(@RequestParam(defaultValue = "") String q) {
         return adminService.listExercises(q);
+    }
+
+    @GetMapping("/exercises/{id}")
+    public AdminExerciseDetailResponse getExerciseDetail(@PathVariable Long id) {
+        return adminService.getExerciseDetail(id);
     }
 
     @PostMapping("/exercises")

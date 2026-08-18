@@ -1,5 +1,6 @@
 package com.workoutsmart.admin.service;
 
+import com.workoutsmart.admin.dto.AdminExerciseDetailResponse;
 import com.workoutsmart.admin.dto.AdminExerciseResponse;
 import com.workoutsmart.admin.dto.AdminUserDetailResponse;
 import com.workoutsmart.admin.dto.AdminUserResponse;
@@ -113,6 +114,13 @@ public class AdminService {
     }
 
     // ---------- Exercise management (UC-19) ----------
+
+    public AdminExerciseDetailResponse getExerciseDetail(Long exerciseId) {
+        Exercise e = requireExercise(exerciseId);
+        return new AdminExerciseDetailResponse(e.getId(), e.getName(), e.getCategory(), e.getBodyPart(),
+                e.getEquipment(), e.getTarget(), e.getMuscleGroup(), e.getImage(), e.getGifUrl(),
+                e.getInstructions(), e.getStatus());
+    }
 
     public List<AdminExerciseResponse> listExercises(String q) {
         Specification<Exercise> spec = (root, cq, cb) -> cb.conjunction();

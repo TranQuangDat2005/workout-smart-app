@@ -1,32 +1,85 @@
 import { useEffect, useState } from 'react';
 import Button from '../../components/Button';
+import Spinner from '../../components/Spinner';
 import TextField from '../../components/TextField';
 import { nutritionApi } from '../../services/nutritionApi';
-import type { Food, Meal, MealEntryInput, NutritionSummary } from '../../services/nutritionApi';
+import type { Food, Meal, NutritionSummary } from '../../services/nutritionApi';
+import { todayLocalISO } from '../../services/date';
+
+interface DraftEntry {
+  foodItemId: number;
+  foodName: string;
+  portionGrams: number;
+  calories: number;
+  protein: number;
+  carb: number;
+  fat: number;
+}
+
+function FoodChip({ food, onAdd }: { food: Food; onAdd: (grams: number) => void }) {
+  const [grams, setGrams] = useState('100');
+  return (
+    <div
+      style={{
+        background: 'var(--mid-dark)',
+        borderRadius: 8,
+        padding: '8px 12px',
+        fontSize: 13,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        border: '1px solid var(--border-dark)',
+      }}
+    >
+      <span className="fw-600">{food.name}</span>
+      <input
+        type="number"
+        value={grams}
+        onChange={(e) => setGrams(e.target.value)}
+        min="0"
+        step="any"
+        style={{
+          width: 56,
+          background: 'var(--near-black)',
+          color: 'var(--text-base)',
+          border: 'none',
+          borderRadius: 4,
+          padding: '4px 6px',
+          fontSize: 13,
+          outline: 'none',
+        }}
+      />
+      <span className="text-muted">g</span>
+      <button
+        className="btn btn-primary btn-sm"
+        style={{ padding: '4px 12px', fontSize: 12, letterSpacing: 0 }}
+        onClick={() => onAdd(Number(grams))}
+      >
+        +
+      </button>
+    </div>
+  );
+}
 
 export default function NutritionPage() {
-  const today = new Date().toISOString().slice(0, 10);
-  const [date, setDate] = useState(today);
+  const [date, setDate] = useState(todayLocalISO());
   const [meals, setMeals] = useState<Meal[]>([]);
   const [summary, setSummary] = useState<NutritionSummary | null>(null);
   const [foods, setFoods] = useState<Food[]>([]);
   const [query, setQuery] = useState('');
   const [mealNumber, setMealNumber] = useState('1');
-  const [entries, setEntries] = useState<MealEntryInput[]>([]);
+  const [entries, setEntries] = useState<DraftEntry[]>([]);
   const [editingMealId, setEditingMealId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const load = () => {
-    nutritionApi.getMeals(date).then(setMeals).catch(() => setError('Không thể tải bữa ăn'));
-    nutritionApi
-      .getSummary(date)
-      .then(setSummary)
-      .catch((err: unknown) => {
-        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-        if (msg) setError(msg);
-        setSummary(null);
-      });
+    setLoading(true);
+    void Promise.allSettled([
+      nutritionApi.getMeals(date).then(setMeals).catch(() => setError('Không thể tải bữa ăn')),
+      nutritionApi.getSummary(date).then(setSummary).catch(() => setSummary(null)),
+    ]).finally(() => setLoading(false));
   };
 
   useEffect(load, [date]);
@@ -37,32 +90,40 @@ export default function NutritionPage() {
 
   const addEntry = (food: Food, grams: number) => {
     if (grams <= 0) return;
-    setEntries((prev) => [...prev, { foodItemId: food.id, portionGrams: grams }]);
+    const factor = grams / 100;
+    setEntries((prev) => [
+      ...prev,
+      {
+        foodItemId: food.id,
+        foodName: food.name,
+        portionGrams: grams,
+        calories: food.caloriesPer100g * factor,
+        protein: food.proteinPer100g * factor,
+        carb: food.carbPer100g * factor,
+        fat: food.fatPer100g * factor,
+      },
+    ]);
   };
 
-  const removeEntry = (index: number) => {
-    setEntries((prev) => prev.filter((_, i) => i !== index));
-  };
+  const removeEntry = (index: number) => setEntries((prev) => prev.filter((_, i) => i !== index));
 
   const saveMeal = async () => {
-    setError('');
-    setNotice('');
-    if (entries.length === 0) {
-      setError('Cần ít nhất 1 món');
-      return;
-    }
-    const body = { mealNumber: Number(mealNumber), logDate: date, entries };
+    setError(''); setNotice('');
+    if (entries.length === 0) { setError('Cần ít nhất 1 món'); return; }
+    const body = {
+      mealNumber: Number(mealNumber),
+      logDate: date,
+      entries: entries.map(({ foodItemId, portionGrams }) => ({ foodItemId, portionGrams })),
+    };
     try {
       if (editingMealId != null) {
         await nutritionApi.updateMeal(editingMealId, body);
-        setNotice('Đã sửa bữa ăn.');
+        setNotice('Đã cập nhật bữa ăn.');
       } else {
         await nutritionApi.createMeal(body);
         setNotice('Đã thêm bữa ăn.');
       }
-      setEntries([]);
-      setEditingMealId(null);
-      setMealNumber('1');
+      setEntries([]); setEditingMealId(null); setMealNumber('1');
       load();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -73,129 +134,190 @@ export default function NutritionPage() {
   const startEdit = (meal: Meal) => {
     setEditingMealId(meal.id);
     setMealNumber(String(meal.mealNumber));
-    setEntries(meal.entries.map((e) => ({ foodItemId: e.foodItemId, portionGrams: e.portionGrams })));
+    setEntries(
+      meal.entries.map((e) => ({
+        foodItemId: e.foodItemId,
+        foodName: e.foodName,
+        portionGrams: e.portionGrams,
+        calories: e.totalCalories,
+        protein: e.totalProtein,
+        carb: e.totalCarb,
+        fat: e.totalFat,
+      })),
+    );
   };
 
   const caloPct = summary && summary.targetCalories > 0
     ? Math.min(100, Math.round((summary.totalCalories / summary.targetCalories) * 100))
     : 0;
+  const isOverCalo = summary?.status === 'thừa';
+  const totalCalories = Math.round(entries.reduce((s, e) => s + e.calories, 0));
+  const totalProtein = entries.reduce((s, e) => s + e.protein, 0);
+  const totalCarb = entries.reduce((s, e) => s + e.carb, 0);
+  const totalFat = entries.reduce((s, e) => s + e.fat, 0);
 
   return (
-    <div style={{  }}>
-      <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700 }}>Dinh dưỡng</h1>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            style={{
-              background: 'var(--mid-dark)', color: 'var(--text-base)',
-              border: '1px solid transparent', borderRadius: 500, padding: '8px 16px', fontSize: 14,
-            }}
-          />
+    <div className="page-container" style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Header */}
+      <div className="page-header">
+        <h1>🍎 Nhật ký dinh dưỡng</h1>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          style={{
+            background: 'var(--mid-dark)',
+            color: 'var(--text-base)',
+            border: '1px solid var(--border-dark)',
+            borderRadius: 'var(--r-pill)',
+            padding: '8px 16px',
+            fontSize: 13,
+            outline: 'none',
+            cursor: 'pointer',
+          }}
+        />
+      </div>
+
+      {loading && meals.length === 0 && <Spinner />}
+
+      {/* Summary panel */}
+      {summary && (
+        <div className="card">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12, marginBottom: 16 }}>
+            {[
+              { label: 'Đã nạp', val: `${summary.totalCalories} kcal`, color: isOverCalo ? 'var(--text-warning)' : 'var(--text-base)' },
+              { label: 'Mục tiêu', val: `${summary.targetCalories} kcal`, color: 'var(--text-base)' },
+              { label: 'Chênh lệch', val: `${summary.deficitOrSurplus > 0 ? '+' : ''}${summary.deficitOrSurplus} kcal`, color: isOverCalo ? 'var(--text-negative)' : 'var(--green)' },
+              { label: 'Trạng thái', val: summary.status, color: isOverCalo ? 'var(--text-warning)' : 'var(--green)' },
+            ].map((item) => (
+              <div key={item.label} style={{ background: 'var(--mid-dark)', borderRadius: 8, padding: '10px 14px' }}>
+                <div className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>{item.label}</div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: item.color }}>{item.val}</div>
+              </div>
+            ))}
+          </div>
+          <div className="progress-bar" style={{ height: 8 }}>
+            <div
+              className="progress-fill"
+              style={{
+                width: `${caloPct}%`,
+                background: isOverCalo ? 'var(--text-warning)' : 'var(--green)',
+              }}
+            />
+          </div>
+          <div className="text-secondary text-sm" style={{ marginTop: 8 }}>
+            Protein <strong>{summary.totalProtein}g</strong> · Carb <strong>{summary.totalCarb}g</strong> · Fat <strong>{summary.totalFat}g</strong>
+          </div>
+        </div>
+      )}
+
+      {notice && <div className="notice notice-success animate-slide-up">{notice}</div>}
+      {error   && <div className="notice notice-error">{error}</div>}
+
+      {/* Meals list */}
+      {meals.length === 0 ? (
+        <div className="card">
+          <div className="empty-state">
+            <div className="empty-state-icon">🍽️</div>
+            <p className="empty-state-text">Chưa có bữa ăn nào được ghi nhận hôm nay.</p>
+          </div>
+        </div>
+      ) : (
+        meals.map((meal) => (
+          <div key={meal.id} className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div>
+                <span className="fw-700">🍽 Bữa {meal.mealNumber}</span>
+                <span className="badge badge-neutral" style={{ marginLeft: 10 }}>{meal.totalCalories} kcal</span>
+              </div>
+              <Button variant="dark" size="sm" onClick={() => startEdit(meal)}>Sửa</Button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {meal.entries.map((e) => (
+                <div key={e.id} className="row-item" style={{ fontSize: 13 }}>
+                  <span className="text-secondary">{e.foodName}</span>
+                  <span>
+                    <span className="fw-600">{e.portionGrams}g</span>
+                    <span className="text-muted" style={{ marginLeft: 8 }}>{e.totalCalories} kcal</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+
+      {/* Add/edit meal form */}
+      <div className="card">
+        <h3 style={{ marginBottom: 16 }}>
+          {editingMealId != null ? `✏️ Sửa bữa ${mealNumber}` : '➕ Thêm bữa ăn'}
+        </h3>
+
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+          <div style={{ width: 100 }}>
+            <TextField label="Bữa số" type="number" value={mealNumber} onChange={(e) => setMealNumber(e.target.value)} min="1" max="10" />
+          </div>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <TextField
+              label="Tìm thực phẩm"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && searchFoods()}
+              placeholder="Nhập tên thực phẩm..."
+            />
+          </div>
+          <Button variant="dark" onClick={searchFoods} style={{ marginTop: 'auto' }}>Tìm</Button>
         </div>
 
-        {summary && (
-          <div style={{ background: 'var(--dark-surface)', borderRadius: 8, padding: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-              <span>Đã nạp: <b>{summary.totalCalories} kcal</b></span>
-              <span>Mục tiêu: <b>{summary.targetCalories} kcal</b></span>
-              <span style={{ color: 'var(--text-announcement)' }}>
-                {summary.deficitOrSurplus >= 0 ? '+' : ''}{summary.deficitOrSurplus} kcal ({summary.status})
-              </span>
-            </div>
-            <div style={{ background: 'var(--mid-dark)', borderRadius: 9999, height: 12, marginTop: 8, overflow: 'hidden' }}>
-              <div style={{
-                width: `${caloPct}%`, height: '100%',
-                background: summary.status === 'thừa' ? 'var(--text-negative)' : 'var(--green)',
-                borderRadius: 9999,
-              }} />
-            </div>
-            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
-              Protein {summary.totalProtein}g · Carb {summary.totalCarb}g · Fat {summary.totalFat}g
-            </div>
-          </div>
-        )}
-
-        {error && <span style={{ fontSize: 12, color: 'var(--text-negative)' }}>{error}</span>}
-        {notice && <span style={{ fontSize: 12, color: 'var(--text-announcement)' }}>{notice}</span>}
-
-        {/* Danh sách bữa */}
-        {meals.map((meal) => (
-          <div key={meal.id} style={{ background: 'var(--dark-surface)', borderRadius: 8, padding: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <b>Bữa {meal.mealNumber}</b>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{meal.totalCalories} kcal</span>
-                <Button variant="dark" onClick={() => startEdit(meal)}>Sửa</Button>
-              </div>
-            </div>
-            <ul style={{ marginTop: 8, fontSize: 14, color: 'var(--text-secondary)', paddingLeft: 20 }}>
-              {meal.entries.map((e) => (
-                <li key={e.id}>{e.foodName} — {e.portionGrams}g ({e.totalCalories} kcal)</li>
-              ))}
-            </ul>
-          </div>
-        ))}
-
-        {/* Form thêm/sửa bữa */}
-        <div style={{ background: 'var(--dark-surface)', borderRadius: 8, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <b>{editingMealId != null ? `Sửa bữa ${mealNumber}` : 'Thêm bữa ăn'}</b>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-            <TextField label="Bữa số" type="number" value={mealNumber}
-              onChange={(e) => setMealNumber(e.target.value)} />
-            <div style={{ flex: 1 }}>
-              <TextField label="Tìm thực phẩm" value={query}
-                onChange={(e) => setQuery(e.target.value)} />
-            </div>
-            <Button variant="dark" onClick={searchFoods}>Tìm</Button>
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {/* Food search results */}
+        {foods.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
             {foods.map((food) => (
               <FoodChip key={food.id} food={food} onAdd={(grams) => addEntry(food, grams)} />
             ))}
           </div>
-          {entries.length > 0 && (
-            <div style={{ fontSize: 14 }}>
-              {entries.map((e, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-                  <span>Món #{e.foodItemId} — {e.portionGrams}g</span>
-                  <button style={{ background: 'none', border: 'none', color: 'var(--text-negative)', cursor: 'pointer' }}
-                    onClick={() => removeEntry(i)}>X</button>
+        )}
+
+        {/* Cart entries */}
+        {entries.length > 0 && (
+          <div className="card" style={{ background: 'var(--mid-dark)', marginBottom: 14, padding: 14 }}>
+            <h4 className="text-secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Món đã chọn</h4>
+            {entries.map((e, i) => (
+              <div key={i} className="row-item" style={{ fontSize: 13 }}>
+                <div>
+                  <div className="fw-600">{e.foodName}</div>
+                  <div className="text-secondary" style={{ fontSize: 12 }}>
+                    {e.portionGrams}g · {Math.round(e.calories)} kcal · P {e.protein.toFixed(1)}g · C {e.carb.toFixed(1)}g · F {e.fat.toFixed(1)}g
+                  </div>
                 </div>
-              ))}
+                <button
+                  onClick={() => removeEntry(i)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-negative)', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 4 }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <div className="row-item" style={{ fontWeight: 700 }}>
+              <span>Tổng bữa</span>
+              <span>
+                {totalCalories} kcal · P {totalProtein.toFixed(1)}g · C {totalCarb.toFixed(1)}g · F {totalFat.toFixed(1)}g
+              </span>
             </div>
-          )}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button onClick={saveMeal}>{editingMealId != null ? 'Lưu thay đổi' : 'Lưu bữa ăn'}</Button>
-            {editingMealId != null && (
-              <Button variant="outlined" onClick={() => { setEditingMealId(null); setEntries([]); setMealNumber('1'); }}>
-                Hủy
-              </Button>
-            )}
           </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Button onClick={saveMeal} style={{ flex: 1 }}>
+            {editingMealId != null ? 'Lưu thay đổi' : 'Lưu bữa ăn'}
+          </Button>
+          {editingMealId != null && (
+            <Button variant="outlined" onClick={() => { setEditingMealId(null); setEntries([]); setMealNumber('1'); }}>
+              Hủy
+            </Button>
+          )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function FoodChip({ food, onAdd }: { food: Food; onAdd: (grams: number) => void }) {
-  const [grams, setGrams] = useState('100');
-  return (
-    <div style={{
-      background: 'var(--mid-dark)', borderRadius: 6, padding: 8, fontSize: 12,
-      display: 'flex', alignItems: 'center', gap: 6,
-    }}>
-      <span>{food.name}</span>
-      <input
-        type="number" value={grams} onChange={(e) => setGrams(e.target.value)}
-        style={{ width: 60, background: 'var(--near-black)', color: 'var(--text-base)', border: 'none', borderRadius: 4, padding: '4px 6px' }}
-      />
-      <span>g</span>
-      <button style={{ background: 'var(--green)', color: '#000', border: 'none', borderRadius: 9999, padding: '4px 10px', cursor: 'pointer', fontWeight: 700 }}
-        onClick={() => onAdd(Number(grams))}>+</button>
     </div>
   );
 }

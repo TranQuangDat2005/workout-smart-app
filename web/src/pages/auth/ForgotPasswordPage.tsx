@@ -8,7 +8,6 @@ import { authApi } from '../../services/authApi';
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
-  const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -17,8 +16,7 @@ export default function ForgotPasswordPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await authApi.forgotPassword(email);
-      setNotice(res.message);
+      await authApi.forgotPassword(email);
       navigate('/reset-password', { state: { email } });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -29,7 +27,10 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <AuthLayout title="Quên mật khẩu">
+    <AuthLayout
+      title="Quên mật khẩu"
+      subtitle="Nhập email để nhận mã OTP đặt lại mật khẩu"
+    >
       <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <TextField
           label="Email"
@@ -38,17 +39,25 @@ export default function ForgotPasswordPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="ban@example.com"
+          autoComplete="email"
         />
-        {error && <span style={{ fontSize: 12, color: 'var(--text-negative)' }}>{error}</span>}
-        {notice && <span style={{ fontSize: 12, color: 'var(--text-announcement)' }}>{notice}</span>}
-        <Button type="submit" fullWidth disabled={loading}>
-          {loading ? 'Đang xử lý…' : 'Gửi mã OTP'}
+
+        {error && (
+          <div className="notice notice-error" role="alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            {error}
+          </div>
+        )}
+
+        <Button type="submit" fullWidth loading={loading}>
+          Gửi mã OTP
         </Button>
       </form>
-      <div style={{ textAlign: 'center', fontSize: 14 }}>
-        <Link to="/login" style={{ color: 'var(--text-secondary)' }}>
-          Quay lại đăng nhập
-        </Link>
+
+      <div style={{ textAlign: 'center', fontSize: 13 }}>
+        <Link to="/login" className="text-secondary">← Quay lại đăng nhập</Link>
       </div>
     </AuthLayout>
   );

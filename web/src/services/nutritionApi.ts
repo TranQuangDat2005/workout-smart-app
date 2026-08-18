@@ -1,18 +1,4 @@
-import axios from 'axios';
-import { tokenStorage } from './tokenStorage';
-
-const client = axios.create({
-  baseURL: '/api/v1',
-  headers: { 'Content-Type': 'application/json' },
-});
-
-client.interceptors.request.use((config) => {
-  const token = tokenStorage.getAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import { http } from './http';
 
 export interface Food {
   id: number;
@@ -73,31 +59,31 @@ export interface BodyMetric {
 
 export const nutritionApi = {
   searchFoods: (query: string, page = 0, size = 50) =>
-    client
+    http
       .get<{ content: Food[]; totalElements: number }>(`/foods?query=${encodeURIComponent(query)}&page=${page}&size=${size}`)
       .then((r) => r.data),
 
   createFood: (body: { name: string; caloriesPer100g: number; proteinPer100g: number; carbPer100g: number; fatPer100g: number }) =>
-    client.post<Food>('/foods', body).then((r) => r.data),
+    http.post<Food>('/foods', body).then((r) => r.data),
 
   updateFood: (id: number, body: { name: string; caloriesPer100g: number; proteinPer100g: number; carbPer100g: number; fatPer100g: number }) =>
-    client.put<Food>(`/foods/${id}`, body).then((r) => r.data),
+    http.put<Food>(`/foods/${id}`, body).then((r) => r.data),
 
-  deleteFood: (id: number) => client.delete(`/foods/${id}`).then((r) => r.data),
+  deleteFood: (id: number) => http.delete(`/foods/${id}`).then((r) => r.data),
 
-  getMeals: (date: string) => client.get<Meal[]>(`/meals?date=${date}`).then((r) => r.data),
+  getMeals: (date: string) => http.get<Meal[]>(`/meals?date=${date}`).then((r) => r.data),
 
   createMeal: (body: { mealNumber: number; logDate: string; entries: MealEntryInput[] }) =>
-    client.post<Meal>('/meals', body).then((r) => r.data),
+    http.post<Meal>('/meals', body).then((r) => r.data),
 
   updateMeal: (id: number, body: { mealNumber: number; logDate: string; entries: MealEntryInput[] }) =>
-    client.put<Meal>(`/meals/${id}`, body).then((r) => r.data),
+    http.put<Meal>(`/meals/${id}`, body).then((r) => r.data),
 
   getSummary: (date: string) =>
-    client.get<NutritionSummary>(`/nutrition/summary?date=${date}`).then((r) => r.data),
+    http.get<NutritionSummary>(`/nutrition/summary?date=${date}`).then((r) => r.data),
 
   createBodyMetric: (body: { weightKg: number; bodyFatPct?: number; waistCm?: number; chestCm?: number; armCm?: number }) =>
-    client.post<BodyMetric>('/body-metrics', body).then((r) => r.data),
+    http.post<BodyMetric>('/body-metrics', body).then((r) => r.data),
 
-  getBodyMetrics: () => client.get<BodyMetric[]>('/body-metrics').then((r) => r.data),
+  getBodyMetrics: () => http.get<BodyMetric[]>('/body-metrics').then((r) => r.data),
 };

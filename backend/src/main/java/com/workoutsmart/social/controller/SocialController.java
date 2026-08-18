@@ -80,6 +80,11 @@ public class SocialController {
         return socialService.leaderboard();
     }
 
+    @GetMapping("/leaderboard/friends")
+    public List<LeaderboardResponse> friendsLeaderboard(Authentication auth) {
+        return socialService.friendsLeaderboard(currentUserId(auth));
+    }
+
     @GetMapping("/challenges")
     public List<ChallengeResponse> challenges(Authentication auth) {
         return socialService.challenges(currentUserId(auth));

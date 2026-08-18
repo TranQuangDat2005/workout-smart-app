@@ -1,41 +1,41 @@
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'dark' | 'outlined';
+  variant?: 'primary' | 'dark' | 'outlined' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
+  loading?: boolean;
+  icon?: ReactNode;
 }
 
-/** Pill button — DESIGN.md §4: uppercase + letter-spacing, radius 9999px. */
+/** Pill button — DESIGN.md §4: uppercase, 1.4px tracking, radius 9999px. */
 export default function Button({
   variant = 'primary',
+  size = 'md',
   fullWidth = false,
+  loading = false,
+  icon,
   className = '',
   children,
+  disabled,
   ...rest
 }: ButtonProps) {
-  const base: React.CSSProperties = {
-    borderRadius: 9999,
-    padding: '14px 32px',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: 14,
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '1.4px',
-    width: fullWidth ? '100%' : undefined,
-  };
-  const styles: Record<string, React.CSSProperties> = {
-    primary: { ...base, background: 'var(--green)', color: '#000000' },
-    dark: { ...base, background: 'var(--mid-dark)', color: 'var(--text-base)' },
-    outlined: {
-      ...base,
-      background: 'transparent',
-      color: 'var(--text-base)',
-      border: '1px solid var(--border-light)',
-    },
-  };
+  const variantClass =
+    variant === 'primary' ? 'btn-primary'
+    : variant === 'dark' ? 'btn-dark'
+    : variant === 'danger' ? 'btn-danger'
+    : 'btn-outlined';
+
+  const sizeClass = size === 'sm' ? 'btn-sm' : size === 'lg' ? 'btn-lg' : '';
+
   return (
-    <button style={styles[variant]} className={className} {...rest}>
+    <button
+      className={`btn ${variantClass} ${sizeClass} ${fullWidth ? 'btn-full' : ''} ${className}`.trim()}
+      disabled={disabled || loading}
+      {...rest}
+    >
+      {loading && <span className="btn-spinner" aria-hidden />}
+      {!loading && icon}
       {children}
     </button>
   );
