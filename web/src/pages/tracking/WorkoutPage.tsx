@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from '../../components/Button';
 import TextField from '../../components/TextField';
 import { trackingApi } from '../../services/trackingApi';
@@ -9,8 +9,32 @@ export default function WorkoutPage() {
   const [setNumber, setSetNumber] = useState('1');
   const [reps, setReps] = useState('');
   const [weight, setWeight] = useState('');
+  const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+
+  // FR-004: tự động phát hiện phân tâm khi tab web bị ẩn > 15 giây trong lúc tập
+  useEffect(() => {
+    if (!session || session.status !== 'active') return;
+
+    let hiddenAt: number | null = null;
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now();
+      } else if (hiddenAt != null) {
+        if (Date.now() - hiddenAt >= 15000) {
+          trackingApi
+            .incrementFocus(session.id)
+            .then(setSession)
+            .catch(() => {});
+        }
+        hiddenAt = null;
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [session]);
 
   const onStart = async () => {
     setError('');
@@ -23,8 +47,10 @@ export default function WorkoutPage() {
     }
   };
 
+  // FR-011: chống nhấn 2 lần nút "Lưu hiệp"
   const onRecordSet = async () => {
-    if (!session) return;
+    if (!session || saving) return;
+    setSaving(true);
     setError('');
     try {
       await trackingApi.recordSet(session.id, {
@@ -39,6 +65,8 @@ export default function WorkoutPage() {
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setError(msg ?? 'Lưu hiệp thất bại');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -68,7 +96,7 @@ export default function WorkoutPage() {
               <TextField label="Số lần" type="number" value={reps} onChange={(e) => setReps(e.target.value)} />
               <TextField label="Tạ (kg)" type="number" value={weight} onChange={(e) => setWeight(e.target.value)} />
             </div>
-            <Button onClick={onRecordSet}>Lưu hiệp</Button>
+            <Button onClick={onRecordSet} disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu hiệp'}</Button>
             <Button variant="outlined" onClick={onFocus}>Báo phân tâm</Button>
             <Button variant="outlined" onClick={onComplete} style={{ color: 'var(--text-announcement)' }}>Kết thúc buổi tập</Button>
           </>
