@@ -136,7 +136,7 @@ export default function StatsPage() {
   const empty = (list: unknown[] | undefined) => !list || list.length === 0;
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--near-black)', padding: 32 }}>
+    <div style={{  }}>
       <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Thống kê tiến độ</h1>
 

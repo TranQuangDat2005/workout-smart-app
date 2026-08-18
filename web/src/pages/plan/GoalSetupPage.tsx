@@ -54,7 +54,7 @@ export default function GoalSetupPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--near-black)', padding: 32, display: 'flex', justifyContent: 'center' }}>
+    <div style={{ display: 'flex', justifyContent: 'center' }}>
       <div style={{ background: 'var(--dark-surface)', borderRadius: 8, padding: 32, width: '100%', maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Thiết lập mục tiêu</h1>
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

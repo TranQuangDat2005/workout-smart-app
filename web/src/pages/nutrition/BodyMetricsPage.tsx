@@ -41,7 +41,7 @@ export default function BodyMetricsPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--near-black)', padding: 32 }}>
+    <div style={{  }}>
       <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Chỉ số cơ thể</h1>
         {error && <span style={{ fontSize: 12, color: 'var(--text-negative)' }}>{error}</span>}

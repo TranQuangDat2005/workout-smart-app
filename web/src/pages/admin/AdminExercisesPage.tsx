@@ -63,7 +63,7 @@ export default function AdminExercisesPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--near-black)', padding: 32, display: 'flex', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}>
       <div style={{ background: 'var(--dark-surface)', borderRadius: 8, padding: 24, width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700 }}>Danh sách bài tập</h1>
         <div style={{ display: 'flex', gap: 8 }}>

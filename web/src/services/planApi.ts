@@ -53,6 +53,13 @@ export interface ExerciseDetail {
   instructions: string | null;
 }
 
+/** Chuyển path media (images/..., videos/...) thành URL qua backend (/media/**). */
+export function mediaUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `/media/${path}`;
+}
+
 export const planApi = {
   setupGoal: (body: {
     goalType: string;

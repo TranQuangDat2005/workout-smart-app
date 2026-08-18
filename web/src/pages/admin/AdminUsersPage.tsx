@@ -39,7 +39,7 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--near-black)', padding: 32 }}>
+    <div style={{  }}>
       <h1 style={{ fontSize: 24, fontWeight: 700 }}>Quản lý người dùng</h1>
       <div style={{ display: 'flex', gap: 8, margin: '16px 0' }}>
         <TextField label="Email / tên / ID" value={q} onChange={(e) => setQ(e.target.value)} />

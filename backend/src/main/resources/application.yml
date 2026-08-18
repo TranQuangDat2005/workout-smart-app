@@ -53,6 +53,7 @@ app:
     sendgrid-api-key: ${SENDGRID_API_KEY:}
     from-address: ${MAIL_USERNAME:noreply@workoutsmart.app}
   exercises-dataset-path: ${EXERCISES_DATASET_PATH:../exercises-dataset/data/exercises.json}
+  exercises-media-path: ${EXERCISES_MEDIA_PATH:../exercises-dataset/}
 
 springdoc:
   swagger-ui:

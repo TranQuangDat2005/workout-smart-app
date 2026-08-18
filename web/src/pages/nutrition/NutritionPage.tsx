@@ -81,7 +81,7 @@ export default function NutritionPage() {
     : 0;
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--near-black)', padding: 32 }}>
+    <div style={{  }}>
       <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <h1 style={{ fontSize: 24, fontWeight: 700 }}>Dinh dưỡng</h1>

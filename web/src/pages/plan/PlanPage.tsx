@@ -19,7 +19,7 @@ export default function PlanPage() {
 
   if (error && !plan) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--near-black)', padding: 32, textAlign: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
         <p style={{ color: 'var(--text-secondary)' }}>{error}</p>
         <Link to="/goal-setup"><Button>Tạo lộ trình</Button></Link>
       </div>
@@ -27,7 +27,7 @@ export default function PlanPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--near-black)', padding: 32 }}>
+    <div style={{  }}>
       <h1 style={{ fontSize: 24, fontWeight: 700 }}>{plan?.name ?? 'Lộ trình tập'}</h1>
       <p style={{ color: 'var(--text-secondary)' }}>Mục tiêu: {plan?.goalType} · Trình độ: {plan?.fitnessLevel}</p>
       {plan?.days.map((day) => (

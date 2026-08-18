@@ -31,7 +31,7 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--near-black)', padding: 32 }}>
+    <div style={{  }}>
       <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Bảng xếp hạng Streak</h1>
         {notice && <span style={{ fontSize: 12, color: 'var(--text-announcement)' }}>{notice}</span>}

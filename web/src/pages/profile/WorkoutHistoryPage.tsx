@@ -22,9 +22,6 @@ export default function WorkoutHistoryPage() {
   return (
     <div
       style={{
-        minHeight: '100vh',
-        background: 'var(--near-black)',
-        padding: 32,
         display: 'flex',
         justifyContent: 'center',
       }}
