@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './context/useAuth';
+import AppShell from './components/AppShell';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import VerifyOtpPage from './pages/auth/VerifyOtpPage';
@@ -29,141 +30,31 @@ export default function App() {
       <Route path="/verify-otp" element={<VerifyOtpPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <HomePage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <RequireAuth>
-            <ProfilePage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/history"
-        element={
-          <RequireAuth>
-            <WorkoutHistoryPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/nutrition"
-        element={
-          <RequireAuth>
-            <NutritionPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/foods"
-        element={
-          <RequireAuth>
-            <FoodLibraryPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/body-metrics"
-        element={
-          <RequireAuth>
-            <BodyMetricsPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/friends"
-        element={
-          <RequireAuth>
-            <FriendsPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/leaderboard"
-        element={
-          <RequireAuth>
-            <LeaderboardPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/stats"
-        element={
-          <RequireAuth>
-            <StatsPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/goal-setup"
-        element={
-          <RequireAuth>
-            <GoalSetupPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/plan"
-        element={
-          <RequireAuth>
-            <PlanPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/exercises"
-        element={
-          <RequireAuth>
-            <ExerciseSearchPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/workout"
-        element={
-          <RequireAuth>
-            <WorkoutPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/admin/users"
-        element={
-          <RequireAuth>
-            <RequireAdmin>
-              <AdminUsersPage />
-            </RequireAdmin>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/admin/exercises"
-        element={
-          <RequireAuth>
-            <RequireAdmin>
-              <AdminExercisesPage />
-            </RequireAdmin>
-          </RequireAuth>
-        }
-      />
+
+      <Route path="/" element={<Protected><HomePage /></Protected>} />
+      <Route path="/profile" element={<Protected><ProfilePage /></Protected>} />
+      <Route path="/history" element={<Protected><WorkoutHistoryPage /></Protected>} />
+      <Route path="/nutrition" element={<Protected><NutritionPage /></Protected>} />
+      <Route path="/foods" element={<Protected><FoodLibraryPage /></Protected>} />
+      <Route path="/body-metrics" element={<Protected><BodyMetricsPage /></Protected>} />
+      <Route path="/friends" element={<Protected><FriendsPage /></Protected>} />
+      <Route path="/leaderboard" element={<Protected><LeaderboardPage /></Protected>} />
+      <Route path="/stats" element={<Protected><StatsPage /></Protected>} />
+      <Route path="/goal-setup" element={<Protected><GoalSetupPage /></Protected>} />
+      <Route path="/plan" element={<Protected><PlanPage /></Protected>} />
+      <Route path="/exercises" element={<Protected><ExerciseSearchPage /></Protected>} />
+      <Route path="/workout" element={<Protected><WorkoutPage /></Protected>} />
+      <Route path="/admin/users" element={<Protected admin><AdminUsersPage /></Protected>} />
+      <Route path="/admin/exercises" element={<Protected admin><AdminExercisesPage /></Protected>} />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
-function RequireAuth({ children }: { children: JSX.Element }) {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
-}
-
-function RequireAdmin({ children }: { children: JSX.Element }) {
-  const { isAdmin } = useAuth();
-  return isAdmin ? children : <Navigate to="/" replace />;
+function Protected({ children, admin = false }: { children: JSX.Element; admin?: boolean }) {
+  const { isAuthenticated, isAdmin } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (admin && !isAdmin) return <Navigate to="/" replace />;
+  return <AppShell>{children}</AppShell>;
 }
