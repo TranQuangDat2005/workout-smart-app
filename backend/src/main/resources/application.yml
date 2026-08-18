@@ -24,6 +24,18 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 server:
   port: 8080
   error:
@@ -36,10 +48,10 @@ app:
     access-expiry-minutes: 15
     refresh-expiry-days: 7
   email:
-    # log = ghi OTP ra log (dev); sendgrid = gửi qua SendGrid API (production)
+    # log = ghi OTP ra log (dev); smtp = Gmail SMTP; sendgrid = SendGrid API
     provider: ${EMAIL_PROVIDER:log}
     sendgrid-api-key: ${SENDGRID_API_KEY:}
-    from-address: ${EMAIL_FROM:noreply@workoutsmart.app}
+    from-address: ${MAIL_USERNAME:noreply@workoutsmart.app}
   exercises-dataset-path: ${EXERCISES_DATASET_PATH:../exercises-dataset/data/exercises.json}
 
 springdoc:
