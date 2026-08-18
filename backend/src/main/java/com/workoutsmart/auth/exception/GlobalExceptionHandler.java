@@ -25,7 +25,10 @@ public class GlobalExceptionHandler {
         for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
             fieldErrors.putIfAbsent(fe.getField(), fe.getDefaultMessage());
         }
-        Map<String, Object> body = base(HttpStatus.BAD_REQUEST, "Dữ liệu không hợp lệ");
+        String message = fieldErrors.isEmpty()
+                ? "Dữ liệu không hợp lệ"
+                : String.join("; ", fieldErrors.values());
+        Map<String, Object> body = base(HttpStatus.BAD_REQUEST, message);
         body.put("fields", fieldErrors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
