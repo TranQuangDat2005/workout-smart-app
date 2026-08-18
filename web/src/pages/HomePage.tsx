@@ -1,12 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import Button from '../components/Button';
+import UserDashboard from './UserDashboard';
+import AdminDashboard from './AdminDashboard';
 
 const USER_NAV = [
-  { to: '/goal-setup', label: 'Thiết lập mục tiêu' },
-  { to: '/plan', label: 'Lộ trình tập' },
-  { to: '/exercises', label: 'Thư viện bài tập' },
-  { to: '/workout', label: 'Bắt đầu tập' },
   { to: '/profile', label: 'Hồ sơ' },
   { to: '/history', label: 'Lịch sử tập' },
   { to: '/nutrition', label: 'Dinh dưỡng' },
@@ -33,8 +31,8 @@ function NavLinks({ items }: { items: { to: string; label: string }[] }) {
             background: 'var(--dark-surface)',
             color: 'var(--text-base)',
             borderRadius: 9999,
-            padding: '10px 18px',
-            fontSize: 13,
+            padding: '10px 16px',
+            fontSize: 12,
             fontWeight: 700,
             letterSpacing: '1px',
             textTransform: 'uppercase',
@@ -54,50 +52,87 @@ export default function HomePage() {
     <div
       style={{
         minHeight: '100vh',
+        background: 'var(--near-black)',
+        padding: 32,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
         gap: 24,
-        background: 'var(--near-black)',
       }}
     >
-      <span
+      <div
         style={{
-          width: 72,
-          height: 72,
-          borderRadius: '50%',
-          background: 'var(--green)',
+          width: '100%',
+          maxWidth: 960,
           display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 36,
-          fontWeight: 700,
-          color: '#000',
         }}
       >
-        W
-      </span>
-      <h1>Chào mừng đến WorkoutSmartApp</h1>
-      <p style={{ color: 'var(--text-secondary)' }}>
-        {isAdmin ? 'Bạn đã đăng nhập với vai trò Quản trị viên.' : 'Bạn đã đăng nhập thành công.'}
-      </p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, maxWidth: 640, justifyContent: 'center' }}>
-        <NavLinks items={USER_NAV} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: 'var(--green)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 24,
+              fontWeight: 700,
+              color: '#000',
+            }}
+          >
+            W
+          </span>
+          <span style={{ fontWeight: 700, fontSize: 18 }}>WorkoutSmartApp</span>
+          {isAdmin && (
+            <span
+              style={{
+                background: 'var(--text-announcement)',
+                color: '#000',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '4px 10px',
+                borderRadius: 9999,
+                letterSpacing: 1,
+              }}
+            >
+              ADMIN
+            </span>
+          )}
+        </div>
+        <Button variant="dark" onClick={logout}>
+          Đăng xuất
+        </Button>
       </div>
-      {isAdmin && (
-        <>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-announcement)' }}>
-            Khu vực quản trị
-          </h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, maxWidth: 640, justifyContent: 'center' }}>
-            <NavLinks items={ADMIN_NAV} />
-          </div>
-        </>
-      )}
-      <Button variant="dark" onClick={logout}>
-        Đăng xuất
-      </Button>
+
+      {isAdmin ? <AdminDashboard /> : <UserDashboard />}
+
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 960,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <NavLinks items={USER_NAV} />
+        </div>
+        {isAdmin && (
+          <>
+            <p style={{ fontSize: 12, color: 'var(--text-announcement)', fontWeight: 700, letterSpacing: 1, margin: 0 }}>
+              KHU VỰC QUẢN TRỊ
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <NavLinks items={ADMIN_NAV} />
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
