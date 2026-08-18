@@ -162,7 +162,7 @@ export default function NutritionPage() {
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                   <span>Món #{e.foodItemId} — {e.portionGrams}g</span>
                   <button style={{ background: 'none', border: 'none', color: 'var(--text-negative)', cursor: 'pointer' }}
-                    onClick={() => removeEntry(i)}>✕</button>
+                    onClick={() => removeEntry(i)}>X</button>
                 </div>
               ))}
             </div>

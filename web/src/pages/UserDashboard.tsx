@@ -142,12 +142,12 @@ export default function UserDashboard() {
       </div>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <Link to="/workout" style={actionStyle}>▶ Bắt đầu tập</Link>
-        <Link to="/nutrition" style={actionStyle}>🍽 Dinh dưỡng</Link>
-        <Link to="/stats" style={actionStyle}>📊 Thống kê</Link>
-        <Link to="/exercises" style={actionStyle}>🔍 Thư viện bài tập</Link>
-        <Link to="/friends" style={actionStyle}>👥 Bạn bè</Link>
-        <Link to="/leaderboard" style={actionStyle}>🏆 Bảng xếp hạng</Link>
+        <Link to="/workout" style={actionStyle}>Bắt đầu tập</Link>
+        <Link to="/nutrition" style={actionStyle}>Dinh dưỡng</Link>
+        <Link to="/stats" style={actionStyle}>Thống kê</Link>
+        <Link to="/exercises" style={actionStyle}>Thư viện bài tập</Link>
+        <Link to="/friends" style={actionStyle}>Bạn bè</Link>
+        <Link to="/leaderboard" style={actionStyle}>Bảng xếp hạng</Link>
       </div>
     </div>
   );

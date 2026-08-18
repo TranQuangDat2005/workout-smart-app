@@ -5,34 +5,33 @@ import { useAuth } from '../context/useAuth';
 interface NavItem {
   to: string;
   label: string;
-  icon: string;
 }
 
 const WORKOUT_NAV: NavItem[] = [
-  { to: '/', label: 'Trang chủ', icon: '🏠' },
-  { to: '/goal-setup', label: 'Thiết lập mục tiêu', icon: '🎯' },
-  { to: '/plan', label: 'Lộ trình tập', icon: '🗓' },
-  { to: '/workout', label: 'Bắt đầu tập', icon: '▶' },
-  { to: '/exercises', label: 'Thư viện bài tập', icon: '🏋️' },
-  { to: '/history', label: 'Lịch sử tập', icon: '📜' },
+  { to: '/', label: 'Trang chủ' },
+  { to: '/goal-setup', label: 'Thiết lập mục tiêu' },
+  { to: '/plan', label: 'Lộ trình tập' },
+  { to: '/workout', label: 'Bắt đầu tập' },
+  { to: '/exercises', label: 'Thư viện bài tập' },
+  { to: '/history', label: 'Lịch sử tập' },
 ];
 
 const NUTRITION_NAV: NavItem[] = [
-  { to: '/nutrition', label: 'Tổng quan', icon: '🍽' },
-  { to: '/foods', label: 'Kho thực phẩm', icon: '🥗' },
-  { to: '/body-metrics', label: 'Chỉ số cơ thể', icon: '📏' },
+  { to: '/nutrition', label: 'Tổng quan' },
+  { to: '/foods', label: 'Kho thực phẩm' },
+  { to: '/body-metrics', label: 'Chỉ số cơ thể' },
 ];
 
 const SOCIAL_NAV: NavItem[] = [
-  { to: '/friends', label: 'Bạn bè', icon: '👥' },
-  { to: '/leaderboard', label: 'Bảng xếp hạng', icon: '🏆' },
+  { to: '/friends', label: 'Bạn bè' },
+  { to: '/leaderboard', label: 'Bảng xếp hạng' },
 ];
 
-const STATS_NAV: NavItem[] = [{ to: '/stats', label: 'Thống kê', icon: '📊' }];
+const STATS_NAV: NavItem[] = [{ to: '/stats', label: 'Thống kê' }];
 
 const ADMIN_NAV: NavItem[] = [
-  { to: '/admin/users', label: 'Quản lý người dùng', icon: '👤' },
-  { to: '/admin/exercises', label: 'Quản lý bài tập', icon: '⚙️' },
+  { to: '/admin/users', label: 'Quản lý người dùng' },
+  { to: '/admin/exercises', label: 'Quản lý bài tập' },
 ];
 
 function NavGroup({ title, items }: { title: string; items: NavItem[] }) {
@@ -68,7 +67,6 @@ function NavGroup({ title, items }: { title: string; items: NavItem[] }) {
             fontWeight: isActive ? 700 : 400,
           })}
         >
-          <span>{item.icon}</span>
           <span>{item.label}</span>
         </NavLink>
       ))}
@@ -159,7 +157,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
               textDecoration: 'none',
             })}
           >
-            <span>👤</span>
             <span>Hồ sơ</span>
           </NavLink>
           <button
@@ -177,7 +174,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
               cursor: 'pointer',
             }}
           >
-            <span>🚪</span>
             <span>Đăng xuất</span>
           </button>
         </div>

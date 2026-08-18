@@ -74,8 +74,8 @@ export default function AdminDashboard() {
       </div>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <Link to="/admin/users" style={actionStyle}>👤 Quản lý người dùng</Link>
-        <Link to="/admin/exercises" style={actionStyle}>🏋️ Quản lý bài tập</Link>
+        <Link to="/admin/users" style={actionStyle}>Quản lý người dùng</Link>
+        <Link to="/admin/exercises" style={actionStyle}>Quản lý bài tập</Link>
       </div>
 
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
