@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: workoutsmart
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d workoutsmart"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    image: workoutsmart-backend:0.1.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/workoutsmart
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — copy .env.docker.example to .env.docker}
+      EMAIL_PROVIDER: log
+      EXERCISES_DATASET_PATH: /data/exercises-dataset/data/exercises.json
+      EXERCISES_MEDIA_PATH: /data/exercises-dataset/
+      USER_MEDIA_PATH: /app/uploads/media/
+    volumes:
+      - ./exercises-dataset:/data/exercises-dataset:ro
+      - backend-uploads:/app/uploads
+    ports:
+      - "8080:8080"
+
+  web:
+    build: ./web
+    image: workoutsmart-web:0.1.0
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  pgdata:
+  backend-uploads:

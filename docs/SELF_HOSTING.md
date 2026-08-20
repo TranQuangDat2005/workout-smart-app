@@ -423,3 +423,5 @@ Dự án đã có sẵn 2 file batch để khởi động nhanh. Tìm trong thư
 ---
 
 *Nếu gặp vấn đề không có trong tài liệu này, hãy kiểm tra file `RUN_COMMANDS.txt` trong thư mục gốc dự án.*
+
+*Muốn đóng gói bằng Docker thay vì cài JDK/Node/PostgreSQL trên máy: xem [DOCKER.md](./DOCKER.md).*

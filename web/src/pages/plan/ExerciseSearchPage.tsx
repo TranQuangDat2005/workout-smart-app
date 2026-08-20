@@ -28,6 +28,7 @@ export default function ExerciseSearchPage() {
   const [formMuscleGroup, setFormMuscleGroup] = useState('chest');
   const [formEquipment, setFormEquipment] = useState('body_weight');
   const [formInstructions, setFormInstructions] = useState('');
+  const [formGifUrl, setFormGifUrl] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ExerciseDetail | null>(null);
@@ -39,6 +40,7 @@ export default function ExerciseSearchPage() {
     setFormMuscleGroup('chest');
     setFormEquipment('body_weight');
     setFormInstructions('');
+    setFormGifUrl('');
     setImageFile(null);
     setFormOpen(true);
   };
@@ -50,6 +52,7 @@ export default function ExerciseSearchPage() {
     setFormMuscleGroup(d.muscleGroup ?? 'chest');
     setFormEquipment(d.equipment ?? 'body_weight');
     setFormInstructions(d.instructions ?? '');
+    setFormGifUrl(d.gifUrl ?? '');
     setImageFile(null);
     setFormOpen(true);
   };
@@ -62,7 +65,7 @@ export default function ExerciseSearchPage() {
     setSaving(true);
     setError('');
     try {
-      const image = imageFile ? (await planApi.uploadMedia(imageFile)).url : undefined;
+      const uploadedImage = imageFile ? (await planApi.uploadMedia(imageFile)).url : undefined;
       const body = {
         name: formName.trim(),
         muscleGroup: formMuscleGroup,
@@ -70,7 +73,9 @@ export default function ExerciseSearchPage() {
         category: formCategory,
         bodyPart: formCategory,
         instructions: formInstructions || undefined,
-        image,
+        // File upload được ưu tiên hơn URL nếu cả hai được điền
+        image: uploadedImage,
+        gifUrl: uploadedImage ? undefined : (formGifUrl.trim() || undefined),
       };
       if (editingId != null) {
         await planApi.updateCustomExercise(editingId, body);
@@ -204,13 +209,32 @@ export default function ExerciseSearchPage() {
             />
           </div>
           <div className="input-group">
-            <label className="input-label">Ảnh / GIF (tuỳ chọn, ≤ 5MB)</label>
-            <input
-              type="file"
-              accept="image/*,.gif"
-              onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-              style={{ fontSize: 13, color: 'var(--text-secondary)' }}
-            />
+            <label className="input-label">Ảnh / GIF (tuỳ chọn)</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <TextField
+                label=""
+                value={formGifUrl}
+                onChange={(e) => { setFormGifUrl(e.target.value); setImageFile(null); }}
+                placeholder="Dán link GIF / ảnh (https://...)"
+              />
+              {formGifUrl.trim() && (
+                <img
+                  src={formGifUrl.trim()}
+                  alt="preview"
+                  style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border-dark)' }}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>hoặc upload file (≤ 5MB)</span>
+                <input
+                  type="file"
+                  accept="image/*,.gif"
+                  onChange={(e) => { setImageFile(e.target.files?.[0] ?? null); setFormGifUrl(''); }}
+                  style={{ fontSize: 12, color: 'var(--text-secondary)' }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </Modal>

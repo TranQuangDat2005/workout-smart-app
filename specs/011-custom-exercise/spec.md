@@ -78,7 +78,7 @@ Người tập muốn chỉnh sửa thông tin bài tập do chính mình tạo,
 - **FR-005**: THE hệ thống SHALL cho phép bài tập cá nhân được Rule Engine chọn vào lộ trình tự động khi khớp `equipment`/`muscleGroup`/`category` với bảng luật v1.
 - **FR-006**: THE hệ thống SHALL cho phép chủ sở hữu sửa bài tập cá nhân; các bản ghi tập cũ PHẢI giữ nguyên giá trị đã ghi.
 - **FR-007**: WHEN chủ sở hữu xóa bài tập cá nhân, THE hệ thống SHALL soft-delete (`deleted_at`): ẩn khỏi tìm kiếm, KHÔNG dùng cho lộ trình/bài tập mới, nhưng tên vẫn hiển thị trong lịch sử tập cũ; sau 1 tuần THE hệ thống SHALL xóa cứng bản ghi.
-- **FR-008**: THE hệ thống SHALL hỗ trợ upload media cho bài tập cá nhân (GIF/ảnh 180×180), validate định dạng/kích thước, lưu local/S3 và serve qua đường dẫn `/media/user/**`; media KHÔNG được gọi external API.
+- **FR-008**: THE hệ thống SHALL hỗ trợ media cho bài tập cá nhân (GIF/ảnh 180×180) theo 2 cách: (a) User paste URL ảnh/GIF ngoài (`gif_url`), hoặc (b) upload file trực tiếp (validate định dạng/kích thước ≤ 5MB, lưu local/S3, serve qua `/media/user/**`); WHERE cả hai được cung cấp, file upload được ưu tiên; media hệ thống KHÔNG được gọi external API.
 - **FR-009**: WHEN User cố sửa/xóa bài tập cá nhân không phải của mình, THE hệ thống SHALL từ chối (404/403) và không làm thay đổi dữ liệu.
 
 ### Key Entities

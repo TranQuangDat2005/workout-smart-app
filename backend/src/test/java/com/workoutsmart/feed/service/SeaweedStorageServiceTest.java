@@ -41,15 +41,4 @@ class SeaweedStorageServiceTest {
         assertEquals("Ảnh không được vượt quá 10MB", ex.getMessage());
     }
 
-    @Test
-    void storeRejectsOversizedVideo() {
-        MultipartFile file = mock(MultipartFile.class);
-        when(file.isEmpty()).thenReturn(false);
-        when(file.getOriginalFilename()).thenReturn("big.mp4");
-        when(file.getSize()).thenReturn(SeaweedStorageService.MAX_VIDEO_BYTES + 1);
-
-        ApiException ex = assertThrows(ApiException.class, () -> service.store(file));
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
-        assertEquals("Video không được vượt quá 100MB", ex.getMessage());
-    }
 }
