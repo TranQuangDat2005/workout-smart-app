@@ -42,14 +42,53 @@ public class TdeeCalculator {
         return base.add(offset);
     }
 
-    /** Mục tiêu calo theo goal_type: cutting −17%, bulking +12%, endurance giữ nguyên. */
+    /**
+     * Mục tiêu calo theo mức điều chỉnh của từng người (019 — owner chốt 2026-08-19):
+     * maintain = TDEE giữ nguyên; cut_light = −300; cut_fast = −500;
+     * bulk_light = +300; bulk_fast = +500; custom = custom_calorie_offset (kcal/ngày).
+     */
     public static BigDecimal targetCalories(User user) {
-        BigDecimal tdee = bmr(user).multiply(activityFactor(user.getActivityLevel()));
-        BigDecimal target = switch (user.getGoalType() == null ? "endurance" : user.getGoalType()) {
-            case "weight_loss" -> tdee.multiply(new BigDecimal("0.83"));
-            case "muscle_gain" -> tdee.multiply(new BigDecimal("1.12"));
-            default -> tdee;
+        BigDecimal tdee = bmr(user).multiply(activityFactor(user.getActivityLevel()))
+                .setScale(0, RoundingMode.HALF_UP);
+        return tdee.add(calorieOffset(user)).max(BigDecimal.ZERO);
+    }
+
+    /** Offset calo theo calorie_goal (custom → dùng custom_calorie_offset). */
+    public static BigDecimal calorieOffset(User user) {
+        String mode = user.getCalorieGoal() == null ? "maintain" : user.getCalorieGoal();
+        if ("custom".equals(mode)) {
+            return user.getCustomCalorieOffset() == null
+                    ? BigDecimal.ZERO
+                    : BigDecimal.valueOf(user.getCustomCalorieOffset());
+        }
+        return switch (mode) {
+            case "cut_light" -> new BigDecimal("-300");
+            case "cut_fast" -> new BigDecimal("-500");
+            case "bulk_light" -> new BigDecimal("300");
+            case "bulk_fast" -> new BigDecimal("500");
+            default -> BigDecimal.ZERO;
         };
-        return target.setScale(0, RoundingMode.HALF_UP);
+    }
+
+    /** TDEE làm tròn về kcal. */
+    public static BigDecimal tdee(User user) {
+        return bmr(user).multiply(activityFactor(user.getActivityLevel()))
+                .setScale(0, RoundingMode.HALF_UP);
+    }
+
+    /** Macro theo mục tiêu calo: Protein 2g/kg cân nặng; Fat 25% calo; Carb = phần còn lại. */
+    public record MacroTarget(BigDecimal proteinG, BigDecimal carbG, BigDecimal fatG) {}
+
+    public static MacroTarget macros(User user) {
+        BigDecimal target = targetCalories(user);
+        BigDecimal proteinG = new BigDecimal("2.0").multiply(user.getWeightKg());
+        BigDecimal fatG = target.multiply(new BigDecimal("0.25"))
+                .divide(new BigDecimal("9"), 1, RoundingMode.HALF_UP);
+        BigDecimal proteinKcal = proteinG.multiply(new BigDecimal("4"));
+        BigDecimal fatKcal = fatG.multiply(new BigDecimal("9"));
+        BigDecimal carbG = target.subtract(proteinKcal).subtract(fatKcal)
+                .divide(new BigDecimal("4"), 1, RoundingMode.HALF_UP)
+                .max(BigDecimal.ZERO);
+        return new MacroTarget(proteinG.setScale(1, RoundingMode.HALF_UP), carbG, fatG);
     }
 }

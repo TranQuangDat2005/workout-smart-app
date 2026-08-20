@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Button from '../../components/Button';
+import Icon from '../../components/Icon';
 import TextField from '../../components/TextField';
 import { adminApi } from '../../services/adminApi';
 import type { AdminExercise, ExerciseInput } from '../../services/adminApi';
@@ -127,7 +128,7 @@ export default function AdminExercisesPage() {
   return (
     <div className="page-container" style={{ maxWidth: 960, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="page-header">
-        <h1>💪 Quản lý bài tập</h1>
+        <h1><Icon name="strength" size={22} style={{ verticalAlign: '-3px', marginRight: 8 }} /> Quản lý bài tập</h1>
         {list.length > 0 && <span className="badge badge-neutral">{list.length} bài tập</span>}
       </div>
 
@@ -217,7 +218,7 @@ export default function AdminExercisesPage() {
                   letterSpacing: 1,
                 }}
               >
-                {t === 'create' ? '+ Thêm mới' : '📥 Import JSON'}
+                {t === 'create' ? '+ Thêm mới' : <><Icon name="inbox" size={14} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Import JSON</>}
               </button>
             ))}
           </div>

@@ -5,8 +5,11 @@ import com.workoutsmart.nutrition.dto.CreateBodyMetricRequest;
 import com.workoutsmart.nutrition.dto.CreateFoodRequest;
 import com.workoutsmart.nutrition.dto.CreateMealRequest;
 import com.workoutsmart.nutrition.dto.FoodResponse;
+import com.workoutsmart.nutrition.dto.ImportFoodRequest;
+import com.workoutsmart.nutrition.dto.ImportFoodResponse;
 import com.workoutsmart.nutrition.dto.MealResponse;
 import com.workoutsmart.nutrition.dto.MessageResponse;
+import com.workoutsmart.nutrition.dto.NutritionNeedsResponse;
 import com.workoutsmart.nutrition.dto.NutritionSummaryResponse;
 import com.workoutsmart.nutrition.service.NutritionService;
 import jakarta.validation.Valid;
@@ -63,6 +66,13 @@ public class NutritionController {
         return nutritionService.deleteFood(currentUserId(auth), id);
     }
 
+    /** 019c: nhập thực phẩm từ CSV (hàng loạt). */
+    @PostMapping("/foods/import")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ImportFoodResponse importFoods(Authentication auth, @Valid @RequestBody ImportFoodRequest request) {
+        return nutritionService.importFoods(currentUserId(auth), request);
+    }
+
     @PostMapping("/meals")
     @ResponseStatus(HttpStatus.CREATED)
     public MealResponse createMeal(Authentication auth, @Valid @RequestBody CreateMealRequest request) {
@@ -73,6 +83,12 @@ public class NutritionController {
     public MealResponse updateMeal(Authentication auth, @PathVariable Long id,
                                    @Valid @RequestBody CreateMealRequest request) {
         return nutritionService.updateMeal(currentUserId(auth), id, request);
+    }
+
+    /** 019d: xóa bữa ăn trong ngày. */
+    @DeleteMapping("/meals/{id}")
+    public MessageResponse deleteMeal(Authentication auth, @PathVariable Long id) {
+        return nutritionService.deleteMeal(currentUserId(auth), id);
     }
 
     @GetMapping("/meals")
@@ -87,6 +103,12 @@ public class NutritionController {
             Authentication auth,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return nutritionService.getSummary(currentUserId(auth), date);
+    }
+
+    /** 019: nhu cầu dinh dưỡng tính từ TDEE. */
+    @GetMapping("/nutrition/needs")
+    public NutritionNeedsResponse getNeeds(Authentication auth) {
+        return nutritionService.getNeeds(currentUserId(auth));
     }
 
     @PostMapping("/body-metrics")

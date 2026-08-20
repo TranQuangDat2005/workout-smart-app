@@ -90,6 +90,7 @@ Admin có thể tạo Thử thách (Challenge) có thời hạn (ví dụ "Thử
 - **FR-010**: Hệ thống PHẢI xử lý tie-breaking khi nhiều User cùng streak (ưu tiên: thời gian duy trì sớm hơn).
 - **FR-011**: WHEN 2 User gửi lời mời kết bạn cho nhau gần như đồng thời, hệ thống PHẢI chỉ tạo một lời mời duy nhất từ bên có timestamp sớm hơn (bên nhấn trước là người gửi); WHERE phía còn lại có lời mời pending từ đối phương, hệ thống PHẢI chuyển nút "Kết bạn" thành "Chấp nhận / Từ chối" lời mời đang chờ (không tạo lời mời thứ 2 đối xứng).
 - **FR-012**: WHERE hồ sơ User ở chế độ private, hệ thống PHẢI chỉ cho người lạ (không phải bạn bè) xem display_name và rank, KHÔNG hiển thị bài đăng trên tường cá nhân. WHERE bài đăng được đánh dấu public, hệ thống PHẢI cho mọi người xem bài đăng đó.
+- **FR-012b**: Hệ thống CHỈ cho phép bài đăng cộng đồng chứa nội dung dạng ảnh (image) — KHÔNG hỗ trợ video, GIF, hoặc file media khác. Ảnh upload lưu SeaweedFS self-hosted qua backend proxy.
 - **FR-013**: WHEN Admin tạo Challenge (name, goal_type, duration_days), hệ thống PHẢI lưu challenge với start_date, end_date và status (upcoming/active/completed).
 - **FR-014**: WHEN Challenge đang active, hệ thống PHẢI cho phép User tham gia và ghi nhận vào challenge_participants (challenge_id, user_id, joined_at).
 - **FR-015**: WHEN Challenge đến end_date, hệ thống PHẢI tự động tổng kết: tính completed_at và final_rank cho từng người tham gia, lưu lịch sử xếp hạng và chuyển status sang completed.
@@ -102,6 +103,7 @@ Admin có thể tạo Thử thách (Challenge) có thời hạn (ví dụ "Thử
 - **Challenge**: Thử thách có thời hạn do Admin tạo (name, goal_type, duration_days, start_date, end_date, status).
 - **Challenge Participant**: Người tham gia Challenge (challenge_id, user_id, joined_at, completed_at, final_rank).
 - **Activity Feed Item**: Hoạt động của User hiển thị cho bạn bè (user_id, action_type, details, timestamp).
+- **Community Post**: Bài đăng cộng đồng của User (user_id, content_text, image_url, visibility: public/friends_only, created_at). Chỉ hỗ trợ ảnh, KHÔNG hỗ trợ video.
 
 ## Success Criteria *(mandatory)*
 

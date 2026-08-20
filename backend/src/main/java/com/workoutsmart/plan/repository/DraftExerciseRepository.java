@@ -9,4 +9,6 @@ public interface DraftExerciseRepository extends JpaRepository<DraftExercise, Lo
     List<DraftExercise> findBySessionId(Long sessionId);
 
     void deleteBySessionId(Long sessionId);
+
+    long deleteBySessionIdIn(List<Long> sessionIds);
 }

@@ -87,6 +87,61 @@ class NutritionControllerIntegrationTest {
     }
 
     @Test
+    void deleteMealRemovesItFromDay() throws Exception {
+        String token = loginAndToken("n8@example.com");
+        FoodItem rice = foodRepository.save(FoodItem.builder()
+                .name("Cơm trắng").source("system")
+                .caloriesPer100g(new BigDecimal("130"))
+                .proteinPer100g(new BigDecimal("2.7"))
+                .carbPer100g(new BigDecimal("28"))
+                .fatPer100g(new BigDecimal("0.3"))
+                .build());
+
+        MvcResult created = mockMvc.perform(post("/api/v1/meals")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"mealNumber\":1,\"logDate\":\"2026-08-17\",\"entries\":[{\"foodItemId\":"
+                                + rice.getId() + ",\"portionGrams\":200}]}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long mealId = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(delete("/api/v1/meals/" + mealId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Đã xóa bữa ăn"));
+
+        mockMvc.perform(get("/api/v1/meals?date=2026-08-17")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void importFoodsFromCsv() throws Exception {
+        String token = loginAndToken("n6@example.com");
+
+        mockMvc.perform(post("/api/v1/foods/import")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"rows\":["
+                                + "{\"name\":\"Yến mạch\",\"gram\":100,\"protein\":13,\"carb\":60,\"fat\":7,\"calories\":389},"
+                                + "{\"name\":\"Sữa tươi\",\"gram\":250,\"protein\":8,\"carb\":12,\"fat\":9,\"calories\":160}"
+                                + "]}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.imported").value(2))
+                .andExpect(jsonPath("$.errors.length()").value(0));
+
+        // Sữa 250ml 160 kcal → 100ml = 64 kcal; tìm thấy trong kho cá nhân.
+        mockMvc.perform(get("/api/v1/foods?query=sữa")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].caloriesPer100g").value(64.0))
+                .andExpect(jsonPath("$.content[0].source").value("user_custom"));
+    }
+
+    @Test
     void foodCrudFlow() throws Exception {
         String token = loginAndToken("n1@example.com");
 
@@ -172,6 +227,44 @@ class NutritionControllerIntegrationTest {
                 .andExpect(jsonPath("$.targetCalories").value(2437))
                 .andExpect(jsonPath("$.status").value("thiếu"))
                 .andExpect(jsonPath("$.totalCalories").value(507.5));
+    }
+
+    @Test
+    void needsReturnsTdeeMacrosAndPerMeal() throws Exception {
+        String token = loginAndToken("n4@example.com");
+
+        mockMvc.perform(get("/api/v1/nutrition/needs")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bmr").value(1573))
+                .andExpect(jsonPath("$.tdee").value(2437))
+                .andExpect(jsonPath("$.targetCalories").value(2437))
+                .andExpect(jsonPath("$.proteinG").value(136.0))
+                .andExpect(jsonPath("$.mealsPerDay").value(3))
+                .andExpect(jsonPath("$.perMealCalories").value(812));
+    }
+
+    @Test
+    void needsMissingBodyDataReturns422() throws Exception {
+        userRepository.save(User.builder()
+                .email("n5@example.com")
+                .passwordHash(passwordEncoder.encode("Password1"))
+                .role("user")
+                .sex("male").age(35).heightCm(new BigDecimal("170"))
+                .activityLevel("moderate").goalType("endurance")
+                .accountStatus(AccountStatus.ACTIVE)
+                .emailVerified(true)
+                .build());
+        MvcResult login = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"n5@example.com\",\"password\":\"Password1\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String token = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+
+        mockMvc.perform(get("/api/v1/nutrition/needs")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnprocessableEntity());
     }
 
     @Test

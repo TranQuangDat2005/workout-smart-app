@@ -15,6 +15,8 @@ public record ProfileResponse(
         String fitnessLevel,
         String sex,
         String activityLevel,
+        String calorieGoal,
+        Integer customCalorieOffset,
         String accountStatus,
         boolean emailVerified,
         Instant createdAt) {

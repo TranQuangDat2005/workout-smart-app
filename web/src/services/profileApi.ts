@@ -12,6 +12,8 @@ export interface Profile {
   fitnessLevel: string | null;
   sex: string | null;
   activityLevel: string | null;
+  calorieGoal: string | null;
+  customCalorieOffset: number | null;
   accountStatus: string;
   emailVerified: boolean;
   createdAt: string;
@@ -39,6 +41,17 @@ export interface WorkoutSessionDetail extends WorkoutSessionItem {
   sets: WorkoutSetItem[];
 }
 
+export interface ExerciseProgress {
+  exerciseId: number;
+  exerciseName: string;
+  firstWeight: number | null;
+  lastWeight: number | null;
+  weightDelta: number | null;
+  firstReps: number | null;
+  lastReps: number | null;
+  repsDelta: number | null;
+}
+
 export const profileApi = {
   getProfile: () => http.get<Profile>('/profile').then((r) => r.data),
 
@@ -47,6 +60,11 @@ export const profileApi = {
     avatarUrl?: string;
     age?: number;
     heightCm?: number;
+    weightKg?: number;
+    sex?: string;
+    activityLevel?: string;
+    calorieGoal?: string;
+    customCalorieOffset?: number;
     goalType?: string;
   }) => http.put<{ profile: Profile; goalChanged: boolean }>('/profile', body).then((r) => r.data),
 
@@ -64,4 +82,10 @@ export const profileApi = {
 
   getSessionDetail: (id: number) =>
     http.get<WorkoutSessionDetail>(`/workout-sessions/${id}`).then((r) => r.data),
+
+  getProgress: (days = 30) =>
+    http.get<ExerciseProgress[]>(`/workout-sessions/progress?days=${days}`).then((r) => r.data),
+
+  clearHistory: () =>
+    http.delete<{ message: string }>('/workout-sessions/history').then((r) => r.data),
 };

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.workoutsmart.auth.exception.ApiException;
+import com.workoutsmart.exercise.dto.CreateCustomExerciseRequest;
 import com.workoutsmart.exercise.dto.ExerciseDetailResponse;
 import com.workoutsmart.exercise.dto.ExerciseSearchResponse;
 import com.workoutsmart.exercise.entity.Exercise;
@@ -75,6 +76,17 @@ class ExerciseServiceTest {
     }
 
     @Test
+    void searchAcceptsMultipleCategoriesAndEquipment() {
+        when(exerciseRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(exercise()), PageRequest.of(0, 20), 1));
+
+        ExerciseSearchResponse res = service.search(
+                List.of("body_weight", "dumbbell"), List.of("chest", "back"), null, null, null, 0, 20, null);
+
+        assertEquals(1, res.totalElements());
+    }
+
+    @Test
     void findActiveByEquipmentDelegatesToRepository() {
         when(exerciseRepository.findByEquipmentInAndStatus(List.of("body_weight"), "active"))
                 .thenReturn(List.of(exercise()));
@@ -82,5 +94,15 @@ class ExerciseServiceTest {
         List<Exercise> res = service.findActiveByEquipment(List.of("body_weight"));
 
         assertEquals(1, res.size());
+    }
+
+    @Test
+    void createCustomRejectsUnknownCategory() {
+        CreateCustomExerciseRequest req = new CreateCustomExerciseRequest(
+                "Cable row", "back", "cable", "strength", null, null, null, null, null);
+
+        ApiException ex = assertThrows(ApiException.class, () -> service.createCustomExercise(1L, req));
+
+        assertEquals(400, ex.getStatus().value());
     }
 }

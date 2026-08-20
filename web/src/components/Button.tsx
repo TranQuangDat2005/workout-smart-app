@@ -18,6 +18,7 @@ export default function Button({
   className = '',
   children,
   disabled,
+  type = 'button',
   ...rest
 }: ButtonProps) {
   const variantClass =
@@ -30,6 +31,7 @@ export default function Button({
 
   return (
     <button
+      type={type}
       className={`btn ${variantClass} ${sizeClass} ${fullWidth ? 'btn-full' : ''} ${className}`.trim()}
       disabled={disabled || loading}
       {...rest}

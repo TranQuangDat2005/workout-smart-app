@@ -1,0 +1,93 @@
+====================================================================
+  WORKOUTSMARTAPP — LỆNH CHẠY BACKEND & FRONTEND
+====================================================================
+
+I. YÊU CẦU MÔI TRƯỜNG
+--------------------------------------------------------------------
+- Java 17 (JDK 17)
+- Maven 3.8+ (cài Maven và thêm vào PATH)
+- Node.js 18+ và npm
+- PostgreSQL 18 (đang chạy, DB tên `workoutsmart`)
+
+  Thông số DB mặc định (có thể ghi đè bằng biến môi trường):
+    DB_URL=jdbc:postgresql://localhost:5432/workoutsmart
+    DB_USERNAME=postgres
+    DB_PASSWORD=postgres
+
+  (Xem backend/src/main/resources/application.yml để biết thêm biến:
+   JWT_SECRET, EMAIL_PROVIDER, SENDGRID_API_KEY, ...)
+
+====================================================================
+
+II. CHẠY BACKEND (Spring Boot)
+--------------------------------------------------------------------
+Mở terminal trong thư mục gốc dự án rồi:
+
+  cd backend
+
+  # Cách 1: chạy trực tiếp (dev, tự biên dịch + chạy)
+  mvn spring-boot:run
+
+  # Cách 2: build rồi chạy jar
+  mvn clean package
+  java -jar target/backend-0.1.0-SNAPSHOT.jar
+
+  # Chạy test backend
+  mvn test
+
+Lưu ý:
+- Flyway tự chạy migration trong `backend/src/main/resources/db/migration`
+  mỗi lần khởi động (KHÔNG cần chạy tay).
+- Backend chạy mặc định tại http://localhost:8080
+- Swagger UI: http://localhost:8080/swagger-ui.html
+
+====================================================================
+
+III. CHẠY FRONTEND (React + Vite)
+--------------------------------------------------------------------
+Mở terminal khác, trong thư mục gốc dự án rồi:
+
+  cd web
+
+  # Cài dependency (chỉ lần đầu)
+  npm install
+
+  # Chạy dev server (hot reload)
+  npm run dev
+
+  # Build production
+  npm run build
+
+  # Kiểm tra lint
+  npm run lint
+
+  # Chạy test frontend
+  npm test
+
+Lưu ý:
+- Frontend dev chạy tại http://localhost:5173
+- Vite tự proxy /api và /media sang backend http://localhost:8080
+  (xem web/vite.config.ts) nên KHÔNG cần cấu hình CORS.
+
+====================================================================
+
+IV. THỨ TỰ CHẠY ĐÚNG
+--------------------------------------------------------------------
+1. Bật PostgreSQL.
+2. Chạy BACKEND (mục II) trước — chờ nó khởi động xong.
+3. Chạy FRONTEND (mục III).
+4. Mở trình duyệt: http://localhost:5173
+
+====================================================================
+
+V. LỖI POWERSHELL "running scripts is disabled" (Windows)
+--------------------------------------------------------------------
+Khi chạy `npm` trên PowerShell bị chặn script, dùng 1 trong 2 cách:
+
+  # Cách 1: chạy bằng npm.cmd
+  npm.cmd run dev
+
+  # Cách 2: mở quyền chạy script cho user hiện tại (1 lần)
+  Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
+====================================================================

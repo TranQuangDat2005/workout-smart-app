@@ -1,5 +1,6 @@
 package com.workoutsmart.profile.controller;
 
+import com.workoutsmart.profile.dto.ExerciseProgressResponse;
 import com.workoutsmart.profile.dto.MessageResponse;
 import com.workoutsmart.profile.dto.ProfileResponse;
 import com.workoutsmart.profile.dto.UpdateProfileRequest;
@@ -8,6 +9,7 @@ import com.workoutsmart.profile.dto.WorkoutSessionDetailResponse;
 import com.workoutsmart.profile.dto.WorkoutSessionResponse;
 import com.workoutsmart.profile.service.ProfileService;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -58,6 +60,18 @@ public class ProfileController {
     @GetMapping("/workout-sessions/{id}")
     public WorkoutSessionDetailResponse getSessionDetail(Authentication auth, @PathVariable Long id) {
         return profileService.getSessionDetail(currentUserId(auth), id);
+    }
+
+    @GetMapping("/workout-sessions/progress")
+    public List<ExerciseProgressResponse> getExerciseProgress(Authentication auth,
+                                                               @RequestParam(defaultValue = "30") int days) {
+        return profileService.getExerciseProgress(currentUserId(auth), days);
+    }
+
+    /** 018: xóa toàn bộ lịch sử tập (giữ buổi active). */
+    @DeleteMapping("/workout-sessions/history")
+    public MessageResponse clearHistory(Authentication auth) {
+        return profileService.clearHistory(currentUserId(auth));
     }
 
     @PostMapping("/workout-sessions/{id}/complete")

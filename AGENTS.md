@@ -1,5 +1,5 @@
 # AGENTS.md — Dự án: WorkoutSmartApp
-# Phiên bản: 1.5.0 | Cập nhật: 2026-08-17 | Tác giả: Dattq
+# Phiên bản: 1.8.0 | Cập nhật: 2026-08-19 | Tác giả: Dattq
 
 ## 1. MỤC TIÊU & VAI TRÒ
 Bạn là một kỹ sư phần mềm senior trong dự án.
@@ -17,8 +17,8 @@ Stack công nghệ: React 18 (Web App — SPA gọi REST API, tuân thủ DESIGN
 - KHÔNG được xóa migration files.
 - KHÔNG được commit trực tiếp vào `main` và `develop` — mọi thay đổi phải đi qua nhánh feature/hotfix và merge bằng `git flow finish`.
 - KHÔNG được đọc: `.env`, `*.secret`, `credentials/*`.
-- KHÔNG được gọi external API ngoài allowlist: Email Service (SendGrid / AWS SES / SMTP Gmail — gửi OTP), Push Notification (FCM — chỉ Mobile). Media bài tập dùng từ thư mục local `exercises-dataset/`.
-- KHÔNG được tự ý thêm tính năng ngoài scope đã loại trừ trong `specs/General Spec.md` §9 (Social Login, AI/ML, wearable, chat, live coaching, upload media mới, thanh toán).
+- KHÔNG được gọi external API ngoài allowlist: Email Service (SendGrid / AWS SES / SMTP Gmail — gửi OTP), Push Notification (FCM — chỉ Mobile), YouTube IFrame Player API + Spotify embed (nhạc luyện tập — chỉ Web client, URL do User cung cấp, không gọi từ backend). Media bài tập hệ thống dùng từ thư mục local `exercises-dataset/`; upload media mới cho bài tập tự tạo cá nhân (custom exercise, lưu local/S3) VÀ cho bài đăng cộng đồng (ảnh, lưu SeaweedFS self-hosted qua backend proxy).
+- KHÔNG được tự ý thêm tính năng ngoài scope đã loại trừ trong `specs/General Spec.md` §9 (Social Login, AI/ML, wearable, chat, live coaching, thanh toán). Lưu ý: "User tự tạo bài tập cá nhân" và "upload media cho custom exercise" đã được đưa vào scope (feature 011-custom-exercise).
 
 ## 3. QUY TẮC CODE
 - **Spec trước code**: mọi thay đổi tính năng phải có spec tương ứng trong `specs/`. Functional Requirements viết theo cú pháp EARS (WHEN/WHERE/THE hệ thống SHALL/PHẢI), tiếng Việt.
@@ -41,8 +41,8 @@ Stack công nghệ: React 18 (Web App — SPA gọi REST API, tuân thủ DESIGN
 - **Quyết định kiến trúc quan trọng đã chốt** (không tự ý thay đổi):
   1. Gợi ý lộ trình: Rule Engine v1 (map theo goal_type × fitness_level × equipment), KHÔNG dùng AI/ML.
   2. Streak có định nghĩa duy nhất toàn hệ thống: chuỗi tuần liên tiếp đạt ≥ 3 buổi tập; leaderboard là kỳ thi vô tận + Challenge có thời hạn.
-  3. TDEE = BMR Mifflin-St Jeor × hệ số vận động (1.2–1.9); mục tiêu calo: cutting −15~20% / bulking +10~15% / tùy chỉnh.
-  4. Sync offline conflict: DUY NHẤT Last-Write-Wins; `workout_sets` UPSERT theo (session_id, set_number); double-tap guard phía client.
+  3. TDEE = BMR Mifflin-St Jeor × hệ số vận động (1.2–1.9); mục tiêu calo theo `calorie_goal` của từng người (tùy chỉnh): maintain = giữ nguyên TDEE, cut_light = −300 kcal, cut_fast = −500 kcal, bulk_light = +300 kcal, bulk_fast = +500 kcal.
+  4. Sync offline conflict: DUY NHẤT Last-Write-Wins; `workout_sets` UPSERT theo (session_id, session_exercise_id, set_number); double-tap guard phía client.
   5. Xóa tài khoản = soft-delete 30 ngày, cho phép hủy xóa/khôi phục; ban user = middleware chặn mọi request + revoke token ngay.
   6. Data retention: chi tiết bữa ăn giữ 2 tuần, cũ hơn chỉ giữ tổng kết ngày; thực phẩm custom xóa → draft 1 tuần rồi xóa cứng.
   7. KHÔNG có tính năng thanh toán (đã lược bỏ khỏi scope).

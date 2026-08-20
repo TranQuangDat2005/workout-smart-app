@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Button from '../../components/Button';
+import Icon from '../../components/Icon';
 import Modal from '../../components/Modal';
 import Spinner from '../../components/Spinner';
 import TextField from '../../components/TextField';
@@ -76,7 +77,7 @@ export default function FriendsPage() {
 
   return (
     <div className="page-container" style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <h1>👥 Bạn bè</h1>
+      <h1><Icon name="users" size={22} style={{ verticalAlign: '-3px', marginRight: 8 }} /> Bạn bè</h1>
 
       {notice && <div className="notice notice-success animate-slide-up">{notice}</div>}
       {error   && <div className="notice notice-error">{error}</div>}
@@ -148,7 +149,7 @@ export default function FriendsPage() {
         {friends.length === 0 ? (
           <div className="card">
             <div className="empty-state" style={{ padding: '24px 0' }}>
-              <div className="empty-state-icon">👋</div>
+              <div className="empty-state-icon"><Icon name="wave" size={42} /></div>
               <p className="empty-state-text">Chưa có bạn bè nào. Hãy kết nối với cộng đồng!</p>
             </div>
           </div>

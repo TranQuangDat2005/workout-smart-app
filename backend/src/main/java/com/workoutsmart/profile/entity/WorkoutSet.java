@@ -47,4 +47,15 @@ public class WorkoutSet {
 
     @Column(name = "client_timestamp")
     private Instant clientTimestamp;
+
+    @Column(name = "session_exercise_id")
+    private Long sessionExerciseId;
+
+    /** normal / warm_up / drop_set. */
+    @Column(name = "set_type", nullable = false)
+    @Builder.Default
+    private String setType = "normal";
+
+    @Column(name = "duration_seconds")
+    private Integer durationSeconds;
 }

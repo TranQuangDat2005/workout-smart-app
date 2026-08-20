@@ -1,172 +1,235 @@
 import { useState } from 'react';
-import TextField from '../../components/TextField';
 import Button from '../../components/Button';
-import { mediaUrl, planApi } from '../../services/planApi';
+import ExerciseBrowser from '../../components/ExerciseBrowser';
+import Icon from '../../components/Icon';
+import Modal from '../../components/Modal';
+import TextField from '../../components/TextField';
+import { planApi } from '../../services/planApi';
 import type { ExerciseDetail } from '../../services/planApi';
-
-const EQUIPMENT_LIST = ['', 'body_weight', 'dumbbell', 'barbell', 'machine', 'resistance_band'];
-const EQUIPMENT_LABELS: Record<string, string> = {
-  '': 'Tất cả', body_weight: 'Tự trọng', dumbbell: 'Tạ đơn',
-  barbell: 'Tạ đòn', machine: 'Máy tập', resistance_band: 'Dây kháng lực',
-};
+import {
+  EXERCISE_CATEGORIES,
+  EXERCISE_CATEGORY_LABELS,
+  EXERCISE_EQUIPMENT_LABELS,
+  EXERCISE_EQUIPMENTS,
+  EXERCISE_MUSCLE_GROUP_LABELS,
+  EXERCISE_MUSCLE_GROUPS,
+  label,
+} from '../../services/labels';
 
 export default function ExerciseSearchPage() {
-  const [q, setQ] = useState('');
-  const [equipment, setEquipment] = useState('');
-  const [results, setResults] = useState<ExerciseDetail[]>([]);
-  const [detail, setDetail] = useState<ExerciseDetail | null>(null);
-  const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const [totalElements, setTotalElements] = useState(0);
   const [error, setError] = useState('');
-  const [searched, setSearched] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
-  const onSearch = async () => {
-    setError(''); setDetail(null); setImgSrc(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formName, setFormName] = useState('');
+  const [formCategory, setFormCategory] = useState('chest');
+  const [formMuscleGroup, setFormMuscleGroup] = useState('chest');
+  const [formEquipment, setFormEquipment] = useState('body_weight');
+  const [formInstructions, setFormInstructions] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ExerciseDetail | null>(null);
+
+  const openCreate = () => {
+    setEditingId(null);
+    setFormName('');
+    setFormCategory('chest');
+    setFormMuscleGroup('chest');
+    setFormEquipment('body_weight');
+    setFormInstructions('');
+    setImageFile(null);
+    setFormOpen(true);
+  };
+
+  const openEdit = (d: ExerciseDetail) => {
+    setEditingId(d.id);
+    setFormName(d.name);
+    setFormCategory(d.category ?? d.bodyPart ?? 'chest');
+    setFormMuscleGroup(d.muscleGroup ?? 'chest');
+    setFormEquipment(d.equipment ?? 'body_weight');
+    setFormInstructions(d.instructions ?? '');
+    setImageFile(null);
+    setFormOpen(true);
+  };
+
+  const submitForm = async () => {
+    if (!formName.trim() || !formMuscleGroup || !formEquipment || !formCategory) {
+      setError('Vui lòng nhập đủ tên, category, nhóm cơ và dụng cụ.');
+      return;
+    }
+    setSaving(true);
+    setError('');
     try {
-      const res = await planApi.searchExercises({ q: q || undefined, equipment: equipment || undefined });
-      setResults(res.content);
-      setSearched(true);
+      const image = imageFile ? (await planApi.uploadMedia(imageFile)).url : undefined;
+      const body = {
+        name: formName.trim(),
+        muscleGroup: formMuscleGroup,
+        equipment: formEquipment,
+        category: formCategory,
+        bodyPart: formCategory,
+        instructions: formInstructions || undefined,
+        image,
+      };
+      if (editingId != null) {
+        await planApi.updateCustomExercise(editingId, body);
+      } else {
+        await planApi.createCustomExercise(body);
+      }
+      setFormOpen(false);
+      setRefreshNonce((n) => n + 1);
     } catch {
-      setError('Tìm kiếm thất bại');
+      setError('Không thể lưu bài tập');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const onOpen = async (id: number) => {
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      const d = await planApi.getExercise(id);
-      setDetail(d);
-      setImgSrc(mediaUrl(d.gifUrl) ?? mediaUrl(d.image));
+      await planApi.deleteCustomExercise(deleteTarget.id);
+      setDeleteTarget(null);
+      setRefreshNonce((n) => n + 1);
     } catch {
-      setError('Không thể tải chi tiết');
-    }
-  };
-
-  const onImgError = () => {
-    if (detail) {
-      const fallback = mediaUrl(detail.image);
-      if (fallback && imgSrc !== fallback) setImgSrc(fallback);
+      setError('Xóa bài tập thất bại');
     }
   };
 
   return (
-    <div className="page-container" style={{ maxWidth: 960, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <h1>📚 Thư viện bài tập</h1>
-
-      {/* Search bar */}
-      <div className="card" style={{ padding: 20 }}>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <TextField
-              label="Tên bài tập"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onSearch()}
-              placeholder="Pull up, squat..."
-            />
-          </div>
-          <Button variant="dark" onClick={onSearch} style={{ marginTop: 'auto' }}>Tìm kiếm</Button>
+    <div className="page-container" style={{ maxWidth: 1040, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="page-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Icon name="book" size={24} />
+          <h1>Thư viện bài tập</h1>
         </div>
-        {/* Equipment filter chips */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-          {EQUIPMENT_LIST.map((e) => (
-            <button
-              key={e}
-              className={`chip ${equipment === e ? 'selected' : ''}`}
-              onClick={() => setEquipment(e)}
-            >
-              {EQUIPMENT_LABELS[e]}
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className="badge badge-neutral">{totalElements} bài tập</span>
+          <Button variant="dark" size="sm" onClick={openCreate}>+ Tạo bài tập</Button>
         </div>
       </div>
 
       {error && <div className="notice notice-error">{error}</div>}
 
-      {/* Results + detail */}
-      <div className="grid-two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
-        {/* Results list */}
-        <div>
-          {searched && results.length === 0 && (
-            <div className="empty-state" style={{ paddingTop: 40 }}>
-              <div className="empty-state-icon">🔍</div>
-              <p className="empty-state-text">Không tìm thấy kết quả phù hợp.</p>
+      <ExerciseBrowser
+        refreshNonce={refreshNonce}
+        onTotalChange={setTotalElements}
+        detailActions={(ex) =>
+          ex.source === 'user_custom' ? (
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <Button variant="dark" size="sm" onClick={() => openEdit(ex)}>Sửa</Button>
+              <Button variant="danger" size="sm" onClick={() => setDeleteTarget(ex)}>Xóa</Button>
             </div>
-          )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {results.map((ex) => (
-              <button
-                key={ex.id}
-                onClick={() => onOpen(ex.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '12px 14px',
-                  background: detail?.id === ex.id ? 'var(--mid-dark)' : 'var(--dark-surface)',
-                  border: `1px solid ${detail?.id === ex.id ? 'var(--green)' : 'transparent'}`,
-                  borderRadius: 8,
-                  color: 'var(--text-base)',
-                  cursor: 'pointer',
-                  transition: 'background var(--t-fast), border-color var(--t-fast)',
-                }}
-              >
-                {mediaUrl(ex.image) ? (
-                  <img
-                    src={mediaUrl(ex.image) ?? undefined}
-                    alt={ex.name}
-                    style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', background: 'var(--mid-dark)', flexShrink: 0 }}
-                  />
-                ) : (
-                  <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--mid-dark)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-                    💪
-                  </div>
-                )}
-                <div>
-                  <div className="fw-600" style={{ fontSize: 14 }}>{ex.name}</div>
-                  <div className="text-secondary" style={{ fontSize: 12 }}>{ex.equipment} · {ex.muscleGroup}</div>
-                </div>
-              </button>
-            ))}
+          ) : null
+        }
+      />
+
+      <Modal
+        open={formOpen}
+        title={editingId != null ? 'Sửa bài tập của bạn' : 'Tạo bài tập cá nhân'}
+        onClose={() => setFormOpen(false)}
+        footer={
+          <>
+            <Button variant="outlined" onClick={() => setFormOpen(false)}>Hủy</Button>
+            <Button onClick={() => void submitForm()} loading={saving}>{editingId != null ? 'Lưu thay đổi' : 'Tạo bài tập'}</Button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <TextField label="Tên bài tập *" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Kéo cáp 1 tay" />
+          <div>
+            <div className="input-label" style={{ marginBottom: 8 }}>Category *</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {EXERCISE_CATEGORIES.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`chip ${formCategory === value ? 'selected' : ''}`}
+                  onClick={() => setFormCategory(value)}
+                >
+                  {label(EXERCISE_CATEGORY_LABELS, value)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="input-label" style={{ marginBottom: 8 }}>Dụng cụ *</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {EXERCISE_EQUIPMENTS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`chip ${formEquipment === value ? 'selected' : ''}`}
+                  onClick={() => setFormEquipment(value)}
+                >
+                  {label(EXERCISE_EQUIPMENT_LABELS, value)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="input-label" style={{ marginBottom: 8 }}>Nhóm cơ (Rule Engine) *</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {EXERCISE_MUSCLE_GROUPS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`chip ${formMuscleGroup === value ? 'selected' : ''}`}
+                  onClick={() => setFormMuscleGroup(value)}
+                >
+                  {label(EXERCISE_MUSCLE_GROUP_LABELS, value)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="input-group">
+            <label className="input-label">Hướng dẫn từng bước (tuỳ chọn)</label>
+            <textarea
+              value={formInstructions}
+              onChange={(e) => setFormInstructions(e.target.value)}
+              placeholder={'Bước 1: ...\nBước 2: ...'}
+              style={{
+                background: 'var(--mid-dark)',
+                color: 'var(--text-base)',
+                borderRadius: 8,
+                padding: 12,
+                minHeight: 90,
+                border: '1px solid var(--border-dark)',
+                fontSize: 13,
+                resize: 'vertical',
+                outline: 'none',
+                lineHeight: 1.5,
+              }}
+            />
+          </div>
+          <div className="input-group">
+            <label className="input-label">Ảnh / GIF (tuỳ chọn, ≤ 5MB)</label>
+            <input
+              type="file"
+              accept="image/*,.gif"
+              onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+              style={{ fontSize: 13, color: 'var(--text-secondary)' }}
+            />
           </div>
         </div>
+      </Modal>
 
-        {/* Detail panel */}
-        <div className="card" style={{ position: 'sticky', top: 20 }}>
-          {detail ? (
-            <div className="animate-fade">
-              <h2 style={{ marginBottom: 6 }}>{detail.name}</h2>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                <span className="badge badge-neutral">{detail.equipment}</span>
-                <span className="badge badge-info">{detail.muscleGroup}</span>
-                {detail.bodyPart && <span className="badge badge-neutral">{detail.bodyPart}</span>}
-              </div>
-              {imgSrc ? (
-                <img
-                  src={imgSrc}
-                  alt={detail.name}
-                  onError={onImgError}
-                  style={{ width: 180, height: 180, objectFit: 'contain', background: 'var(--mid-dark)', borderRadius: 10, display: 'block', marginBottom: 14 }}
-                />
-              ) : (
-                <div style={{ width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--mid-dark)', borderRadius: 10, fontSize: 48, marginBottom: 14 }}>
-                  💪
-                </div>
-              )}
-              {detail.instructions && (
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                  {detail.instructions}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="empty-state" style={{ padding: '32px 16px' }}>
-              <div className="empty-state-icon">👆</div>
-              <p className="empty-state-text">Chọn một bài tập để xem hướng dẫn chi tiết và ảnh/GIF.</p>
-            </div>
-          )}
-        </div>
-      </div>
+      <Modal
+        open={deleteTarget != null}
+        title="Xóa bài tập"
+        onClose={() => setDeleteTarget(null)}
+        footer={
+          <>
+            <Button variant="outlined" onClick={() => setDeleteTarget(null)}>Hủy</Button>
+            <Button variant="danger" onClick={() => void confirmDelete()}>Xóa</Button>
+          </>
+        }
+      >
+        <p className="text-secondary text-sm" style={{ lineHeight: 1.7 }}>
+          Xóa &quot;{deleteTarget?.name}&quot;? Bài tập sẽ bị ẩn khỏi tìm kiếm nhưng vẫn hiển thị trong lịch sử 1 tuần.
+        </p>
+      </Modal>
     </div>
   );
 }

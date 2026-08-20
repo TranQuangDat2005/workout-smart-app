@@ -43,4 +43,13 @@ describe('Modal', () => {
     fireEvent.click(document.querySelector('.modal-overlay') as HTMLElement);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('applies large size class when size is lg', () => {
+    render(
+      <Modal open onClose={() => {}} title="Thêm bài tập" size="lg">
+        nội dung
+      </Modal>,
+    );
+    expect(document.querySelector('.modal-dialog')).toHaveClass('modal-lg');
+  });
 });

@@ -103,6 +103,26 @@ class ExerciseControllerIntegrationTest {
     }
 
     @Test
+    void searchCombinesCategoryOrAndEquipmentAnd() throws Exception {
+        exerciseRepository.save(Exercise.builder().name("DB Fly").category("chest")
+                .bodyPart("chest").equipment("dumbbell").muscleGroup("chest").status("active").build());
+        exerciseRepository.save(Exercise.builder().name("Barbell Row").category("back")
+                .bodyPart("back").equipment("barbell").muscleGroup("back").status("active").build());
+        exerciseRepository.save(Exercise.builder().name("Chest Press").category("chest")
+                .bodyPart("chest").equipment("barbell").muscleGroup("chest").status("active").build());
+        String token = login("ex-filter@example.com");
+
+        mockMvc.perform(get("/api/v1/exercises")
+                        .header("Authorization", "Bearer " + token)
+                        .param("category", "chest")
+                        .param("category", "back")
+                        .param("equipment", "dumbbell"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("DB Fly"));
+    }
+
+    @Test
     void detailReturnsExercise() throws Exception {
         Exercise saved = exerciseRepository.save(Exercise.builder().name("Plank").category("strength")
                 .bodyPart("core").equipment("body_weight").muscleGroup("core").status("active").build());

@@ -197,6 +197,44 @@ class ProfileControllerIntegrationTest {
     }
 
     @Test
+    void clearHistoryDeletesNonActiveAndKeepsActive() throws Exception {
+        String token = createVerifiedUserAndLogin("p8@example.com");
+        User user = userRepository.findByEmail("p8@example.com").orElseThrow();
+
+        WorkoutSession done = sessionRepository.save(WorkoutSession.builder()
+                .userId(user.getId()).status("completed").startTime(Instant.now().minus(2, ChronoUnit.DAYS)).build());
+        setRepository.save(WorkoutSet.builder()
+                .sessionId(done.getId()).setNumber(1).repsCompleted(10).weightUsed(new java.math.BigDecimal("50.00")).build());
+        WorkoutSession active = sessionRepository.save(WorkoutSession.builder()
+                .userId(user.getId()).status("active").startTime(Instant.now()).build());
+        setRepository.save(WorkoutSet.builder()
+                .sessionId(active.getId()).setNumber(1).repsCompleted(5).weightUsed(new java.math.BigDecimal("20.00")).build());
+
+        mockMvc.perform(delete("/api/v1/workout-sessions/history")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Đã xóa 1 buổi tập khỏi lịch sử"));
+
+        // Buổi active vẫn còn, set của nó vẫn còn.
+        mockMvc.perform(get("/api/v1/workout-sessions")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(active.getId()));
+        org.junit.jupiter.api.Assertions.assertEquals(1, setRepository.findBySessionIdOrderBySetNumberAsc(active.getId()).size());
+    }
+
+    @Test
+    void clearHistoryEmptyReturnsMessage() throws Exception {
+        String token = createVerifiedUserAndLogin("p9@example.com");
+
+        mockMvc.perform(delete("/api/v1/workout-sessions/history")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Không có lịch sử để xóa"));
+    }
+
+    @Test
     void profileRequiresAuth() throws Exception {
         mockMvc.perform(get("/api/v1/profile"))
                 .andExpect(status().isForbidden());

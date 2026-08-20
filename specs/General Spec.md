@@ -128,7 +128,7 @@ Sử dụng PostgreSQL 18. Các bảng cốt lõi:
 * WHERE JWT access token (expiry 15 phút) hết hạn giữa buổi tập, THE client SHALL tự động dùng refresh token (expiry 7 ngày) để lấy access token mới (silent refresh). Nếu refresh token cũng hết hạn, kick về màn hình đăng nhập và lưu dữ liệu vào offline queue.
 * WHERE tài khoản bị khóa (banned), THE hệ thống SHALL vô hiệu hóa (revoke) ngay access token và refresh token của tài khoản đó; mọi request của tài khoản bị khóa bị middleware từ chối.
 * WHERE kết nối mạng bị gián đoạn trong lúc lưu kết quả Set tập, THE ứng dụng Mobile SHALL lưu dữ liệu vào offline queue. WHEN thiết bị khôi phục kết nối mạng, THE ứng dụng SHALL tự động trigger sync (push queue lên server) — KHÔNG dùng periodic retry.
-* WHERE xảy ra conflict khi sync dữ liệu offline (ví dụ đăng nhập trên 2 thiết bị), THE hệ thống SHALL xử lý DUY NHẤT theo chiến lược Last-Write-Wins: bản ghi đến sau (timestamp mới hơn) thắng, không hiển thị cảnh báo conflict. Đối với `workout_sets`, hệ thống thực hiện UPSERT dựa trên `(session_id, set_number)`; với các dữ liệu khác (bữa ăn, chỉ số cơ thể), request được server xử lý sau cùng quyết định giá trị lưu.
+* WHERE xảy ra conflict khi sync dữ liệu offline (ví dụ đăng nhập trên 2 thiết bị), THE hệ thống SHALL xử lý DUY NHẤT theo chiến lược Last-Write-Wins: bản ghi đến sau (timestamp mới hơn) thắng, không hiển thị cảnh báo conflict. Đối với `workout_sets`, hệ thống thực hiện UPSERT dựa trên `(session_id, session_exercise_id, set_number)`; với các dữ liệu khác (bữa ăn, chỉ số cơ thể), request được server xử lý sau cùng quyết định giá trị lưu.
 * WHERE phiên buổi tập còn `active` nhưng đã sang ngày mới (giờ địa phương) so với ngày bắt đầu, THE hệ thống SHALL tự động đánh dấu session là `expired`.
 * WHERE người dùng nhấn nhanh nhiều lần một nút lưu (double-tap), THE client SHALL kiểm tra trạng thái "đang gửi" và chỉ gửi đúng 1 request.
 * WHERE file GIF của bài tập không thể tải do lỗi mạng hoặc timeout, THE client SHALL tự động fallback hiển thị ảnh tĩnh `image`.
@@ -192,7 +192,6 @@ UC-21 ──include──► UC-03    (Sync management cần user đang đăng n
 ## 9. Out of Scope
 ### KHÔNG thực hiện trong sprint/phase này:
 * Social Login (Google, Facebook, Apple) - Chỉ hỗ trợ Email/Password cho Phase 1.
-* Không cho phép User tự tạo bài tập mới ngoài thư viện bài tập trong Database.
 * Thuật toán AI Machine Learning cho việc gợi ý (Tạm thời chỉ dùng Rule-based map theo tags).
 * Video call / Live coaching với PT.
 * Tích hợp thiết bị wearable (Apple Watch, Fitbit, v.v.).
@@ -200,6 +199,7 @@ UC-21 ──include──► UC-03    (Sync management cần user đang đăng n
 
 ### Lý do loại trừ:
 * Trọng tâm của version 0.3 là mở rộng từ core flow sang full-stack features: Hồ sơ + Dinh dưỡng + Xã hội + Thống kê + Quản trị. ML, wearable, chat sẽ được xem xét sau khi validate tính năng hiện tại.
+* Lưu ý: "User tự tạo bài tập cá nhân" (custom exercise) đã được đưa vào scope từ feature 011-custom-exercise — KHÔNG còn nằm trong Out of Scope.
 
 ## 10. Notes / Open Questions
 * Hướng dẫn ngôn ngữ (i18n): Tạm thời default hiển thị tiếng Anh (en) từ field `instructions` cho toàn bộ app. Nâng cấp bộ dịch tiếng Việt (vi) sẽ được đưa vào backlog phase tiếp theo.

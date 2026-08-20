@@ -72,6 +72,7 @@ public class ExerciseDataSeeder implements ApplicationRunner {
                 .gifUrl(item.gifUrl())
                 .instructions(item.instructions() != null ? item.instructions().get("en") : null)
                 .status("active")
+                .measureType(measureTypeFor(item))
                 .build();
     }
 
@@ -96,6 +97,19 @@ public class ExerciseDataSeeder implements ApplicationRunner {
             case "waist" -> "core";
             default -> "core";
         };
+    }
+
+    /** Cardio/giãn cơ và bài isometric (plank, wall sit…) đo bằng thời gian. */
+    private String measureTypeFor(DatasetExercise item) {
+        if ("cardio".equalsIgnoreCase(item.category()) || "stretching".equalsIgnoreCase(item.category())) {
+            return "duration";
+        }
+        String name = item.name() == null ? "" : item.name().toLowerCase();
+        if (name.contains("plank") || name.contains("wall sit") || name.contains("hold")
+                || name.contains("bridge") || name.contains("superman")) {
+            return "duration";
+        }
+        return "reps_weight";
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

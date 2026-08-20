@@ -26,7 +26,7 @@ paths:
               required: [name, caloriesPer100g, proteinPer100g, carbPer100g, fatPer100g]
               properties:
                 name: { type: string }
-                caloriesPer100g: { type: number, exclusiveMinimum: 0 }
+                caloriesPer100g: { type: number, minimum: 0, exclusiveMinimum: true }
                 proteinPer100g: { type: number, minimum: 0 }
                 carbPer100g: { type: number, minimum: 0 }
                 fatPer100g: { type: number, minimum: 0 }
@@ -73,7 +73,7 @@ paths:
                     required: [foodItemId, portionGrams]
                     properties:
                       foodItemId: { type: integer }
-                      portionGrams: { type: number, exclusiveMinimum: 0 }
+                      portionGrams: { type: number, minimum: 0, exclusiveMinimum: true }
       responses:
         "201": { description: MealResponse }
         "409": { description: Trùng bữa trong ngày }
@@ -91,7 +91,7 @@ paths:
       parameters:
         - { name: date, in: query, schema: { type: string, format: date } }
       responses:
-        "200": { description: NutritionSummaryResponse (status: đủ/thiếu/thừa) }
+        "200": { description: "NutritionSummaryResponse (status: đủ/thiếu/thừa)" }
         "422": { description: Thiếu thông số cơ thể để tính TDEE }
 
   /body-metrics:
@@ -109,7 +109,7 @@ paths:
               type: object
               required: [weightKg]
               properties:
-                weightKg: { type: number, exclusiveMinimum: 0 }
+                weightKg: { type: number, minimum: 0, exclusiveMinimum: true }
                 bodyFatPct: { type: number }
                 waistCm: { type: number }
                 chestCm: { type: number }

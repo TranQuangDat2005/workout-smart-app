@@ -10,5 +10,8 @@ public record NutritionSummaryResponse(
         BigDecimal totalFat,
         BigDecimal targetCalories,
         BigDecimal deficitOrSurplus,
-        String status) {
+        String status,
+        BigDecimal targetProtein,
+        BigDecimal targetCarb,
+        BigDecimal targetFat) {
 }

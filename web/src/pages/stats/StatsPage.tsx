@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Button from '../../components/Button';
+import Icon from '../../components/Icon';
 import { statsApi } from '../../services/statsApi';
 import type { CaloriePoint, StatsDashboard, VolumePoint, WeightPoint } from '../../services/statsApi';
 
@@ -99,7 +100,7 @@ function CalorieChart({ points }: { points: CaloriePoint[] }) {
 function EmptyHint({ text }: { text: string }) {
   return (
     <div className="empty-state" style={{ padding: '32px 0' }}>
-      <div className="empty-state-icon">📭</div>
+      <div className="empty-state-icon"><Icon name="inbox" size={42} /></div>
       <p className="empty-state-text">{text}</p>
     </div>
   );
@@ -148,7 +149,7 @@ export default function StatsPage() {
   return (
     <div className="page-container" style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="page-header">
-        <h1>📊 Thống kê tiến độ</h1>
+        <h1><Icon name="chart" size={22} style={{ verticalAlign: '-3px', marginRight: 8 }} /> Thống kê tiến độ</h1>
       </div>
 
       {/* Period selector */}
@@ -193,7 +194,7 @@ export default function StatsPage() {
           {/* Streak + Plan */}
           <div className="grid-two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div className="card">
-              <h2 className="section-title" style={{ marginBottom: 14 }}>🔥 Streak</h2>
+              <h2 className="section-title" style={{ marginBottom: 14 }}><Icon name="flame" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Streak</h2>
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={{ flex: 1, background: 'var(--mid-dark)', borderRadius: 8, padding: '14px 18px' }}>
                   <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--green)' }}>{data.streak.currentStreakWeeks}</div>
@@ -206,7 +207,7 @@ export default function StatsPage() {
               </div>
             </div>
             <div className="card">
-              <h2 className="section-title" style={{ marginBottom: 14 }}>✅ Hoàn thành lộ trình</h2>
+              <h2 className="section-title" style={{ marginBottom: 14 }}><Icon name="check" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Hoàn thành lộ trình</h2>
               {data.planCompletion.plannedDays === 0 ? (
                 <p className="text-secondary text-sm">Chưa có kế hoạch tập nào.</p>
               ) : (
@@ -225,14 +226,14 @@ export default function StatsPage() {
 
           {/* Charts */}
           <div className="card">
-            <h2 className="section-title" style={{ marginBottom: 14 }}>⚖️ Cân nặng theo thời gian</h2>
+            <h2 className="section-title" style={{ marginBottom: 14 }}><Icon name="scale" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Cân nặng theo thời gian</h2>
             {empty(data.weight)
               ? <EmptyHint text="Chưa có chỉ số cơ thể. Cập nhật cân nặng để xem biểu đồ." />
               : <LineChart points={data.weight} />}
           </div>
 
           <div className="card">
-            <h2 className="section-title" style={{ marginBottom: 14 }}>💪 Volume (kg nâng / tuần)</h2>
+            <h2 className="section-title" style={{ marginBottom: 14 }}><Icon name="strength" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Volume (kg nâng / tuần)</h2>
             {empty(data.volume)
               ? <EmptyHint text="Chưa có buổi tập hoàn thành trong khoảng này." />
               : <BarChart points={data.volume} color="var(--green)" />}
@@ -240,7 +241,7 @@ export default function StatsPage() {
 
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <h2 className="section-title">🍎 Calo nạp vs. tiêu thụ</h2>
+              <h2 className="section-title"><Icon name="apple" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Calo nạp vs. tiêu thụ</h2>
               <div style={{ display: 'flex', gap: 14, fontSize: 12 }}>
                 <span className="text-green">■ Nạp</span>
                 <span className="text-info">■ Tiêu thụ</span>

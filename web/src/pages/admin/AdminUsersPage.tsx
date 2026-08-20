@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Button from '../../components/Button';
+import Icon from '../../components/Icon';
 import Modal from '../../components/Modal';
 import TextField from '../../components/TextField';
 import { adminApi } from '../../services/adminApi';
@@ -82,7 +83,7 @@ export default function AdminUsersPage() {
   return (
     <div className="page-container" style={{ maxWidth: 820, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="page-header">
-        <h1>👥 Quản lý người dùng</h1>
+        <h1><Icon name="users" size={22} style={{ verticalAlign: '-3px', marginRight: 8 }} /> Quản lý người dùng</h1>
         <span className="badge badge-neutral">{users.length > 0 ? `${users.length} kết quả` : ''}</span>
       </div>
 

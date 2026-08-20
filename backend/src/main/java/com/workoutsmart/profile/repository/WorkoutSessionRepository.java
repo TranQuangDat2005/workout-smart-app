@@ -19,4 +19,8 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
             Long userId, String status, Instant from, Instant to);
 
     long countByPlanIdAndStatus(Long planId, String status);
+
+    List<WorkoutSession> findByUserIdAndStatusNot(Long userId, String status);
+
+    long deleteByUserIdAndStatusNot(Long userId, String status);
 }

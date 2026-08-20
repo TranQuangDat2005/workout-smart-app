@@ -44,6 +44,9 @@ export interface NutritionSummary {
   targetCalories: number;
   deficitOrSurplus: number;
   status: string;
+  targetProtein: number;
+  targetCarb: number;
+  targetFat: number;
 }
 
 export interface BodyMetric {
@@ -57,10 +60,37 @@ export interface BodyMetric {
   recordedAt: string;
 }
 
+export interface NutritionNeeds {
+  bmr: number;
+  tdee: number;
+  targetCalories: number;
+  goalType: string;
+  proteinG: number;
+  carbG: number;
+  fatG: number;
+  perMealCalories: number;
+  mealsPerDay: number;
+  sex: string | null;
+  age: number | null;
+  heightCm: number | null;
+  weightKg: number | null;
+  activityLevel: string | null;
+  calorieGoal: string | null;
+}
+
+export interface ImportFoodRow {
+  name: string;
+  gram: number;
+  protein: number;
+  carb: number;
+  fat: number;
+  calories: number;
+}
+
 export const nutritionApi = {
-  searchFoods: (query: string, page = 0, size = 50) =>
+  searchFoods: (query: string, page = 0, size = 20) =>
     http
-      .get<{ content: Food[]; totalElements: number }>(`/foods?query=${encodeURIComponent(query)}&page=${page}&size=${size}`)
+      .get<{ content: Food[]; totalElements: number; totalPages: number }>(`/foods?query=${encodeURIComponent(query)}&page=${page}&size=${size}`)
       .then((r) => r.data),
 
   createFood: (body: { name: string; caloriesPer100g: number; proteinPer100g: number; carbPer100g: number; fatPer100g: number }) =>
@@ -71,6 +101,9 @@ export const nutritionApi = {
 
   deleteFood: (id: number) => http.delete(`/foods/${id}`).then((r) => r.data),
 
+  importFoods: (rows: ImportFoodRow[]) =>
+    http.post<{ imported: number; errors: string[] }>('/foods/import', { rows }).then((r) => r.data),
+
   getMeals: (date: string) => http.get<Meal[]>(`/meals?date=${date}`).then((r) => r.data),
 
   createMeal: (body: { mealNumber: number; logDate: string; entries: MealEntryInput[] }) =>
@@ -79,6 +112,9 @@ export const nutritionApi = {
   updateMeal: (id: number, body: { mealNumber: number; logDate: string; entries: MealEntryInput[] }) =>
     http.put<Meal>(`/meals/${id}`, body).then((r) => r.data),
 
+  deleteMeal: (id: number) =>
+    http.delete<{ message: string }>(`/meals/${id}`).then((r) => r.data),
+
   getSummary: (date: string) =>
     http.get<NutritionSummary>(`/nutrition/summary?date=${date}`).then((r) => r.data),
 
@@ -86,4 +122,6 @@ export const nutritionApi = {
     http.post<BodyMetric>('/body-metrics', body).then((r) => r.data),
 
   getBodyMetrics: () => http.get<BodyMetric[]>('/body-metrics').then((r) => r.data),
+
+  getNeeds: () => http.get<NutritionNeeds>('/nutrition/needs').then((r) => r.data),
 };

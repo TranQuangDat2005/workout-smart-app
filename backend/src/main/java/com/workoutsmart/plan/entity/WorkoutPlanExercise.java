@@ -39,4 +39,15 @@ public class WorkoutPlanExercise {
 
     @Column(name = "rest_time_seconds", nullable = false)
     private int restTimeSeconds;
+
+    @Column(name = "sort_order", nullable = false)
+    @Builder.Default
+    private int sortOrder = 0;
+
+    @Column(name = "target_duration_seconds")
+    private Integer targetDurationSeconds;
+
+    /** NULL = dùng measure_type mặc định của bài thư viện; reps_weight / duration là ghi đè. */
+    @Column(name = "measure_type")
+    private String measureType;
 }

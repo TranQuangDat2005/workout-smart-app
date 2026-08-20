@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import Button from '../../components/Button';
+import Icon from '../../components/Icon';
+import Modal from '../../components/Modal';
 import Spinner from '../../components/Spinner';
 import TextField from '../../components/TextField';
 import { nutritionApi } from '../../services/nutritionApi';
@@ -70,6 +72,7 @@ export default function NutritionPage() {
   const [mealNumber, setMealNumber] = useState('1');
   const [entries, setEntries] = useState<DraftEntry[]>([]);
   const [editingMealId, setEditingMealId] = useState<number | null>(null);
+  const [deletingMeal, setDeletingMeal] = useState<Meal | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(true);
@@ -131,6 +134,25 @@ export default function NutritionPage() {
     }
   };
 
+  const confirmDeleteMeal = async () => {
+    if (!deletingMeal) return;
+    try {
+      await nutritionApi.deleteMeal(deletingMeal.id);
+      setNotice(`Đã xóa bữa ${deletingMeal.mealNumber}.`);
+      setDeletingMeal(null);
+      // Đang sửa bữa vừa xóa → thoát chế độ sửa.
+      if (editingMealId === deletingMeal.id) {
+        setEditingMealId(null);
+        setEntries([]);
+        setMealNumber('1');
+      }
+      load();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(msg ?? 'Xóa bữa thất bại');
+    }
+  };
+
   const startEdit = (meal: Meal) => {
     setEditingMealId(meal.id);
     setMealNumber(String(meal.mealNumber));
@@ -160,7 +182,7 @@ export default function NutritionPage() {
     <div className="page-container" style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Header */}
       <div className="page-header">
-        <h1>🍎 Nhật ký dinh dưỡng</h1>
+        <h1><Icon name="apple" size={22} style={{ verticalAlign: '-3px', marginRight: 8 }} /> Thực đơn</h1>
         <input
           type="date"
           value={date}
@@ -205,9 +227,37 @@ export default function NutritionPage() {
               }}
             />
           </div>
-          <div className="text-secondary text-sm" style={{ marginTop: 8 }}>
-            Protein <strong>{summary.totalProtein}g</strong> · Carb <strong>{summary.totalCarb}g</strong> · Fat <strong>{summary.totalFat}g</strong>
-          </div>
+          {/* Macro trong ngày — dạng cột: Đã nạp / Mục tiêu / Chênh lệch */}
+          <table className="data-table" style={{ marginTop: 14 }}>
+            <thead>
+              <tr>
+                <th>Chất</th>
+                <th>Đã nạp</th>
+                <th>Mục tiêu</th>
+                <th>Chênh lệch</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { name: 'Calo', unit: 'kcal', total: summary.totalCalories, target: summary.targetCalories },
+                { name: 'Protein', unit: 'g', total: summary.totalProtein, target: summary.targetProtein },
+                { name: 'Carb', unit: 'g', total: summary.totalCarb, target: summary.targetCarb },
+                { name: 'Fat', unit: 'g', total: summary.totalFat, target: summary.targetFat },
+              ].map((row) => {
+                const delta = Math.round(row.total - row.target);
+                return (
+                  <tr key={row.name}>
+                    <td className="fw-700">{row.name}</td>
+                    <td>{Math.round(row.total)} {row.unit}</td>
+                    <td className="text-secondary">{Math.round(row.target)} {row.unit}</td>
+                    <td className={delta > 0 ? 'text-warning fw-600' : delta < 0 ? 'text-green fw-600' : 'text-muted'}>
+                      {delta > 0 ? '+' : ''}{delta} {row.unit}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -218,7 +268,7 @@ export default function NutritionPage() {
       {meals.length === 0 ? (
         <div className="card">
           <div className="empty-state">
-            <div className="empty-state-icon">🍽️</div>
+            <div className="empty-state-icon"><Icon name="utensils" size={42} /></div>
             <p className="empty-state-text">Chưa có bữa ăn nào được ghi nhận hôm nay.</p>
           </div>
         </div>
@@ -227,10 +277,13 @@ export default function NutritionPage() {
           <div key={meal.id} className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div>
-                <span className="fw-700">🍽 Bữa {meal.mealNumber}</span>
+                <span className="fw-700"><Icon name="utensils" size={14} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Bữa {meal.mealNumber}</span>
                 <span className="badge badge-neutral" style={{ marginLeft: 10 }}>{meal.totalCalories} kcal</span>
               </div>
-              <Button variant="dark" size="sm" onClick={() => startEdit(meal)}>Sửa</Button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button variant="dark" size="sm" onClick={() => startEdit(meal)}>Sửa</Button>
+                <Button variant="danger" size="sm" onClick={() => setDeletingMeal(meal)}>Xóa</Button>
+              </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {meal.entries.map((e) => (
@@ -250,7 +303,11 @@ export default function NutritionPage() {
       {/* Add/edit meal form */}
       <div className="card">
         <h3 style={{ marginBottom: 16 }}>
-          {editingMealId != null ? `✏️ Sửa bữa ${mealNumber}` : '➕ Thêm bữa ăn'}
+          {editingMealId != null ? (
+            <><Icon name="pencil" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Sửa bữa {mealNumber}</>
+          ) : (
+            <><Icon name="plus" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Thêm bữa ăn</>
+          )}
         </h3>
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -318,6 +375,22 @@ export default function NutritionPage() {
           )}
         </div>
       </div>
+
+      <Modal
+        open={deletingMeal != null}
+        title="Xóa bữa ăn"
+        onClose={() => setDeletingMeal(null)}
+        footer={
+          <>
+            <Button variant="outlined" onClick={() => setDeletingMeal(null)}>Hủy</Button>
+            <Button variant="danger" onClick={() => void confirmDeleteMeal()}>Xóa</Button>
+          </>
+        }
+      >
+        <p className="text-secondary text-sm" style={{ lineHeight: 1.7 }}>
+          Xóa Bữa {deletingMeal?.mealNumber} ngày {deletingMeal ? new Date(deletingMeal.logDate).toLocaleDateString('vi-VN') : ''}? Các món trong bữa sẽ bị xóa theo.
+        </p>
+      </Modal>
     </div>
   );
 }

@@ -644,6 +644,40 @@ select.input-field {
 
 .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* GIF kho GymVisual nền đen: pixel đen blend vào card tối, người tập vẫn hiện */
+.exercise-gif {
+  mix-blend-mode: screen;
+  background: transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COMMUNITY FEED (018)
+   ═══════════════════════════════════════════════════════════ */
+.feed-media {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.35);
+  display: block;
+}
+
+.feed-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 6px;
+  border-radius: var(--r-full);
+  cursor: pointer;
+  transition: color var(--t-fast);
+}
+.feed-action:hover { color: var(--text-base); }
+
 .animate-fade { animation: fadeIn var(--t-slow); }
 .animate-slide-up { animation: slideUp 0.22s ease; }
 
@@ -654,6 +688,7 @@ select.input-field {
 .btn-icon:focus-visible,
 .nav-link:focus-visible,
 .chip:focus-visible,
+.feed-action:focus-visible,
 .input-field:focus-visible,
 .modal-close:focus-visible {
   outline: 2px solid var(--green);
@@ -684,6 +719,7 @@ select.input-field {
   overflow: auto;
   animation: slideUp 0.2s ease;
 }
+.modal-dialog.modal-lg { max-width: 960px; }
 .modal-header {
   display: flex;
   align-items: center;

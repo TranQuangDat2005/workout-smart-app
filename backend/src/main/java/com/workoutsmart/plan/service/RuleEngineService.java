@@ -44,7 +44,7 @@ public class RuleEngineService {
     public WorkoutPlan generatePlan(String goalType, String fitnessLevel, List<String> equipment,
                                     Long userId, String planName) {
         RuleConfig config = ruleConfig(goalType, fitnessLevel);
-        List<Exercise> eligible = exerciseService.findActiveByEquipment(equipment);
+        List<Exercise> eligible = exerciseService.findActiveByEquipmentForUser(equipment, userId);
         if (eligible.isEmpty()) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "Không có bài tập nào khớp với dụng cụ đã chọn");
@@ -65,13 +65,18 @@ public class RuleEngineService {
                     .dayOfWeek(weekdays.get(i))
                     .build());
 
-            for (Exercise exercise : selectExercises(eligible, goalType, i, config.exercisesPerDay())) {
+            List<Exercise> selected = selectExercises(eligible, goalType, i, config.exercisesPerDay());
+            for (int exIndex = 0; exIndex < selected.size(); exIndex++) {
+                Exercise exercise = selected.get(exIndex);
+                boolean duration = "duration".equals(exercise.getMeasureType());
                 planExerciseRepository.save(WorkoutPlanExercise.builder()
                         .dayId(day.getId())
                         .exerciseId(exercise.getId())
-                        .targetSets(config.sets())
-                        .targetReps(config.reps())
+                        .targetSets(duration && "cardio".equalsIgnoreCase(exercise.getCategory()) ? 1 : config.sets())
+                        .targetReps(duration ? 0 : config.reps())
+                        .targetDurationSeconds(duration ? durationSecondsFor(exercise, goalType) : null)
                         .restTimeSeconds(config.restSeconds())
+                        .sortOrder(exIndex)
                         .build());
             }
         }
@@ -119,6 +124,13 @@ public class RuleEngineService {
             default -> throw new ApiException(HttpStatus.BAD_REQUEST, "fitness_level không hợp lệ");
         }
         return new RuleConfig(days, exercisesPerDay, sets, reps, restSeconds);
+    }
+
+    private Integer durationSecondsFor(Exercise exercise, String goalType) {
+        if ("cardio".equalsIgnoreCase(exercise.getCategory())) {
+            return "endurance".equals(goalType) ? 900 : 1200;
+        }
+        return 60;
     }
 
     private List<Integer> weekdaysFor(int count) {

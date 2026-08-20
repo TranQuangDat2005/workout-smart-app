@@ -70,6 +70,13 @@ const Icon = {
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   ),
+  globe: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+      <path d="M2 12h20" />
+    </svg>
+  ),
   trophy: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="8 21 12 17 16 21" /><line x1="12" y1="17" x2="12" y2="11" />
@@ -115,20 +122,20 @@ const Icon = {
 
 const WORKOUT_NAV: NavItem[] = [
   { to: '/',          label: 'Trang chủ',       icon: Icon.home },
-  { to: '/goal-setup',label: 'Thiết lập mục tiêu', icon: Icon.target },
-  { to: '/plan',      label: 'Lộ trình tập',    icon: Icon.calendar },
-  { to: '/workout',   label: 'Bắt đầu tập',     icon: Icon.dumbbell },
+  { to: '/training',  label: 'Luyện tập',        icon: Icon.dumbbell },
   { to: '/exercises', label: 'Thư viện bài tập', icon: Icon.book },
   { to: '/history',   label: 'Lịch sử tập',     icon: Icon.history },
 ];
 
 const NUTRITION_NAV: NavItem[] = [
-  { to: '/nutrition',    label: 'Tổng quan',     icon: Icon.apple },
-  { to: '/foods',        label: 'Kho thực phẩm', icon: Icon.food },
-  { to: '/body-metrics', label: 'Chỉ số cơ thể', icon: Icon.body },
+  { to: '/body-metrics',   label: 'Chỉ số cơ thể',    icon: Icon.body },
+  { to: '/nutrition-needs', label: 'Nhu cầu dinh dưỡng', icon: Icon.target },
+  { to: '/foods',          label: 'Kho thực phẩm',    icon: Icon.food },
+  { to: '/nutrition',      label: 'Thực đơn',         icon: Icon.apple },
 ];
 
 const SOCIAL_NAV: NavItem[] = [
+  { to: '/community',   label: 'Cộng đồng',      icon: Icon.globe },
   { to: '/friends',     label: 'Bạn bè',         icon: Icon.users },
   { to: '/leaderboard', label: 'Bảng xếp hạng',  icon: Icon.trophy },
 ];

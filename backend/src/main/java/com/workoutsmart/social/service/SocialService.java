@@ -244,7 +244,11 @@ public class SocialService {
     }
 
     private List<LeaderboardResponse> computeLeaderboard(List<User> users, int limit) {
-        for (User user : users) {
+        // Chỉ xếp hạng tài khoản đang hoạt động — soft-delete/banned ẩn khỏi bảng (constitution §4/§5).
+        List<User> active = users.stream()
+                .filter(u -> u.getAccountStatus() == com.workoutsmart.auth.entity.AccountStatus.ACTIVE)
+                .toList();
+        for (User user : active) {
             List<Instant> starts = sessionRepository
                     .findByUserIdOrderByStartTimeDesc(user.getId(), org.springframework.data.domain.PageRequest.of(0, 1000))
                     .stream()
@@ -259,7 +263,7 @@ public class SocialService {
             leaderboardRepository.save(entry);
         }
 
-        List<LeaderboardEntry> entries = users.stream()
+        List<LeaderboardEntry> entries = active.stream()
                 .map(u -> leaderboardRepository.findByUserId(u.getId()).orElse(null))
                 .filter(java.util.Objects::nonNull)
                 .sorted(Comparator

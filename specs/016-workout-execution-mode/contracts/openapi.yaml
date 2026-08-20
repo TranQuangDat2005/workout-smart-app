@@ -1,0 +1,80 @@
+# Contract Delta (016) — OpenAPI
+# Ghi chú:
+# - Cửa sổ undo 60 giây là quy tắc CLIENT (ẩn nút), server chỉ validate ownership + active — xem data-model.md.
+# - Không thay đổi các contract hiện có (POST /workout-sessions, POST /workout-sessions/{id}/sets, GET /workout-sessions/active).
+openapi: 3.0.3
+info:
+  title: WorkoutSmartApp — Workout Execution Mode (016)
+  version: 0.1.0
+  description: >
+    Contract delta cho màn tập trung tối giản: SessionExerciseResponse thêm trường
+    đo theo thời gian + endpoint xóa hiệp vừa ghi (undo).
+servers:
+  - url: /api/v1
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SetTargetResponse:
+      type: object
+      required: [setNumber, targetReps, setType]
+      properties:
+        setNumber:
+          type: integer
+        targetReps:
+          type: integer
+        targetWeight:
+          type: number
+          nullable: true
+        targetDurationSeconds:
+          type: integer
+          nullable: true
+          description: Mục tiêu giây khi bài đo theo thời gian; null khi measureType = reps_weight
+        setType:
+          type: string
+          enum: [normal, warm_up, drop_set]
+
+    SessionExerciseResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        exerciseId: { type: integer, format: int64 }
+        exerciseName: { type: string }
+        sortOrder: { type: integer }
+        targetSets: { type: integer }
+        targetReps: { type: integer }
+        restTimeSeconds: { type: integer }
+        sets:
+          type: array
+          items: { $ref: '#/components/schemas/SetTargetResponse' }
+        targetDurationSeconds: { type: integer, nullable: true }
+        measureType: { type: string, enum: [reps_weight, duration] }
+        mediaUrl:
+          type: string
+          nullable: true
+          description: URL GIF/ảnh hướng dẫn từ kho local; null khi bài không có media
+
+paths:
+  /workout-sessions/{id}/sets/{setId}:
+    delete:
+      summary: Xóa hiệp vừa ghi (undo trong 60 giây)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+        - { name: setId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "204":
+          description: Đã xóa
+        "401": { description: Chưa đăng nhập }
+        "404":
+          description: Buổi tập hoặc hiệp không tồn tại / không thuộc user
+        "409":
+          description: |
+            Buổi tập không còn active:
+            - "Buổi tập đã kết thúc" (completed/interrupted)
+            - "Buổi tập đã hết hạn vì sang ngày mới" (expired)

@@ -11,5 +11,7 @@ public record ExerciseDetailResponse(
         String muscleGroup,
         String image,
         String gifUrl,
-        String instructions) {
+        String instructions,
+        String source,
+        String measureType) {
 }

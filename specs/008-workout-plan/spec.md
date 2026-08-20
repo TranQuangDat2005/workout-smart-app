@@ -57,6 +57,8 @@ Người dùng muốn xem hướng dẫn chi tiết của một bài tập để
 1. **Given** Người dùng chọn một bài tập, **When** màn hình chi tiết mở ra, **Then** hệ thống hiển thị ảnh động (GIF), ảnh tĩnh (180x180) và hướng dẫn từng bước.
 2. **Given** Ảnh động không tải được, **When** hệ thống gặp lỗi tải, **Then** hệ thống tự động fallback hiển thị ảnh tĩnh.
 3. **Given** Người dùng tìm kiếm theo thiết bị "Body weight", **When** hệ thống trả kết quả, **Then** chỉ hiển thị các bài tập không cần dụng cụ.
+4. **Given** Người dùng mở thư viện bài tập, **When** trang tải xong, **Then** hệ thống hiển thị danh sách bài tập mặc định (không yêu cầu nhập từ khóa trước) kèm phân trang rõ ràng.
+5. **Given** Người dùng chọn bộ lọc nhóm cơ "Ngực", **When** kết quả cập nhật, **Then** chỉ hiển thị các bài tập thuộc nhóm cơ ngực và phân trang được tính lại theo bộ lọc.
 
 ---
 
@@ -83,6 +85,8 @@ Người dùng muốn xem hướng dẫn chi tiết của một bài tập để
 - **FR-009**: Hệ thống PHẢI xác định khối lượng tập (số bài/ngày × số sets) theo fitness_level: beginner — 2-3 bài/ngày × 3 sets; intermediate — 4-5 bài/ngày × 4 sets; advanced — 5-6 bài/ngày × 4-5 sets.
 - **FR-010**: Hệ thống PHẢI lọc tập bài từ kho theo equipment — chỉ chọn bài tập phù hợp với dụng cụ người dùng sẵn có.
 - **FR-011**: WHERE một bài tập trong Workout Plan active của người dùng bị Admin ẩn, hệ thống PHẢI thông báo cho người dùng, clone tạm thời bài tập vào draft queue để người dùng tập nốt buổi hiện tại (clone bị xóa sau khi buổi tập hoàn thành), và gợi ý bài tập thay thế (cùng nhóm cơ, cùng kiểu chuyển động, dụng cụ giống hoặc khác) nếu có.
+- **FR-012**: WHEN User truy cập thư viện bài tập, hệ thống PHẢI hiển thị danh sách bài tập mặc định (không yêu cầu nhập từ khóa trước) và hỗ trợ phân trang rõ ràng (tổng kết quả, số trang, điều hướng trang trước/sau).
+- **FR-013**: Hệ thống PHẢI cho phép User lọc bài tập theo Category (10 giá trị kho dữ liệu) và Equipment (28 giá trị kho dữ liệu) — đa chọn HOẶC trong mỗi chiều, VÀ giữa hai chiều — cùng từ khóa tên bài tập; WHEN User thay đổi bộ lọc, hệ thống SHALL cập nhật kết quả và tính lại phân trang. UI thư viện KHÔNG dùng chip nhóm cơ 6 giá trị hay Target Muscle (supersede bởi `specs/012-exercise-library-filters/spec.md`).
 
 ### Rule Engine v1 — Bảng luật sinh lộ trình
 

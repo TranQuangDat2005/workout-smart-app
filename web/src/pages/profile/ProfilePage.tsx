@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/Button';
+import Icon from '../../components/Icon';
+import type { IconName } from '../../components/Icon';
 import Modal from '../../components/Modal';
 import TextField from '../../components/TextField';
 import { useAuth } from '../../context/useAuth';
 import { profileApi } from '../../services/profileApi';
 import type { Profile } from '../../services/profileApi';
 
-const GOALS = [
-  { value: 'weight_loss', label: 'Giảm cân', icon: '⚡', desc: 'Cardio + full-body, 4–5 ngày/tuần' },
-  { value: 'muscle_gain', label: 'Tăng cơ',  icon: '💪', desc: 'Push/Pull/Legs split, 4 ngày/tuần' },
-  { value: 'endurance',   label: 'Sức bền',  icon: '🏃', desc: 'Circuit toàn thân, 3–4 ngày/tuần' },
+const GOALS: { value: string; label: string; icon: IconName; desc: string }[] = [
+  { value: 'weight_loss', label: 'Giảm cân', icon: 'zap', desc: 'Cardio + full-body, 4–5 ngày/tuần' },
+  { value: 'muscle_gain', label: 'Tăng cơ',  icon: 'strength', desc: 'Push/Pull/Legs split, 4 ngày/tuần' },
+  { value: 'endurance',   label: 'Sức bền',  icon: 'activity', desc: 'Circuit toàn thân, 3–4 ngày/tuần' },
 ];
 
 export default function ProfilePage() {
@@ -63,7 +65,7 @@ export default function ProfilePage() {
         setNotice('Đã lưu hồ sơ.');
       }
       setGoalDialogOpen(false);
-      if (res.goalChanged && mode === 'now') navigate('/plan');
+      if (res.goalChanged && mode === 'now') navigate('/training');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setError(msg ?? 'Lưu thất bại');
@@ -163,7 +165,7 @@ export default function ProfilePage() {
                   className={`chip ${goalType === g.value ? 'selected' : ''}`}
                   onClick={() => setGoalType(g.value)}
                 >
-                  <span>{g.icon}</span>
+                  <Icon name={g.icon} size={16} style={{ verticalAlign: '-2px' }} />
                   <span>{g.label}</span>
                 </button>
               ))}

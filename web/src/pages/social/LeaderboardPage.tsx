@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import Button from '../../components/Button';
+import Icon from '../../components/Icon';
+import type { IconName } from '../../components/Icon';
 import Spinner from '../../components/Spinner';
 import { socialApi } from '../../services/socialApi';
 import type { Challenge, LeaderboardItem } from '../../services/socialApi';
 import { profileApi } from '../../services/profileApi';
 import { CHALLENGE_STATUS_LABELS, label } from '../../services/labels';
 
-const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
+const MEDAL: Record<number, { icon: IconName; color: string }> = {
+  1: { icon: 'award', color: '#f2c14e' },
+  2: { icon: 'award', color: '#c9cdd6' },
+  3: { icon: 'award', color: '#d08b53' },
+};
 
 type Scope = 'server' | 'friends';
 
@@ -52,7 +58,7 @@ export default function LeaderboardPage() {
   return (
     <div className="page-container" style={{ maxWidth: 760, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="page-header">
-        <h1>🏆 Bảng xếp hạng Streak</h1>
+        <h1><Icon name="trophy" size={22} style={{ verticalAlign: '-3px', marginRight: 8 }} /> Bảng xếp hạng Streak</h1>
       </div>
 
       {notice && <div className="notice notice-success animate-slide-up">{notice}</div>}
@@ -89,7 +95,7 @@ export default function LeaderboardPage() {
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {board.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">📭</div>
+            <div className="empty-state-icon"><Icon name="inbox" size={42} /></div>
             <p className="empty-state-text">Chưa có dữ liệu xếp hạng.</p>
           </div>
         ) : (
@@ -111,7 +117,7 @@ export default function LeaderboardPage() {
                 >
                   <td>
                     {item.rank <= 3 ? (
-                      <span style={{ fontSize: 20 }}>{MEDAL[item.rank]}</span>
+                      <span><Icon name={MEDAL[item.rank].icon} size={20} style={{ color: MEDAL[item.rank].color }} /></span>
                     ) : (
                       <span className="fw-700 text-secondary">#{item.rank}</span>
                     )}
@@ -142,7 +148,7 @@ export default function LeaderboardPage() {
 
       {/* Open challenges */}
       <div>
-        <h2 className="section-title" style={{ marginBottom: 12 }}>⚡ Thử thách đang mở</h2>
+        <h2 className="section-title" style={{ marginBottom: 12 }}><Icon name="zap" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Thử thách đang mở</h2>
         {challenges.length === 0 ? (
           <div className="card">
             <div className="empty-state" style={{ padding: '24px 0' }}>
@@ -182,7 +188,7 @@ export default function LeaderboardPage() {
       {/* My challenges */}
       {myChallenges.length > 0 && (
         <div>
-          <h2 className="section-title" style={{ marginBottom: 12 }}>📌 Thử thách của tôi</h2>
+          <h2 className="section-title" style={{ marginBottom: 12 }}><Icon name="pin" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Thử thách của tôi</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {myChallenges.map((c) => (
               <div key={c.id} className="card card-sm" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

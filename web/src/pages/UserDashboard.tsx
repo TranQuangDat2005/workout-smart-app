@@ -4,7 +4,7 @@ import Icon from '../components/Icon';
 import { planApi } from '../services/planApi';
 import type { WorkoutPlan } from '../services/planApi';
 import { profileApi } from '../services/profileApi';
-import type { Profile, WorkoutSessionItem } from '../services/profileApi';
+import type { Profile } from '../services/profileApi';
 import { statsApi } from '../services/statsApi';
 import type { StatsDashboard } from '../services/statsApi';
 import { nutritionApi } from '../services/nutritionApi';
@@ -31,7 +31,6 @@ export default function UserDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
   const [stats, setStats] = useState<StatsDashboard | null>(null);
-  const [sessions, setSessions] = useState<WorkoutSessionItem[]>([]);
   const [summary, setSummary] = useState<NutritionSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +39,6 @@ export default function UserDashboard() {
       profileApi.getProfile().then(setProfile).catch(() => {}),
       planApi.getActivePlan().then(setPlan).catch(() => setPlan(null)),
       statsApi.dashboard().then(setStats).catch(() => {}),
-      profileApi.getSessions(0, 5).then((r) => setSessions(r.content)).catch(() => {}),
       nutritionApi.getSummary(todayLocalISO()).then(setSummary).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
@@ -66,7 +64,7 @@ export default function UserDashboard() {
       <div>
         <h1 style={{ fontSize: 28 }}>
           {getGreeting()},{' '}
-          <span style={{ color: 'var(--green)' }}>{profile?.displayName ?? 'bạn'}</span>! 👋
+          <span style={{ color: 'var(--green)' }}>{profile?.displayName ?? 'bạn'}</span>! <Icon name="wave" size={24} style={{ verticalAlign: '-4px', marginLeft: 4 }} />
         </h1>
         <p className="text-secondary text-sm" style={{ marginTop: 4 }}>
           {profile?.goalType ? `Mục tiêu: ${GOAL_LABELS[profile.goalType] ?? profile.goalType}` : 'Hãy thiết lập mục tiêu để bắt đầu'}
@@ -116,11 +114,6 @@ export default function UserDashboard() {
             </>
           )}
         </div>
-        <div className="stat-card">
-          <div className="stat-icon stat-icon-red"><Icon name="strength" /></div>
-          <div className="stat-value">{sessions.length}</div>
-          <div className="stat-label">Buổi tập gần đây</div>
-        </div>
       </div>
 
       {/* Today's workout + quick actions */}
@@ -129,9 +122,9 @@ export default function UserDashboard() {
         <div className="card" style={{ gridColumn: '1 / -1' }}>
           <div className="section-header">
             <h2 className="section-title">
-              📅 Hôm nay — {todayDay ? DAY_LABELS[todayDay.dayOfWeek] : 'Nghỉ ngơi'}
+              <Icon name="calendar" size={17} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Hôm nay — {todayDay ? DAY_LABELS[todayDay.dayOfWeek] : 'Nghỉ ngơi'}
             </h2>
-            <Link to={plan ? '/workout' : '/goal-setup'} className="btn btn-primary btn-sm">
+            <Link to="/training" className="btn btn-primary btn-sm">
               {plan ? 'Bắt đầu tập' : 'Thiết lập mục tiêu'}
             </Link>
           </div>
@@ -165,82 +158,23 @@ export default function UserDashboard() {
                   </span>
                 </div>
               ))}
-              <Link to="/plan" style={{ color: 'var(--green)', fontSize: 13, display: 'block', marginTop: 12 }}>
+              <Link to="/training" style={{ color: 'var(--green)', fontSize: 13, display: 'block', marginTop: 12 }}>
                 Xem toàn bộ lộ trình →
               </Link>
             </div>
           ) : (
             <div className="empty-state" style={{ padding: '24px 0' }}>
-              <div className="empty-state-icon" style={{ fontSize: 32 }}>🏖️</div>
+              <div className="empty-state-icon"><Icon name="sun" size={42} /></div>
               <p className="empty-state-text">
                 {plan ? 'Hôm nay không có bài tập trong lộ trình — hãy nghỉ ngơi!' : 'Chưa có lộ trình — hãy thiết lập mục tiêu.'}
               </p>
               {!plan && (
-                <Link to="/goal-setup" style={{ color: 'var(--green)', fontSize: 13, display: 'inline-block', marginTop: 10 }}>
+                <Link to="/training" style={{ color: 'var(--green)', fontSize: 13, display: 'inline-block', marginTop: 10 }}>
                   Thiết lập mục tiêu →
                 </Link>
               )}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Recent sessions */}
-      <div className="card">
-        <div className="section-header">
-          <h2 className="section-title">⏱ Buổi tập gần đây</h2>
-          <Link to="/history" className="section-link">Xem tất cả →</Link>
-        </div>
-        {sessions.length === 0 ? (
-          <div className="empty-state" style={{ padding: '24px 0' }}>
-            <div className="empty-state-icon" style={{ fontSize: 32 }}>🏋️</div>
-            <p className="empty-state-text">Chưa có buổi tập nào. Bắt đầu ngay!</p>
-          </div>
-        ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Ngày</th>
-                <th>Hiệp</th>
-                <th>Volume</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions.map((s) => (
-                <tr key={s.id}>
-                  <td>{new Date(s.startTime).toLocaleDateString('vi-VN')}</td>
-                  <td>{s.totalSets} hiệp</td>
-                  <td className="text-secondary">{s.totalVolumeKg} kg</td>
-                  <td>
-                    <span className={`badge ${s.status === 'completed' ? 'badge-green' : s.status === 'active' ? 'badge-info' : 'badge-neutral'}`}>
-                      {s.status === 'completed' ? 'Hoàn thành' : s.status === 'active' ? 'Đang tập' : s.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Quick actions */}
-      <div>
-        <h2 className="section-title" style={{ marginBottom: 12 }}>Truy cập nhanh</h2>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {[
-            { to: '/workout',   label: 'Bắt đầu tập', icon: <Icon name="strength" />, variant: 'primary' as const },
-            { to: '/nutrition', label: 'Dinh dưỡng',   icon: <Icon name="apple" />, variant: 'dark' as const },
-            { to: '/stats',     label: 'Thống kê',     icon: <Icon name="chart" />, variant: 'dark' as const },
-            { to: '/exercises', label: 'Thư viện',      icon: <Icon name="book" />, variant: 'dark' as const },
-            { to: '/friends',   label: 'Bạn bè',       icon: <Icon name="users" />, variant: 'dark' as const },
-            { to: '/leaderboard', label: 'Xếp hạng',   icon: <Icon name="trophy" />, variant: 'dark' as const },
-          ].map(({ to, label, icon, variant }) => (
-            <Link key={to} to={to} className={`btn btn-${variant} btn-sm`} style={{ textDecoration: 'none' }}>
-              {icon}
-              {label}
-            </Link>
-          ))}
         </div>
       </div>
     </div>

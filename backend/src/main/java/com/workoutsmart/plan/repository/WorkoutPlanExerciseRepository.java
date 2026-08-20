@@ -6,7 +6,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface WorkoutPlanExerciseRepository extends JpaRepository<WorkoutPlanExercise, Long> {
 
+    List<WorkoutPlanExercise> findByDayIdOrderBySortOrderAscIdAsc(Long dayId);
+
     List<WorkoutPlanExercise> findByDayIdOrderByIdAsc(Long dayId);
+
+    void deleteByDayId(Long dayId);
 
     List<WorkoutPlanExercise> findByExerciseId(Long exerciseId);
 }

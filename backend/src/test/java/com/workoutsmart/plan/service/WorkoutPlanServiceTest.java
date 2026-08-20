@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,12 +12,20 @@ import com.workoutsmart.auth.entity.AccountStatus;
 import com.workoutsmart.auth.entity.User;
 import com.workoutsmart.auth.exception.ApiException;
 import com.workoutsmart.auth.repository.UserRepository;
+import com.workoutsmart.exercise.entity.Exercise;
 import com.workoutsmart.exercise.repository.ExerciseRepository;
 import com.workoutsmart.plan.dto.GoalSetupRequest;
 import com.workoutsmart.plan.dto.GoalSetupResponse;
+import com.workoutsmart.plan.dto.PlanExerciseItemRequest;
+import com.workoutsmart.plan.dto.ReplaceDayExercisesRequest;
+import com.workoutsmart.plan.dto.SetTargetRequest;
 import com.workoutsmart.plan.entity.WorkoutPlan;
+import com.workoutsmart.plan.entity.WorkoutPlanDay;
+import com.workoutsmart.plan.entity.WorkoutPlanExercise;
+import com.workoutsmart.plan.entity.WorkoutPlanExerciseSet;
 import com.workoutsmart.plan.repository.WorkoutPlanDayRepository;
 import com.workoutsmart.plan.repository.WorkoutPlanExerciseRepository;
+import com.workoutsmart.plan.repository.WorkoutPlanExerciseSetRepository;
 import com.workoutsmart.plan.repository.WorkoutPlanRepository;
 import java.time.LocalDate;
 import java.util.List;
@@ -39,6 +48,8 @@ class WorkoutPlanServiceTest {
     @Mock
     private WorkoutPlanExerciseRepository planExerciseRepository;
     @Mock
+    private WorkoutPlanExerciseSetRepository planExerciseSetRepository;
+    @Mock
     private ExerciseRepository exerciseRepository;
     @Mock
     private RuleEngineService ruleEngineService;
@@ -48,7 +59,7 @@ class WorkoutPlanServiceTest {
     @BeforeEach
     void setUp() {
         service = new WorkoutPlanService(userRepository, planRepository, dayRepository,
-                planExerciseRepository, exerciseRepository, ruleEngineService);
+                planExerciseRepository, planExerciseSetRepository, exerciseRepository, ruleEngineService);
     }
 
     private User user() {
@@ -145,5 +156,28 @@ class WorkoutPlanServiceTest {
         ApiException ex = assertThrows(ApiException.class, () -> service.getActivePlan(1L));
 
         assertEquals(404, ex.getStatus().value());
+    }
+
+    @Test
+    void replaceDayExercisesSavesPerSetTargets() {
+        WorkoutPlanDay day = WorkoutPlanDay.builder().id(1L).planId(10L).dayOfWeek(1).build();
+        WorkoutPlanExercise saved = WorkoutPlanExercise.builder()
+                .id(5L).dayId(1L).exerciseId(100L).targetSets(3).targetReps(12).restTimeSeconds(60).sortOrder(0).build();
+        Exercise exercise = Exercise.builder().id(100L).name("Bench Press").source("system").status("active").build();
+        when(dayRepository.findById(1L)).thenReturn(Optional.of(day));
+        when(planRepository.findById(10L)).thenReturn(Optional.of(plan(10L, WorkoutPlanService.STATUS_ACTIVE)));
+        when(exerciseRepository.findById(100L)).thenReturn(Optional.of(exercise));
+        when(planExerciseRepository.save(any(WorkoutPlanExercise.class))).thenReturn(saved);
+        when(planExerciseSetRepository.save(any(WorkoutPlanExerciseSet.class))).thenAnswer(i -> i.getArgument(0));
+        when(dayRepository.findByPlanIdOrderByDayOfWeekAsc(10L)).thenReturn(List.of(day));
+        when(planExerciseRepository.findByDayIdOrderBySortOrderAscIdAsc(1L)).thenReturn(List.of(saved));
+        when(planExerciseSetRepository.findByPlanExerciseIdOrderBySetNumberAsc(5L)).thenReturn(List.of());
+
+        service.replaceDayExercises(1L, 1L, new ReplaceDayExercisesRequest(List.of(
+                new PlanExerciseItemRequest(100L, 3, 12, 60,
+                        List.of(new SetTargetRequest(1, 12, null, "normal", null),
+                                new SetTargetRequest(2, 10, null, "normal", null)), null, null))));
+
+        verify(planExerciseSetRepository, times(2)).save(any(WorkoutPlanExerciseSet.class));
     }
 }

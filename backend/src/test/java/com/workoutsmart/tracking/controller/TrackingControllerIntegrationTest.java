@@ -1,5 +1,6 @@
 package com.workoutsmart.tracking.controller;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -10,6 +11,7 @@ import com.workoutsmart.auth.entity.User;
 import com.workoutsmart.auth.repository.UserRepository;
 import com.workoutsmart.profile.repository.WorkoutSessionRepository;
 import com.workoutsmart.profile.repository.WorkoutSetRepository;
+import com.workoutsmart.tracking.repository.WorkoutSessionExerciseRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,12 +40,15 @@ class TrackingControllerIntegrationTest {
     @Autowired
     private WorkoutSetRepository setRepository;
     @Autowired
+    private WorkoutSessionExerciseRepository sessionExerciseRepository;
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     @AfterEach
     void clean() {
         setRepository.deleteAll();
+        sessionExerciseRepository.deleteAll();
         sessionRepository.deleteAll();
     }
 
@@ -108,5 +113,48 @@ class TrackingControllerIntegrationTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.focusInterruptionsCount").value(1));
+    }
+
+    @Test
+    void deleteSetRemovesRecordedSet() throws Exception {
+        String token = login("t4@example.com");
+        long sessionId = startSession(token);
+
+        MvcResult created = mockMvc.perform(post("/api/v1/workout-sessions/" + sessionId + "/sets")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"setNumber\":1,\"repsCompleted\":10}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        long setId = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(delete("/api/v1/workout-sessions/" + sessionId + "/sets/" + setId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(delete("/api/v1/workout-sessions/" + sessionId + "/sets/" + setId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteSetRejectsOtherUsersSet() throws Exception {
+        String tokenA = login("t5a@example.com");
+        String tokenB = login("t5b@example.com");
+        long sessionA = startSession(tokenA);
+        long sessionB = startSession(tokenB);
+
+        MvcResult created = mockMvc.perform(post("/api/v1/workout-sessions/" + sessionA + "/sets")
+                        .header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"setNumber\":1,\"repsCompleted\":8}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        long setId = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+
+        // User B cố xóa set thuộc session của A qua session B → 404
+        mockMvc.perform(delete("/api/v1/workout-sessions/" + sessionB + "/sets/" + setId)
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isNotFound());
     }
 }

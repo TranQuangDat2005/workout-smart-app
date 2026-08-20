@@ -54,6 +54,19 @@ public class User {
     @Column(name = "activity_level")
     private String activityLevel;
 
+    /**
+     * Mức điều chỉnh calo (019): maintain | cut_light (-300) | cut_fast (-500) |
+     * bulk_light (+300) | bulk_fast (+500) | custom (dùng custom_calorie_offset).
+     * Độc lập với goal_type (mục tiêu tập).
+     */
+    @Column(name = "calorie_goal", nullable = false)
+    @Builder.Default
+    private String calorieGoal = "maintain";
+
+    /** Offset calo tùy chỉnh (kcal/ngày) — chỉ có hiệu lực khi calorie_goal = "custom". */
+    @Column(name = "custom_calorie_offset")
+    private Integer customCalorieOffset;
+
     @Column(name = "display_name")
     private String displayName;
 

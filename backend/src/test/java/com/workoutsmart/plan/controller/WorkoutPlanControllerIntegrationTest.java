@@ -142,6 +142,38 @@ class WorkoutPlanControllerIntegrationTest {
     }
 
     @Test
+    void replaceDayExercisesUpdatesTemplate() throws Exception {
+        seedExercises();
+        String token = login("wp5@example.com");
+        mockMvc.perform(put("/api/v1/users/me/goals")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"goalType\":\"weight_loss\",\"fitnessLevel\":\"beginner\",\"equipment\":[\"body_weight\"]}"))
+                .andExpect(status().isOk());
+
+        MvcResult planRes = mockMvc.perform(get("/api/v1/workout-plans/active")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn();
+        var planJson = objectMapper.readTree(planRes.getResponse().getContentAsString());
+        long dayId = planJson.get("days").get(0).get("id").asLong();
+        long squatId = exerciseRepository.findAll().stream()
+                .filter(e -> "Squat".equals(e.getName()))
+                .findFirst().orElseThrow()
+                .getId();
+
+        mockMvc.perform(put("/api/v1/workout-plans/active/days/" + dayId + "/exercises")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"exercises\":[{\"exerciseId\":" + squatId
+                                + ",\"targetSets\":4,\"targetReps\":8,\"restTimeSeconds\":90}]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.days[0].exercises[0].exerciseName").value("Squat"))
+                .andExpect(jsonPath("$.days[0].exercises[0].targetSets").value(4))
+                .andExpect(jsonPath("$.days[0].exercises.length()").value(1));
+    }
+
+    @Test
     void setupGoalInvalidEnumReturns400() throws Exception {
         String token = login("wp4@example.com");
 

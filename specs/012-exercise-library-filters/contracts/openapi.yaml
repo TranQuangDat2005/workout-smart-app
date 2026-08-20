@@ -1,0 +1,60 @@
+openapi: 3.0.3
+info:
+  title: Exercise library filters (012)
+  version: 0.1.0
+paths:
+  /api/v1/exercises:
+    get:
+      summary: Search exercises with multi category/equipment
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: OR within category; omit = no constraint
+        - name: equipment
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: muscleGroup
+          in: query
+          schema:
+            type: string
+          description: Kept for API compat; library UI does not send this
+        - name: bodyPart
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paged ExerciseDetailResponse
+  /api/v1/exercises/custom:
+    post:
+      summary: Create custom exercise (category + equipment + muscleGroup required)
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Validation failed

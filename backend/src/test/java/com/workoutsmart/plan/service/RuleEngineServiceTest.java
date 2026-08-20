@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -83,7 +84,7 @@ class RuleEngineServiceTest {
 
     @Test
     void weightLossBeginnerCreatesFiveDaysWithCorrectVolume() {
-        when(exerciseService.findActiveByEquipment(anyList())).thenReturn(mixedExercises());
+        when(exerciseService.findActiveByEquipmentForUser(anyList(), anyLong())).thenReturn(mixedExercises());
         stubSave();
 
         WorkoutPlan plan = service.generatePlan("weight_loss", "beginner",
@@ -100,7 +101,7 @@ class RuleEngineServiceTest {
 
     @Test
     void muscleGainIntermediateCreatesSplitWithCorrectVolume() {
-        when(exerciseService.findActiveByEquipment(anyList())).thenReturn(splitExercises());
+        when(exerciseService.findActiveByEquipmentForUser(anyList(), anyLong())).thenReturn(splitExercises());
         stubSave();
 
         service.generatePlan("muscle_gain", "intermediate", List.of("body_weight"), 1L, "Kế hoạch Tăng cơ");
@@ -115,7 +116,7 @@ class RuleEngineServiceTest {
 
     @Test
     void emptyEligibleExercisesThrows422() {
-        when(exerciseService.findActiveByEquipment(anyList())).thenReturn(List.of());
+        when(exerciseService.findActiveByEquipmentForUser(anyList(), anyLong())).thenReturn(List.of());
 
         ApiException ex = assertThrows(ApiException.class,
                 () -> service.generatePlan("endurance", "beginner", List.of("machine"), 1L, "x"));

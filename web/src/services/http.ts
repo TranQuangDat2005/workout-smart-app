@@ -5,10 +5,12 @@ import { tokenStorage } from './tokenStorage';
  * HTTP client dùng chung cho toàn bộ Web App.
  * - Request: tự gắn access token (nếu có).
  * - Response: khi nhận 401 và còn refresh token thì silent refresh 1 lần rồi thử lại request gốc (FR-008).
+ * - KHÔNG ép Content-Type mặc định: axios tự set application/json cho object payload,
+ *   còn FormData cần để browser tự sinh boundary multipart (axios 1.19 sẽ convert
+ *   FormData thành JSON nếu header mặc định là application/json — lỗi 500 khi đăng bài).
  */
 export const http = axios.create({
   baseURL: '/api/v1',
-  headers: { 'Content-Type': 'application/json' },
 });
 
 http.interceptors.request.use((config) => {

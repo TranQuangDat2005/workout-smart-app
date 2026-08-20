@@ -1,6 +1,8 @@
 package com.workoutsmart.plan.dto;
 
-/** Một bài tập trong một ngày của lộ trình — FR-008, FR-009. */
+import java.util.List;
+
+/** Một bài tập trong một ngày của lộ trình — FR-008, FR-009 + per-set target (014) + duration (015). */
 public record PlanExerciseResponse(
         Long id,
         Long exerciseId,
@@ -9,5 +11,8 @@ public record PlanExerciseResponse(
         int targetReps,
         int restTimeSeconds,
         String image,
-        String gifUrl) {
+        String gifUrl,
+        List<SetTargetResponse> sets,
+        Integer targetDurationSeconds,
+        String measureType) {
 }

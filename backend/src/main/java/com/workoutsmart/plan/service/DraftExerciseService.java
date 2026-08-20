@@ -95,6 +95,13 @@ public class DraftExerciseService {
         draftRepository.deleteBySessionId(sessionId);
     }
 
+    @Transactional
+    public void cleanupBySessions(List<Long> sessionIds) {
+        if (sessionIds != null && !sessionIds.isEmpty()) {
+            draftRepository.deleteBySessionIdIn(sessionIds);
+        }
+    }
+
     private Optional<Exercise> findReplacement(Exercise original) {
         Specification<Exercise> spec = Specification.where(
                 (root, cq, cb) -> cb.equal(root.get("status"), "active"));

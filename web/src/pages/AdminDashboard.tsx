@@ -21,7 +21,7 @@ export default function AdminDashboard() {
     <div className="page-container" style={{ maxWidth: 960, display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div className="page-header">
         <div>
-          <h1>🛡️ Bảng điều khiển quản trị</h1>
+          <h1><Icon name="shield" size={22} style={{ verticalAlign: '-3px', marginRight: 8 }} /> Bảng điều khiển quản trị</h1>
           <p className="text-secondary text-sm" style={{ marginTop: 4 }}>
             Quản lý người dùng và thư viện bài tập WorkoutSmart.
           </p>

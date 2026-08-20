@@ -8,10 +8,14 @@ import com.workoutsmart.nutrition.dto.CreateBodyMetricRequest;
 import com.workoutsmart.nutrition.dto.CreateFoodRequest;
 import com.workoutsmart.nutrition.dto.CreateMealRequest;
 import com.workoutsmart.nutrition.dto.FoodResponse;
+import com.workoutsmart.nutrition.dto.ImportFoodRequest;
+import com.workoutsmart.nutrition.dto.ImportFoodResponse;
+import com.workoutsmart.nutrition.dto.ImportFoodRow;
 import com.workoutsmart.nutrition.dto.MealEntryRequest;
 import com.workoutsmart.nutrition.dto.MealEntryResponse;
 import com.workoutsmart.nutrition.dto.MealResponse;
 import com.workoutsmart.nutrition.dto.MessageResponse;
+import com.workoutsmart.nutrition.dto.NutritionNeedsResponse;
 import com.workoutsmart.nutrition.dto.NutritionSummaryResponse;
 import com.workoutsmart.nutrition.entity.BodyMetric;
 import com.workoutsmart.nutrition.entity.FoodItem;
@@ -100,6 +104,34 @@ public class NutritionService {
         return new MessageResponse("Đã xóa thực phẩm khỏi kho cá nhân.");
     }
 
+    /** 019c: nhập hàng loạt từ CSV — quy đổi về 100g/ml, bỏ qua dòng lỗi kèm message. */
+    @Transactional
+    public ImportFoodResponse importFoods(Long userId, ImportFoodRequest request) {
+        int imported = 0;
+        List<String> errors = new ArrayList<>();
+        int line = 0;
+        for (ImportFoodRow row : request.rows()) {
+            line++;
+            String name = row.name() == null ? "" : row.name().trim();
+            if (name.isEmpty() || name.length() > 255) {
+                errors.add("Dòng " + line + ": thiếu hoặc sai tên món");
+                continue;
+            }
+            BigDecimal factor = new BigDecimal("100").divide(row.gram(), 6, RoundingMode.HALF_UP);
+            foodRepository.save(FoodItem.builder()
+                    .name(name)
+                    .caloriesPer100g(row.calories().multiply(factor).setScale(1, RoundingMode.HALF_UP))
+                    .proteinPer100g(row.protein().multiply(factor).setScale(1, RoundingMode.HALF_UP))
+                    .carbPer100g(row.carb().multiply(factor).setScale(1, RoundingMode.HALF_UP))
+                    .fatPer100g(row.fat().multiply(factor).setScale(1, RoundingMode.HALF_UP))
+                    .source("user_custom")
+                    .createdBy(userId)
+                    .build());
+            imported++;
+        }
+        return new ImportFoodResponse(imported, errors);
+    }
+
     // ---------- Meal ----------
 
     /** FR-001..004: tạo bữa nhiều món, tính calo/macro tự động. */
@@ -124,6 +156,15 @@ public class NutritionService {
 
         return new MealResponse(mealLog.getId(), mealLog.getMealNumber(), mealLog.getLogDate(),
                 entries, totalCalories, totalProtein, totalCarb, totalFat);
+    }
+
+    /** 019d: xóa bữa ăn của mình — dọn món trong bữa trước (FK) rồi xóa header bữa. */
+    @Transactional
+    public MessageResponse deleteMeal(Long userId, Long mealId) {
+        MealLog mealLog = requireOwnMeal(userId, mealId);
+        mealEntryRepository.deleteByMealLogId(mealId);
+        mealLogRepository.delete(mealLog);
+        return new MessageResponse("Đã xóa bữa ăn");
     }
 
     /** FR-006b: sửa bữa (ghi đè entries), KHÔNG xóa. */
@@ -157,8 +198,10 @@ public class NutritionService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tài khoản không tồn tại"));
 
         BigDecimal targetCalories;
+        TdeeCalculator.MacroTarget macroTarget;
         try {
             targetCalories = TdeeCalculator.targetCalories(user);
+            macroTarget = TdeeCalculator.macros(user);
         } catch (IllegalArgumentException ex) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "Cần nhập đầy đủ thông tin cơ thể (giới tính, tuổi, chiều cao, cân nặng, mức vận động) để tính TDEE");
@@ -185,7 +228,32 @@ public class NutritionService {
             status = "đủ";
         }
         return new NutritionSummaryResponse(d, totalCalories, totalProtein, totalCarb, totalFat,
-                targetCalories, deficit, status);
+                targetCalories, deficit, status, macroTarget.proteinG(), macroTarget.carbG(), macroTarget.fatG());
+    }
+
+    /** 019: nhu cầu dinh dưỡng — TDEE + macro + calo mỗi bữa (mặc định 3 bữa theo constitution). */
+    public NutritionNeedsResponse getNeeds(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tài khoản không tồn tại"));
+        try {
+            BigDecimal bmr = TdeeCalculator.bmr(user).setScale(0, RoundingMode.HALF_UP);
+            BigDecimal tdee = TdeeCalculator.tdee(user);
+            BigDecimal target = TdeeCalculator.targetCalories(user);
+            TdeeCalculator.MacroTarget macros = TdeeCalculator.macros(user);
+            int mealsPerDay = 3;
+            return new NutritionNeedsResponse(
+                    bmr, tdee, target,
+                    user.getGoalType() == null ? "endurance" : user.getGoalType(),
+                    macros.proteinG(), macros.carbG(), macros.fatG(),
+                    target.divide(BigDecimal.valueOf(mealsPerDay), 0, RoundingMode.HALF_UP),
+                    mealsPerDay,
+                    user.getSex(), user.getAge(), user.getHeightCm(), user.getWeightKg(),
+                    user.getActivityLevel(),
+                    user.getCalorieGoal() == null ? "maintain" : user.getCalorieGoal());
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Cần nhập đầy đủ thông tin cơ thể (giới tính, tuổi, chiều cao, cân nặng, mức vận động) để tính nhu cầu dinh dưỡng");
+        }
     }
 
     // ---------- Body metrics ----------

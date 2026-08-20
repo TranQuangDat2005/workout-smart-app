@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import Button from '../../components/Button';
+import Icon from '../../components/Icon';
+import type { IconName } from '../../components/Icon';
 import Spinner from '../../components/Spinner';
 import TextField from '../../components/TextField';
 import { nutritionApi } from '../../services/nutritionApi';
+import { profileApi } from '../../services/profileApi';
 import type { BodyMetric } from '../../services/nutritionApi';
 
 export default function BodyMetricsPage() {
@@ -16,6 +19,25 @@ export default function BodyMetricsPage() {
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [listLoading, setListLoading] = useState(true);
+
+  // Thông tin cơ thể — đồng bộ hồ sơ (giới tính/tuổi/chiều cao/cân nặng nhập 1 chỗ duy nhất).
+  const [sex, setSex] = useState('male');
+  const [age, setAge] = useState('');
+  const [height, setHeight] = useState('');
+  const [profileWeight, setProfileWeight] = useState('');
+  const [savingBody, setSavingBody] = useState(false);
+
+  useEffect(() => {
+    profileApi
+      .getProfile()
+      .then((p) => {
+        if (p.sex) setSex(p.sex);
+        if (p.age != null) setAge(String(p.age));
+        if (p.heightCm != null) setHeight(String(p.heightCm));
+        if (p.weightKg != null) setProfileWeight(String(p.weightKg));
+      })
+      .catch(() => {});
+  }, []);
 
   const load = () => nutritionApi.getBodyMetrics().then(setMetrics).catch(() => setError('Không thể tải chỉ số'));
   useEffect(() => {
@@ -45,11 +67,32 @@ export default function BodyMetricsPage() {
     }
   };
 
+  const saveBodyInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingBody(true);
+    setError('');
+    setNotice('');
+    try {
+      await profileApi.updateProfile({
+        sex,
+        age: Number(age),
+        heightCm: Number(height),
+        weightKg: profileWeight ? Number(profileWeight) : undefined,
+      });
+      setNotice('Đã lưu thông tin cơ thể (đồng bộ hồ sơ cá nhân).');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(msg ?? 'Lưu thất bại');
+    } finally {
+      setSavingBody(false);
+    }
+  };
+
   const latest = metrics[0];
 
   return (
     <div className="page-container" style={{ maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <h1>📐 Chỉ số cơ thể</h1>
+      <h1><Icon name="ruler" size={22} style={{ verticalAlign: '-3px', marginRight: 8 }} /> Chỉ số cơ thể</h1>
 
       {listLoading && metrics.length === 0 && <Spinner />}
 
@@ -57,20 +100,40 @@ export default function BodyMetricsPage() {
       {latest && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
           {[
-            { label: 'Cân nặng', val: latest.weightKg != null ? `${latest.weightKg} kg` : '—', icon: '⚖️' },
-            { label: '% Mỡ',     val: latest.bodyFatPct != null ? `${latest.bodyFatPct}%` : '—', icon: '📊' },
-            { label: 'Vòng eo',  val: latest.waistCm != null ? `${latest.waistCm} cm` : '—', icon: '📏' },
-            { label: 'Vòng ngực', val: latest.chestCm != null ? `${latest.chestCm} cm` : '—', icon: '💪' },
-            { label: 'Vòng tay',  val: latest.armCm != null ? `${latest.armCm} cm` : '—', icon: '🦾' },
+            { label: 'Cân nặng', val: latest.weightKg != null ? `${latest.weightKg} kg` : '—', icon: 'scale' },
+            { label: '% Mỡ',     val: latest.bodyFatPct != null ? `${latest.bodyFatPct}%` : '—', icon: 'chart' },
+            { label: 'Vòng eo',  val: latest.waistCm != null ? `${latest.waistCm} cm` : '—', icon: 'ruler' },
+            { label: 'Vòng ngực', val: latest.chestCm != null ? `${latest.chestCm} cm` : '—', icon: 'strength' },
+            { label: 'Vòng tay',  val: latest.armCm != null ? `${latest.armCm} cm` : '—', icon: 'dumbbell' },
           ].map((item) => (
             <div key={item.label} className="stat-card" style={{ padding: '14px 16px' }}>
-              <div style={{ fontSize: 20, marginBottom: 6 }}>{item.icon}</div>
+              <div style={{ marginBottom: 6 }}><Icon name={item.icon as IconName} size={20} /></div>
               <div style={{ fontSize: 18, fontWeight: 700 }}>{item.val}</div>
               <div className="stat-label">{item.label}</div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Thông tin cơ thể — đồng bộ hồ sơ */}
+      <div className="card">
+        <h3 style={{ marginBottom: 12 }}>Thông tin cơ thể (đồng bộ hồ sơ cá nhân)</h3>
+        <form onSubmit={saveBodyInfo} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <label className="input-group" style={{ display: 'block' }}>
+              <span className="input-label">Giới tính</span>
+              <select className="input-field" value={sex} onChange={(e) => setSex(e.target.value)} style={{ width: '100%' }}>
+                <option value="male">Nam</option>
+                <option value="female">Nữ</option>
+              </select>
+            </label>
+            <TextField label="Tuổi *" type="number" value={age} onChange={(e) => setAge(e.target.value)} required min="10" max="120" />
+            <TextField label="Chiều cao (cm) *" type="number" value={height} onChange={(e) => setHeight(e.target.value)} required min="100" max="250" />
+            <TextField label="Cân nặng (kg) *" type="number" value={profileWeight} onChange={(e) => setProfileWeight(e.target.value)} required min="20" max="300" step="0.1" />
+          </div>
+          <Button type="submit" fullWidth loading={savingBody}>Lưu thông tin cơ thể</Button>
+        </form>
+      </div>
 
       {/* Input form */}
       <div className="card">

@@ -1,0 +1,173 @@
+openapi: 3.0.3
+info:
+  title: WorkoutSmartApp — Advanced Sets (014)
+  version: 0.1.0
+  description: >
+    Contract mở rộng cho target từng hiệp và kiểu set. Không thêm endpoint mới;
+    chỉ mở rộng payload của các endpoint hiện có.
+paths:
+  /api/v1/workout-plans/active/days/{dayId}/exercises:
+    put:
+      summary: Thay thế danh sách bài của một ngày template (mở rộng per-set target)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [exercises]
+              properties:
+                exercises:
+                  type: array
+                  maxItems: 15
+                  items:
+                    $ref: '#/components/schemas/PlanExerciseItemRequest'
+      responses:
+        '200':
+          description: Lộ trình active sau khi lưu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkoutPlanResponse'
+
+  /api/v1/workout-sessions/{id}/sets:
+    post:
+      summary: Ghi nhận hiệp tập (mở rộng set_type)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordSetRequest'
+      responses:
+        '200':
+          description: Hiệp đã lưu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetResponse'
+
+components:
+  schemas:
+    SetTargetRequest:
+      type: object
+      required: [setNumber, targetReps]
+      properties:
+        setNumber:
+          type: integer
+          minimum: 1
+        targetReps:
+          type: integer
+          minimum: 1
+          maximum: 100
+        targetWeight:
+          type: number
+          nullable: true
+          minimum: 0
+        setType:
+          type: string
+          enum: [normal, warm_up, drop_set]
+          default: normal
+
+    SetTargetResponse:
+      type: object
+      required: [setNumber, targetReps, setType]
+      properties:
+        setNumber:
+          type: integer
+        targetReps:
+          type: integer
+        targetWeight:
+          type: number
+          nullable: true
+        setType:
+          type: string
+          enum: [normal, warm_up, drop_set]
+
+    PlanExerciseItemRequest:
+      type: object
+      required: [exerciseId, targetSets, targetReps, restTimeSeconds]
+      properties:
+        exerciseId:
+          type: integer
+        targetSets:
+          type: integer
+          minimum: 1
+          maximum: 20
+        targetReps:
+          type: integer
+          minimum: 1
+          maximum: 100
+        restTimeSeconds:
+          type: integer
+          minimum: 0
+          maximum: 600
+        sets:
+          type: array
+          items:
+            $ref: '#/components/schemas/SetTargetRequest'
+
+    PlanExerciseResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        exerciseId: { type: integer }
+        exerciseName: { type: string }
+        targetSets: { type: integer }
+        targetReps: { type: integer }
+        restTimeSeconds: { type: integer }
+        image: { type: string, nullable: true }
+        gifUrl: { type: string, nullable: true }
+        sets:
+          type: array
+          items:
+            $ref: '#/components/schemas/SetTargetResponse'
+
+    WorkoutPlanResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        goalType: { type: string }
+        fitnessLevel: { type: string }
+        status: { type: string }
+        days:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              dayOfWeek: { type: integer }
+              exercises:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlanExerciseResponse'
+
+    RecordSetRequest:
+      type: object
+      required: [setNumber]
+      properties:
+        exerciseId: { type: integer, nullable: true }
+        setNumber: { type: integer, minimum: 1 }
+        repsCompleted: { type: integer, nullable: true, minimum: 0 }
+        weightUsed: { type: number, nullable: true, minimum: 0 }
+        restTimeSeconds: { type: integer, nullable: true, minimum: 0 }
+        sessionExerciseId: { type: integer, nullable: true }
+        setType:
+          type: string
+          enum: [normal, warm_up, drop_set]
+
+    SetResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        sessionId: { type: integer }
+        exerciseId: { type: integer, nullable: true }
+        setNumber: { type: integer }
+        repsCompleted: { type: integer, nullable: true }
+        weightUsed: { type: number, nullable: true }
+        restTimeSeconds: { type: integer, nullable: true }
+        sessionExerciseId: { type: integer, nullable: true }
+        setType:
+          type: string
+          enum: [normal, warm_up, drop_set]

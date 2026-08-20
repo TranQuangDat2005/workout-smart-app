@@ -24,6 +24,12 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  servlet:
+    multipart:
+      # 100MB để hỗ trợ ảnh bài đăng cộng đồng (018); giới hạn từng loại do service kiểm soát
+      max-file-size: 100MB
+      max-request-size: 105MB
+
   mail:
     host: smtp.gmail.com
     port: 587
@@ -54,6 +60,8 @@ app:
     from-address: ${MAIL_USERNAME:noreply@workoutsmart.app}
   exercises-dataset-path: ${EXERCISES_DATASET_PATH:../exercises-dataset/data/exercises.json}
   exercises-media-path: ${EXERCISES_MEDIA_PATH:../exercises-dataset/}
+  user-media-path: ${USER_MEDIA_PATH:./uploads/media/}
+  seaweedfs-filer-url: ${SEAWEEDFS_FILER_URL:http://localhost:8888}
 
 springdoc:
   swagger-ui:

@@ -2,113 +2,89 @@ package com.workoutsmart.social.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
+/** Streak — định nghĩa DUY NHẤT: chuỗi tuần liên tiếp đạt ≥3 buổi completed (constitution §4). */
 class StreakCalculatorTest {
 
-    private static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private final StreakCalculator calculator = new StreakCalculator();
 
-    private Instant mondayOfWeek(int weeksAgo) {
-        java.time.LocalDate thisMonday = java.time.LocalDate.now(ZONE)
-                .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-        java.time.LocalDate target = thisMonday.minusWeeks(weeksAgo);
-        return target.atTime(7, 0).atZone(ZONE).toInstant();
-    }
-
-    @Test
-    void emptyHistoryReturnsZero() {
-        var result = calculator.calculate(List.of(), ZONE);
-        assertEquals(0, result.currentStreakWeeks());
-        assertEquals(0, result.longestStreakWeeks());
-    }
-
-    @Test
-    void nullHistoryReturnsZero() {
-        var result = calculator.calculate(null, ZONE);
-        assertEquals(0, result.currentStreakWeeks());
-    }
-
-    @Test
-    void oneWeekWithEnoughSessions() {
-        Instant w = mondayOfWeek(0);
-        List<Instant> starts = List.of(w, w.plus(1, ChronoUnit.DAYS), w.plus(2, ChronoUnit.DAYS));
-        var result = calculator.calculate(starts, ZONE);
-        assertEquals(1, result.currentStreakWeeks());
-        assertEquals(1, result.longestStreakWeeks());
-    }
-
-    @Test
-    void twoWeeksStreak() {
-        Instant thisWeek = mondayOfWeek(0);
-        Instant lastWeek = mondayOfWeek(1);
-        List<Instant> starts = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            starts.add(thisWeek.plus(i, ChronoUnit.DAYS));
-            starts.add(lastWeek.plus(i, ChronoUnit.DAYS));
+    /** n buổi trong tuần cách đây weeksAgo, rải vào các ngày day 0..n-1 trong tuần. */
+    private List<Instant> sessions(int weeksAgo, int count) {
+        LocalDate monday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                .minusWeeks(weeksAgo);
+        List<Instant> result = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            result.add(monday.plusDays(Math.min(i, 6)).atStartOfDay(ZoneId.systemDefault()).toInstant());
         }
-        var result = calculator.calculate(starts, ZONE);
-        assertEquals(2, result.currentStreakWeeks());
-        assertEquals(2, result.longestStreakWeeks());
+        return result;
     }
 
     @Test
-    void brokenWeekResetsCurrent() {
-        Instant thisWeek = mondayOfWeek(0);
-        Instant twoWeeksAgo = mondayOfWeek(2); // bỏ qua tuần trước
-        List<Instant> starts = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            starts.add(thisWeek.plus(i, ChronoUnit.DAYS));
-            starts.add(twoWeeksAgo.plus(i, ChronoUnit.DAYS));
-        }
-        var result = calculator.calculate(starts, ZONE);
-        assertEquals(1, result.currentStreakWeeks());
-        assertEquals(1, result.longestStreakWeeks());
+    void emptyReturnsZero() {
+        var res = calculator.calculate(List.of(), ZoneId.systemDefault());
+        assertEquals(0, res.currentStreakWeeks());
+        assertEquals(0, res.longestStreakWeeks());
     }
 
     @Test
-    void longestStreakInPastIsTracked() {
-        Instant w1 = mondayOfWeek(1);
-        Instant w2 = mondayOfWeek(2);
-        Instant w3 = mondayOfWeek(3);
-        List<Instant> starts = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            starts.add(w1.plus(i, ChronoUnit.DAYS));
-            starts.add(w2.plus(i, ChronoUnit.DAYS));
-            starts.add(w3.plus(i, ChronoUnit.DAYS));
-        }
-        // Tuần hiện tại chưa tập nhưng chưa hết tuần → chuỗi 3 tuần trước vẫn giữ
-        var result = calculator.calculate(starts, ZONE);
-        assertEquals(3, result.currentStreakWeeks());
-        assertEquals(3, result.longestStreakWeeks());
+    void threeThisWeekGivesOne() {
+        var res = calculator.calculate(sessions(0, 3), ZoneId.systemDefault());
+        assertEquals(1, res.currentStreakWeeks());
+        assertEquals(1, res.longestStreakWeeks());
     }
 
     @Test
-    void currentWeekIncompleteDoesNotBreakButNotCounted() {
-        Instant thisWeek = mondayOfWeek(0);
-        Instant lastWeek = mondayOfWeek(1);
-        List<Instant> starts = new ArrayList<>();
-        starts.add(thisWeek); // tuần này mới 1 buổi
-        for (int i = 0; i < 3; i++) {
-            starts.add(lastWeek.plus(i, ChronoUnit.DAYS));
-        }
-        var result = calculator.calculate(starts, ZONE);
-        assertEquals(1, result.currentStreakWeeks()); // chuỗi còn 1 (tuần trước)
-        assertEquals(1, result.longestStreakWeeks());
+    void incompleteCurrentWeekCountsFromLastWeek() {
+        // Tuần này 2 buổi (chưa đủ, tuần chưa kết thúc) + tuần trước 3 buổi → streak = 1
+        List<Instant> starts = new ArrayList<>(sessions(0, 2));
+        starts.addAll(sessions(1, 3));
+        var res = calculator.calculate(starts, ZoneId.systemDefault());
+        assertEquals(1, res.currentStreakWeeks());
     }
 
     @Test
-    void sessionsFromDifferentZonesAreCounted() {
-        Instant w = mondayOfWeek(0);
-        List<Instant> starts = List.of(
-                w, w.plus(1, ChronoUnit.DAYS), w.plus(2, ChronoUnit.DAYS));
-        var result = calculator.calculate(starts, ZoneId.of("UTC"));
-        // Buổi đầu tuần chạy ở UTC có thể rơi vào tuần khác — chỉ kiểm tra không throw và ≥0
-        org.junit.jupiter.api.Assertions.assertTrue(result.currentStreakWeeks() >= 0);
+    void consecutiveWeeksCount() {
+        List<Instant> starts = new ArrayList<>(sessions(0, 3));
+        starts.addAll(sessions(1, 3));
+        starts.addAll(sessions(2, 3));
+        var res = calculator.calculate(starts, ZoneId.systemDefault());
+        assertEquals(3, res.currentStreakWeeks());
+        assertEquals(3, res.longestStreakWeeks());
+    }
+
+    @Test
+    void gapResetsCurrentButKeepsLongest() {
+        // Tuần -1 và -3 đạt 3 buổi, tuần -2 trống → chuỗi hiện tại 1, kỷ lục 1
+        List<Instant> starts = new ArrayList<>(sessions(1, 3));
+        starts.addAll(sessions(3, 3));
+        var res = calculator.calculate(starts, ZoneId.systemDefault());
+        assertEquals(1, res.currentStreakWeeks());
+        assertEquals(1, res.longestStreakWeeks());
+    }
+
+    @Test
+    void longestCanBeEntirelyInPast() {
+        // Tuần -2, -3, -4 đều đạt 3 buổi; tuần này + tuần trước trống → current 0, longest 3
+        List<Instant> starts = new ArrayList<>(sessions(2, 3));
+        starts.addAll(sessions(3, 3));
+        starts.addAll(sessions(4, 3));
+        var res = calculator.calculate(starts, ZoneId.systemDefault());
+        assertEquals(0, res.currentStreakWeeks());
+        assertEquals(3, res.longestStreakWeeks());
+    }
+
+    @Test
+    void fourOrMoreStillCountsOnePerWeek() {
+        // 5 buổi cùng tuần vẫn chỉ tính 1 tuần
+        var res = calculator.calculate(sessions(0, 5), ZoneId.systemDefault());
+        assertEquals(1, res.currentStreakWeeks());
     }
 }

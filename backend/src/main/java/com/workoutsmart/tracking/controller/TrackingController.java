@@ -10,6 +10,8 @@ import com.workoutsmart.tracking.service.TrackingService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,6 +28,11 @@ public class TrackingController {
 
     public TrackingController(TrackingService trackingService) {
         this.trackingService = trackingService;
+    }
+
+    @GetMapping("/active")
+    public SessionResponse getActive(Authentication auth) {
+        return trackingService.getActiveSession(currentUserId(auth));
     }
 
     @PostMapping
@@ -47,6 +54,13 @@ public class TrackingController {
     @PostMapping("/{id}/focus-interruption")
     public SessionResponse incrementFocus(Authentication auth, @PathVariable Long id) {
         return trackingService.incrementFocus(currentUserId(auth), id);
+    }
+
+    /** FR-007 (016): hoàn tác hiệp vừa ghi — 204, 404 (không tồn tại/không thuộc), 409 (session không active). */
+    @DeleteMapping("/{id}/sets/{setId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteSet(Authentication auth, @PathVariable Long id, @PathVariable Long setId) {
+        trackingService.deleteSet(currentUserId(auth), id, setId);
     }
 
     @PostMapping("/sync")

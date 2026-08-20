@@ -55,11 +55,29 @@ public class Exercise {
     @Column(nullable = false)
     private String status;
 
+    /** system = kho hệ thống; user_custom = bài tập cá nhân do User tạo. */
+    @Builder.Default
+    @Column(nullable = false)
+    private String source = "system";
+
+    /** Id của chủ sở hữu (chỉ có với source = user_custom). */
+    @Column(name = "created_by")
+    private Long createdBy;
+
+    /** Soft-delete cho bài tập cá nhân; giữ 1 tuần rồi xóa cứng. */
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    /** reps_weight = đo bằng reps/tạ (mặc định); duration = đo bằng thời gian (giây). */
+    @Column(name = "measure_type", nullable = false)
+    @Builder.Default
+    private String measureType = "reps_weight";
 
     @PrePersist
     void onCreate() {

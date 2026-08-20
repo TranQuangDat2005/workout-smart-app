@@ -8,11 +8,39 @@
   Templates requiring updates: không.
   Runtime guidance updated: AGENTS.md (đã đồng bộ).
   Follow-up TODOs: không.
+
+  Version change: 2.0.0 → 2.1.0 (2026-08-19)
+  Modified principles:
+  - §5 External API allowlist: thêm YouTube IFrame Player API + Spotify embed
+    (nhạc luyện tập — chỉ Web client, URL do User cung cấp, không gọi từ backend).
+    Phê duyệt: owner (chọn Q1=B trong clarify 017-workout-music).
+  Templates requiring updates: không.
+  Runtime guidance updated: AGENTS.md (đã đồng bộ).
+  Follow-up TODOs: không.
+
+  Version change: 2.1.0 → 2.2.0 (2026-08-19)
+  Modified principles:
+  - §4 TDEE: mục tiêu calo chuyển từ tỷ lệ % theo goal_type sang mức điều chỉnh
+    cố định theo calorie_goal của từng người: maintain=0, cut_light=-300,
+    cut_fast=-500, bulk_light=+300, bulk_fast=+500.
+    Phê duyệt: owner 2026-08-19 (tùy chỉnh theo nhu cầu cá nhân).
+  Templates requiring updates: không.
+  Runtime guidance updated: AGENTS.md (đã đồng bộ).
+  Follow-up TODOs: không.
+
+  Version change: 2.2.0 → 2.3.0 (2026-08-19)
+  Modified principles:
+  - §5 Media upload: mở rộng cho BÀI ĐĂNG CỘNG ĐỒNG (video/ảnh), lưu trên
+    SeaweedFS self-hosted qua backend proxy (không gọi external API).
+    Phê duyệt: owner 2026-08-19 (chọn phương án C, lưu SeaweedFS).
+  Templates requiring updates: không.
+  Runtime guidance updated: AGENTS.md (đã đồng bộ).
+  Follow-up TODOs: không.
 -->
 
-**Version**: 2.0.0
+**Version**: 2.3.0
 **Ratified**: 2026-08-17
-**Last Amended**: 2026-08-17
+**Last Amended**: 2026-08-19
 **Status**: Active
 
 Constitution này là nguồn quy tắc canonical cho Speckit agents và người review.
@@ -22,7 +50,7 @@ Constitution này là nguồn quy tắc canonical cho Speckit agents và ngườ
 
 WorkoutSmartApp là ứng dụng hỗ trợ người mới tập gym/calisthenics: gợi ý lộ trình tập theo mục tiêu cá nhân (Rule-based, không AI/ML), hướng dẫn kỹ thuật trực quan (GIF/ảnh 180×180), theo dõi tiến trình (sets/reps/weight), kiểm soát thời gian nghỉ và độ tập trung, theo dõi dinh dưỡng (TDEE/calo/macro), xã hội (kết bạn, leaderboard streak) và thống kê báo cáo.
 
-In scope (8 nhóm feature — chi tiết use case trong `specs/General Spec.md` Appendix):
+In scope (8 nhóm feature + custom exercise — chi tiết use case trong `specs/General Spec.md` Appendix):
 
 - Core & Auth: UC-01, UC-02, UC-03, UC-20
 - Workout Plan: UC-04, UC-05, UC-06
@@ -33,13 +61,17 @@ In scope (8 nhóm feature — chi tiết use case trong `specs/General Spec.md` 
 - Thống kê: UC-17
 - Quản trị: UC-18, UC-19
 
+In scope bổ sung:
+
+- User tự tạo bài tập cá nhân (custom exercise) — riêng tư, dùng trong tracking tự do và Rule Engine.
+- Upload media cho bài tập tự tạo cá nhân (GIF/ảnh 180×180) — lưu local/S3, không gọi external API.
+
 Out of scope (`General Spec.md` §9):
 
 - Social login (Google/Facebook/Apple) — chỉ Email/Password.
-- User tự tạo bài tập ngoài kho database.
 - AI/ML cho gợi ý lộ trình — chỉ Rule-based.
 - Live coaching/video call với PT; wearable; chat giữa bạn bè.
-- Upload media mới — tái sử dụng kho `exercises-dataset/` (GIF/ảnh 180×180).
+- Upload media cho kho bài tập hệ thống — kho hệ thống vẫn dùng `exercises-dataset/` (GIF/ảnh 180×180).
 - Thanh toán — đã lược bỏ hoàn toàn khỏi scope.
 
 ## 2. Immutable Tech Stack
@@ -75,8 +107,8 @@ Functional Requirements viết bằng cú pháp EARS (WHEN/WHERE/THE hệ thốn
 - **Streak** có định nghĩa DUY NHẤT toàn hệ thống: chuỗi TUẦN liên tiếp đạt ≥ 3 buổi tập; bỏ 1 tuần → reset về 0. Leaderboard và thống kê dùng cùng định nghĩa này.
 - **Leaderboard** là kỳ thi vô tận (không reset theo chu kỳ) + Challenge có thời hạn do Admin tạo.
 - **Rule Engine v1**: sinh lộ trình từ goal_type × fitness_level × equipment (bảng luật trong `General Spec.md`); KHÔNG AI/ML.
-- **TDEE** = BMR Mifflin-St Jeor × hệ số vận động (1.2–1.9); mục tiêu calo: cutting −15~20%, bulking +10~15%, hoặc tùy chỉnh. Thiếu thông số (cân nặng/chiều cao/tuổi/giới tính/mức vận động) → yêu cầu nhập đủ trước khi tính.
-- **Sync offline**: DUY NHẤT Last-Write-Wins; `workout_sets` UPSERT theo (session_id, set_number); client có double-tap guard (chỉ gửi 1 request).
+- **TDEE** = BMR Mifflin-St Jeor × hệ số vận động (1.2–1.9); mục tiêu calo theo `calorie_goal` của từng người (tùy chỉnh theo nhu cầu): maintain = giữ nguyên TDEE, cut_light = −300 kcal, cut_fast = −500 kcal, bulk_light = +300 kcal, bulk_fast = +500 kcal. Thiếu thông số (cân nặng/chiều cao/tuổi/giới tính/mức vận động) → yêu cầu nhập đủ trước khi tính.
+- **Sync offline**: DUY NHẤT Last-Write-Wins; `workout_sets` UPSERT theo (session_id, session_exercise_id, set_number) — phiên bản cũ không có snapshot vẫn UPSERT (session_id, set_number); client có double-tap guard (chỉ gửi 1 request).
 - **Workout session** auto-expire khi sang ngày mới (giờ địa phương): status active/completed/interrupted/expired.
 - **Tài khoản**: soft-delete 30 ngày (hủy xóa/khôi phục được; đăng ký lại cùng email → khôi phục nguyên vẹn); ban → middleware chặn mọi request + revoke access & refresh token ngay.
 - **Retention**: chi tiết bữa ăn (`meal_entries`) giữ 2 tuần, cũ hơn chỉ giữ tổng kết ngày (`meal_daily_summaries`); thực phẩm custom bị xóa → draft 1 tuần → xóa cứng.
@@ -88,7 +120,7 @@ Functional Requirements viết bằng cú pháp EARS (WHEN/WHERE/THE hệ thốn
 
 - Mọi thao tác Admin (khóa/mở khóa user, thêm/sửa/ẩn bài tập) phải ghi audit log: actor, action, target type/id, reason, timestamp. Audit log append-only.
 - KHÔNG commit secrets/mật khẩu/API key/JWT secret; KHÔNG đọc `.env`, `*.secret`, `credentials/*`.
-- External API allowlist: Email Service (SendGrid / AWS SES / SMTP Gmail — gửi OTP), FCM (push — chỉ Mobile). Media chỉ từ `exercises-dataset/` local.
+- External API allowlist: Email Service (SendGrid / AWS SES / SMTP Gmail — gửi OTP), FCM (push — chỉ Mobile), YouTube IFrame Player API + Spotify embed (nhạc luyện tập — chỉ Web client, URL do User cung cấp, không gọi từ backend). Media hệ thống dùng `exercises-dataset/` local; upload media mới cho bài tập tự tạo cá nhân (lưu local/S3) VÀ cho bài đăng cộng đồng (ảnh, lưu SeaweedFS self-hosted qua backend proxy) — không gọi external API.
 - JWT middleware phải check trạng thái ban ở mọi request, kể cả token còn hạn; ban → revoke token ngay, hiệu lực khi user kết nối lại (chặn ≤ 3 giây ở request kế tiếp).
 - Mật khẩu lưu bằng bcrypt; không lưu mật khẩu thô.
 - Master data soft-delete; dữ liệu giao dịch (session, bữa ăn) không xóa cứng trước thời hạn retention đã chốt.

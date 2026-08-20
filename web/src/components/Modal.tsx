@@ -7,10 +7,11 @@ interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  size?: 'md' | 'lg';
 }
 
 /** Dialog theo design system: overlay tối + card nổi, đóng bằng ESC hoặc click overlay. */
-export default function Modal({ open, title, onClose, children, footer }: ModalProps) {
+export default function Modal({ open, title, onClose, children, footer, size = 'md' }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -25,7 +26,7 @@ export default function Modal({ open, title, onClose, children, footer }: ModalP
   return (
     <div className="modal-overlay" onClick={onClose} role="presentation">
       <div
-        className="modal-dialog"
+        className={`modal-dialog${size === 'lg' ? ' modal-lg' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}

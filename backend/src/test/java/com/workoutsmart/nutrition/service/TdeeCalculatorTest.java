@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 class TdeeCalculatorTest {
 
-    private User user(String sex, Integer age, double height, double weight, String activity, String goal) {
+    private User user(String sex, Integer age, double height, double weight, String activity, String calorieGoal) {
         return User.builder()
                 .id(1L)
                 .sex(sex)
@@ -17,7 +17,7 @@ class TdeeCalculatorTest {
                 .heightCm(new BigDecimal(height))
                 .weightKg(new BigDecimal(weight))
                 .activityLevel(activity)
-                .goalType(goal)
+                .calorieGoal(calorieGoal)
                 .build();
     }
 
@@ -46,29 +46,52 @@ class TdeeCalculatorTest {
     }
 
     @Test
-    void targetCuttingReduces17Percent() {
-        User u = user("male", 35, 170, 68, "moderate", "weight_loss");
-        BigDecimal tdee = TdeeCalculator.bmr(u).multiply(TdeeCalculator.activityFactor("moderate"));
-        BigDecimal target = TdeeCalculator.targetCalories(u);
-        assertEquals(0, tdee.multiply(new BigDecimal("0.83")).setScale(0, java.math.RoundingMode.HALF_UP)
-                .compareTo(target));
+    void targetMaintainKeepsTdee() {
+        User u = user("male", 35, 170, 68, "moderate", "maintain");
+        // TDEE = 1572.5 × 1.55 = 2437.375 → 2437; maintain giữ nguyên.
+        assertEquals(0, new BigDecimal("2437").compareTo(TdeeCalculator.targetCalories(u)));
     }
 
     @Test
-    void targetBulkingIncreases12Percent() {
-        User u = user("male", 35, 170, 68, "moderate", "muscle_gain");
-        BigDecimal tdee = TdeeCalculator.bmr(u).multiply(TdeeCalculator.activityFactor("moderate"));
-        BigDecimal target = TdeeCalculator.targetCalories(u);
-        assertEquals(0, tdee.multiply(new BigDecimal("1.12")).setScale(0, java.math.RoundingMode.HALF_UP)
-                .compareTo(target));
+    void targetCutLightSubtracts300() {
+        User u = user("male", 35, 170, 68, "moderate", "cut_light");
+        assertEquals(0, new BigDecimal("2137").compareTo(TdeeCalculator.targetCalories(u)));
     }
 
     @Test
-    void targetEnduranceKeepsTdee() {
-        User u = user("male", 35, 170, 68, "moderate", "endurance");
-        BigDecimal tdee = TdeeCalculator.bmr(u).multiply(TdeeCalculator.activityFactor("moderate"));
-        assertEquals(0, tdee.setScale(0, java.math.RoundingMode.HALF_UP)
-                .compareTo(TdeeCalculator.targetCalories(u)));
+    void targetCutFastSubtracts500() {
+        User u = user("male", 35, 170, 68, "moderate", "cut_fast");
+        assertEquals(0, new BigDecimal("1937").compareTo(TdeeCalculator.targetCalories(u)));
+    }
+
+    @Test
+    void targetBulkLightAdds300() {
+        User u = user("male", 35, 170, 68, "moderate", "bulk_light");
+        assertEquals(0, new BigDecimal("2737").compareTo(TdeeCalculator.targetCalories(u)));
+    }
+
+    @Test
+    void targetBulkFastAdds500() {
+        User u = user("male", 35, 170, 68, "moderate", "bulk_fast");
+        assertEquals(0, new BigDecimal("2937").compareTo(TdeeCalculator.targetCalories(u)));
+    }
+
+    @Test
+    void nullCalorieGoalDefaultsToMaintain() {
+        User u = user("male", 35, 170, 68, "moderate", null);
+        assertEquals(0, new BigDecimal("2437").compareTo(TdeeCalculator.targetCalories(u)));
+    }
+
+    @Test
+    void targetCustomUsesOffset() {
+        User u = user("male", 35, 170, 68, "moderate", "custom");
+        u.setCustomCalorieOffset(-350);
+        assertEquals(0, new BigDecimal("2087").compareTo(TdeeCalculator.targetCalories(u)));
+        u.setCustomCalorieOffset(250);
+        assertEquals(0, new BigDecimal("2687").compareTo(TdeeCalculator.targetCalories(u)));
+        // custom mà chưa nhập offset → giữ nguyên TDEE.
+        u.setCustomCalorieOffset(null);
+        assertEquals(0, new BigDecimal("2437").compareTo(TdeeCalculator.targetCalories(u)));
     }
 
     @Test
@@ -94,10 +117,10 @@ class TdeeCalculatorTest {
     }
 
     @Test
-    void nullGoalDefaultsToEndurance() {
-        User u = user("male", 35, 170, 68, "moderate", null);
-        BigDecimal tdee = TdeeCalculator.bmr(u).multiply(TdeeCalculator.activityFactor("moderate"));
-        assertEquals(0, tdee.setScale(0, java.math.RoundingMode.HALF_UP)
-                .compareTo(TdeeCalculator.targetCalories(u)));
+    void nullCalorieGoalDefaultsToMaintain2() {
+        User u = User.builder().id(1L).sex("male").age(35).heightCm(new BigDecimal("170"))
+                .weightKg(new BigDecimal("68")).activityLevel("moderate").build();
+        // calorieGoal không set → builder default "maintain" → bằng TDEE.
+        assertEquals(0, new BigDecimal("2437").compareTo(TdeeCalculator.targetCalories(u)));
     }
 }

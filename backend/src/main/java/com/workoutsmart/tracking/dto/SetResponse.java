@@ -2,7 +2,7 @@ package com.workoutsmart.tracking.dto;
 
 import java.math.BigDecimal;
 
-/** Hiệp tập đã lưu — FR-001 (009). */
+/** Hiệp tập đã lưu — FR-001 (009) + set_type (014) + duration (015). */
 public record SetResponse(
         Long id,
         Long sessionId,
@@ -10,5 +10,8 @@ public record SetResponse(
         int setNumber,
         Integer repsCompleted,
         BigDecimal weightUsed,
-        Integer restTimeSeconds) {
+        Integer restTimeSeconds,
+        Long sessionExerciseId,
+        String setType,
+        Integer durationSeconds) {
 }

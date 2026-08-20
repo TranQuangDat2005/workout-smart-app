@@ -10,15 +10,15 @@ import HomePage from './pages/HomePage';
 import ProfilePage from './pages/profile/ProfilePage';
 import WorkoutHistoryPage from './pages/profile/WorkoutHistoryPage';
 import NutritionPage from './pages/nutrition/NutritionPage';
+import NutritionNeedsPage from './pages/nutrition/NutritionNeedsPage';
 import FoodLibraryPage from './pages/nutrition/FoodLibraryPage';
 import BodyMetricsPage from './pages/nutrition/BodyMetricsPage';
 import FriendsPage from './pages/social/FriendsPage';
 import LeaderboardPage from './pages/social/LeaderboardPage';
+import CommunityFeedPage from './pages/social/CommunityFeedPage';
 import StatsPage from './pages/stats/StatsPage';
-import GoalSetupPage from './pages/plan/GoalSetupPage';
-import PlanPage from './pages/plan/PlanPage';
 import ExerciseSearchPage from './pages/plan/ExerciseSearchPage';
-import WorkoutPage from './pages/tracking/WorkoutPage';
+import TrainingPage from './pages/training/TrainingPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminExercisesPage from './pages/admin/AdminExercisesPage';
 
@@ -35,15 +35,18 @@ export default function App() {
       <Route path="/profile" element={<Protected><ProfilePage /></Protected>} />
       <Route path="/history" element={<Protected><WorkoutHistoryPage /></Protected>} />
       <Route path="/nutrition" element={<Protected><NutritionPage /></Protected>} />
+      <Route path="/nutrition-needs" element={<Protected><NutritionNeedsPage /></Protected>} />
       <Route path="/foods" element={<Protected><FoodLibraryPage /></Protected>} />
       <Route path="/body-metrics" element={<Protected><BodyMetricsPage /></Protected>} />
       <Route path="/friends" element={<Protected><FriendsPage /></Protected>} />
       <Route path="/leaderboard" element={<Protected><LeaderboardPage /></Protected>} />
+      <Route path="/community" element={<Protected><CommunityFeedPage /></Protected>} />
       <Route path="/stats" element={<Protected><StatsPage /></Protected>} />
-      <Route path="/goal-setup" element={<Protected><GoalSetupPage /></Protected>} />
-      <Route path="/plan" element={<Protected><PlanPage /></Protected>} />
+      <Route path="/training" element={<Protected><TrainingPage /></Protected>} />
+      <Route path="/goal-setup" element={<Navigate to="/training" replace />} />
+      <Route path="/plan" element={<Navigate to="/training" replace />} />
+      <Route path="/workout" element={<Navigate to="/training" replace />} />
       <Route path="/exercises" element={<Protected><ExerciseSearchPage /></Protected>} />
-      <Route path="/workout" element={<Protected><WorkoutPage /></Protected>} />
       <Route path="/admin/users" element={<Protected admin><AdminUsersPage /></Protected>} />
       <Route path="/admin/exercises" element={<Protected admin><AdminExercisesPage /></Protected>} />
 
@@ -53,7 +56,17 @@ export default function App() {
 }
 
 function Protected({ children, admin = false }: { children: JSX.Element; admin?: boolean }) {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+
+  // Đang khôi phục phiên từ refresh token → chưa biết auth state, không redirect vội
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: '#888' }}>Đang khởi tạo phiên...</div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (admin && !isAdmin) return <Navigate to="/" replace />;
   return <AppShell>{children}</AppShell>;

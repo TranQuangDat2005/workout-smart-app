@@ -2,6 +2,7 @@ package com.workoutsmart.nutrition.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -14,6 +15,8 @@ import com.workoutsmart.auth.repository.UserRepository;
 import com.workoutsmart.nutrition.dto.CreateFoodRequest;
 import com.workoutsmart.nutrition.dto.CreateMealRequest;
 import com.workoutsmart.nutrition.dto.FoodResponse;
+import com.workoutsmart.nutrition.dto.ImportFoodRequest;
+import com.workoutsmart.nutrition.dto.ImportFoodRow;
 import com.workoutsmart.nutrition.dto.MealEntryRequest;
 import com.workoutsmart.nutrition.dto.MealResponse;
 import com.workoutsmart.nutrition.dto.NutritionSummaryResponse;
@@ -170,6 +173,22 @@ class NutritionServiceTest {
     }
 
     @Test
+    void importFoodsNormalizesTo100gAndSkipsInvalid() {
+        when(foodRepository.save(any(FoodItem.class))).thenAnswer(i -> i.getArgument(0));
+
+        var res = service.importFoods(1L, new ImportFoodRequest(List.of(
+                // 250g có 500 kcal, 50g protein → 100g có 200 kcal, 20g protein
+                new ImportFoodRow("Ức gà luộc", new BigDecimal("250"), new BigDecimal("50"),
+                        new BigDecimal("0"), new BigDecimal("9"), new BigDecimal("500")),
+                new ImportFoodRow("", new BigDecimal("100"), new BigDecimal("1"),
+                        new BigDecimal("1"), new BigDecimal("1"), new BigDecimal("10")))));
+
+        assertEquals(1, res.imported());
+        assertEquals(1, res.errors().size());
+        assertEquals("Dòng 2: thiếu hoặc sai tên món", res.errors().get(0));
+    }
+
+    @Test
     void summaryRequiresBodyData() {
         User incomplete = User.builder().id(1L).email("u@e.c")
                 .accountStatus(AccountStatus.ACTIVE).sex("male").age(25)
@@ -202,6 +221,44 @@ class NutritionServiceTest {
     }
 
     @Test
+    void needsComputesTdeeMacrosPerMeal() {
+        User u = User.builder().id(1L).email("u@e.c")
+                .accountStatus(AccountStatus.ACTIVE).sex("male").age(35)
+                .heightCm(new BigDecimal("170")).weightKg(new BigDecimal("68"))
+                .activityLevel("moderate").goalType("weight_loss")
+                .calorieGoal("cut_light").build();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(u));
+
+        var res = service.getNeeds(1L);
+
+        // BMR ≈ 1573; TDEE ≈ 2437; cut_light = −300 → 2137
+        assertEquals(0, new BigDecimal("1573").compareTo(res.bmr()));
+        assertEquals(0, new BigDecimal("2437").compareTo(res.tdee()));
+        assertEquals(0, new BigDecimal("2137").compareTo(res.targetCalories()));
+        assertEquals("cut_light", res.calorieGoal());
+        // Protein 2g/kg = 136g
+        assertEquals(0, new BigDecimal("136.0").compareTo(res.proteinG()));
+        // 3 bữa → mỗi bữa ≈ 712 kcal
+        assertEquals(3, res.mealsPerDay());
+        assertEquals(0, new BigDecimal("712").compareTo(res.perMealCalories()));
+        // macro không âm
+        assertTrue(res.carbG().compareTo(BigDecimal.ZERO) >= 0);
+        assertTrue(res.fatG().compareTo(BigDecimal.ZERO) > 0);
+    }
+
+    @Test
+    void needsRequiresBodyData() {
+        User incomplete = User.builder().id(1L).email("u@e.c")
+                .accountStatus(AccountStatus.ACTIVE).sex("male").age(25)
+                .heightCm(new BigDecimal("170")).weightKg(null)
+                .activityLevel("moderate").goalType("weight_loss").build();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(incomplete));
+
+        ApiException ex = assertThrows(ApiException.class, () -> service.getNeeds(1L));
+        assertEquals(422, ex.getStatus().value());
+    }
+
+    @Test
     void updateMealDeletesAndRecreatesEntries() {
         MealLog ml = MealLog.builder().id(7L).userId(1L).mealNumber(2)
                 .logDate(LocalDate.of(2026, 8, 17)).build();
@@ -225,6 +282,29 @@ class NutritionServiceTest {
         ApiException ex = assertThrows(ApiException.class, () -> service.updateMeal(1L, 7L,
                 new CreateMealRequest(1, LocalDate.of(2026, 8, 17),
                         List.of(new MealEntryRequest(1L, new BigDecimal("100"))))));
+        assertEquals(404, ex.getStatus().value());
+    }
+
+    @Test
+    void deleteMealRemovesEntriesAndLog() {
+        MealLog ml = MealLog.builder().id(7L).userId(1L).mealNumber(2)
+                .logDate(LocalDate.of(2026, 8, 17)).build();
+        when(mealLogRepository.findById(7L)).thenReturn(Optional.of(ml));
+
+        var res = service.deleteMeal(1L, 7L);
+
+        verify(mealEntryRepository).deleteByMealLogId(7L);
+        verify(mealLogRepository).delete(ml);
+        assertEquals("Đã xóa bữa ăn", res.message());
+    }
+
+    @Test
+    void deleteOthersMealReturns404() {
+        MealLog ml = MealLog.builder().id(7L).userId(2L).mealNumber(1)
+                .logDate(LocalDate.of(2026, 8, 17)).build();
+        when(mealLogRepository.findById(7L)).thenReturn(Optional.of(ml));
+
+        ApiException ex = assertThrows(ApiException.class, () -> service.deleteMeal(1L, 7L));
         assertEquals(404, ex.getStatus().value());
     }
 }

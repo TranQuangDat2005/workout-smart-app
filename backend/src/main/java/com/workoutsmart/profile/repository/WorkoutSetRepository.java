@@ -11,5 +11,10 @@ public interface WorkoutSetRepository extends JpaRepository<WorkoutSet, Long> {
 
     Optional<WorkoutSet> findBySessionIdAndSetNumber(Long sessionId, int setNumber);
 
+    Optional<WorkoutSet> findBySessionIdAndSessionExerciseIdAndSetNumber(
+            Long sessionId, Long sessionExerciseId, int setNumber);
+
     List<WorkoutSet> findBySessionIdIn(List<Long> sessionIds);
+
+    long deleteBySessionIdIn(List<Long> sessionIds);
 }

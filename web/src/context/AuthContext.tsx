@@ -8,6 +8,8 @@ import { AuthContext } from './AuthContextValue';
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  // Nếu có refresh token, ta cần gọi API xác minh trước → isLoading bắt đầu là true
+  const [isLoading, setIsLoading] = useState(() => Boolean(tokenStorage.getRefreshToken()));
 
   const applySession = (accessToken: string, refreshToken: string) => {
     tokenStorage.setAccessToken(accessToken);
@@ -19,7 +21,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Khôi phục phiên: nếu có refresh token thì silent refresh (FR-008)
   useEffect(() => {
     const refreshToken = tokenStorage.getRefreshToken();
-    if (!refreshToken) return;
+    if (!refreshToken) {
+      setIsLoading(false);
+      return;
+    }
     authApi
       .refresh(refreshToken)
       .then((res) => applySession(res.accessToken, res.refreshToken))
@@ -27,6 +32,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         tokenStorage.clear();
         setIsAuthenticated(false);
         setIsAdmin(false);
+      })
+      .finally(() => {
+        // Dù thành công hay thất bại đều tắt loading
+        // → Protected component mới được phép kiểm tra isAuthenticated
+        setIsLoading(false);
       });
   }, []);
 
@@ -46,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isAdmin, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isAdmin, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
