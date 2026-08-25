@@ -1,0 +1,4 @@
+Business Rules Register,,,,,,,,
+"One row per BR. Write full rule text here; SRS FT-xx sections list BR IDs only. Status dropdown: Approved=in effect, Draft=pending confirmation.",,,,,,,,
+BR ID,Rule Description,Applies to Feature(s),Trigger / Condition,Exception Handling,Source / Authority,Status,Owner,Notes
+BR-01,"[Full rule text — complete, unambiguous, one rule per row]",[FT-xx],[When does this rule apply],[What happens when the rule is violated],[Business Policy / Legal / System Design],Draft,[Owner],

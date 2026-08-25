@@ -1,0 +1,4 @@
+Requirements Change Log,,,,,,,,,,
+"Add a row for every change after the first approved baseline. Include the specific section affected, the reason, and who approved the change.",,,,,,,,,,
+Change ID,Date,Version,Change Type,Change Description,Section / Feature Affected,Reason / Justification,Impact Assessment,Changed by,Approved by,Approval Date
+CHG-001,[Date],v1.0.0,Initial baseline,Document created and baselined,All,Project kick-off,—,[BA Name],[PM Name],[Date]

@@ -1,0 +1,4 @@
+Non-Functional Requirements Tracker,,,,,,,,,,,
+Fill Test Method and Tool when test planning begins. Fill Measured Result and Test Status after testing. Status dropdown pre-set.,,,,,,,,,,,
+NFR ID,Category,Requirement,Condition / Context,Target Value,Test Method,Tool,Measured Result,Test Status,Owner,Sprint,Notes
+NFR-P01,Performance,[Page/operation] loads in < [X]s,"[Load: N users, network]",< [X] s,Load test,k6 / JMeter,—,Not tested,[Owner],Sprint N,

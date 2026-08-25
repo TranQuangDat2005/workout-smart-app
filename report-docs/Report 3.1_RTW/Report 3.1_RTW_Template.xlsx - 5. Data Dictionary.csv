@@ -1,0 +1,4 @@
+Data Dictionary,,,,,,,,,,
+"One row per attribute. Group rows by Entity. For each attribute: data type, nullable, unique, default, validation rule, retention, owner.",,,,,,,,,,
+Entity,Attribute,Data Type,PK/FK,Nullable,Unique,Default,Validation / Constraint,Retention,Owner,Notes
+[Entity],[attribute_name],[VARCHAR/INT/BOOL/ENUM/etc],[PK/FK→X/—],Yes/No,Yes/No,[value or NULL],[Format/range/constraint],[X years / until event],[System/User/Shop],

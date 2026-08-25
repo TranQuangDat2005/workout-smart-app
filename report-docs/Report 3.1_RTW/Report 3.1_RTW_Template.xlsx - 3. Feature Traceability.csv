@@ -1,0 +1,4 @@
+Feature Traceability Matrix,,,,,,,,,,,,,
+Fill in from left to right. Every FE-xx must have a corresponding FT-xx. Empty FT-xx = unspecified — mark Status as Pending.,,,,,,,,,,,,,
+SRS FT ID,Feature Name,V&S Source (FE),Module,Related UC(s),Related Scenario(s),Data Entities,NFR IDs,Business Rules,Test Case ID(s),Owner,Sprint,Status,Notes
+FT-01,[Feature Name],FE-xx,[Module],[UC-xx],[SC-xx],"[Entity1, Entity2]",[NFR-Pxx],[BR-xx],[TC-FTxx-xx],[Name],Sprint 1,Draft,

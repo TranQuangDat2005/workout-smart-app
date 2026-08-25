@@ -1,0 +1,7 @@
+Permission Matrix,,,,,
+Add roles as columns. Add feature areas and actions as rows. Use F~Full/E~Edit/R~Read/O-Own/— codes. Apply conditional formatting to colour by code.,,,,,
+Feature Area,Action,[Role 1],[Role 2],[Role 3],[Role 4]
+[Feature Area 1],[Action],F,E,R,—
+,[Action 2],—,E,F,F
+[Feature Area 2],[Action],O,—,E,F
+,[Add rows...],,,,

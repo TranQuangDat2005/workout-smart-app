@@ -1,0 +1,4 @@
+Use Case List,,,,,,,,,,
+"Fill in: UC ID (UC-xx), UC Name, Primary Actor, any Secondary Actors, 1-line pre/postconditions, linked FT-xx and SC-xx, Priority, Status (dropdown), Notes.",,,,,,,,,,
+UC ID,UC Name,Primary Actor,Secondary Actor(s),Precondition (brief),Postcondition (brief),Related Feature (FT),Related Scenario (SC),Priority,Status,Notes
+UC-01,[UC Name],[Primary Actor],[Secondary],[Pre-condition in 1 line],[Post-condition in 1 line],[FT-xx],[SC-xx],High,Draft,[Notes]

@@ -1,0 +1,14 @@
+[Project Name] — Requirements Traceability Workbook,,,,,,,,,
+Version 1.0  |  Last updated: [DD/MM/YYYY],,,,,,,,,
+,,,,,,,,,
+HOW TO USE THIS WORKBOOK,,,,,,,,,
+This workbook has 9 sheets. Fill each sheet when the corresponding artefact is ready.,,,,,,,,,
+Sheet 1 (this sheet): auto-calculated summary — formulas pull from other sheets.,,,,,,,,,
+Sheets 2–9: one artefact per sheet. Headers are pre-set; add data rows below row 3.,,,,,,,,,
+Gray italic rows = guidance / example — DELETE before distributing.,,,,,,,,,
+Dropdown validations are pre-configured in each sheet — use them to ensure consistency.,,,,,,,,,
+Color coding: BLUE header = primary key column | AMBER = guidance row | ALT rows = light blue,,,,,,,,,
+,,,,,,,,,
+Summary Statistics,,,,,,,,,
+Total Features (FT),,,Features Specified,,,Open Issues,,,Business Rules
+0,,,0,,,1,,,0
