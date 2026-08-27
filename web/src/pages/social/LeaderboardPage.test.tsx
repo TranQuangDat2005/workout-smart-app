@@ -70,4 +70,27 @@ describe('LeaderboardPage', () => {
     expect(await screen.findByText('14 ngày cardio')).toBeInTheDocument();
     expect(screen.getByText('Tham gia')).toBeInTheDocument();
   });
+
+  it('renders closed challenges as đang tổng kết without join button', async () => {
+    mockedSocialApi.leaderboard.mockResolvedValue([]);
+    mockedSocialApi.challenges.mockResolvedValue([
+      { id: 3, name: '30 ngày squat', goalType: 'strength', durationDays: 30, startDate: '2026-07-01', endDate: '2026-07-31', status: 'closed', joined: true, participantCount: 8, completedAt: null, finalRank: null },
+    ]);
+    render(<LeaderboardPage />, { wrapper });
+    expect(await screen.findByText(/Thử thách đang tổng kết/)).toBeInTheDocument();
+    expect(screen.getByText('30 ngày squat')).toBeInTheDocument();
+    expect(screen.getByText('Đang tổng kết')).toBeInTheDocument();
+    expect(screen.queryAllByText('Tham gia').length).toBe(0);
+  });
+
+  it('renders em dash for unranked rows (rank=0)', async () => {
+    mockedSocialApi.leaderboard.mockResolvedValue([
+      { rank: 0, userId: 1, displayName: 'Viewer', currentStreakWeeks: 0, longestStreakWeeks: 0, viewerRank: null },
+    ]);
+    render(<LeaderboardPage />, { wrapper });
+    await screen.findByText('Viewer');
+    // Không hiển thị #0 — hiện dấu gạch ngang
+    expect(screen.queryByText('#0')).not.toBeInTheDocument();
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1);
+  });
 });

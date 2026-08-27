@@ -35,6 +35,7 @@ const createdPost: PostItem = {
   content: 'Bài đầu tiên của tôi',
   mediaType: null,
   mediaUrl: null,
+  gifUrl: null,
   audience: 'public',
   createdAt: '2026-08-19T12:00:00Z',
   likeCount: 0,
@@ -88,5 +89,22 @@ describe('CommunityFeedPage — đăng bài', () => {
     await waitFor(() =>
       expect(screen.getByText('Nội dung bài đăng tối đa 2000 ký tự')).toBeInTheDocument(),
     );
+  });
+
+  it('gõ gifUrl + bấm Đăng bài → gửi gifUrl trong payload', async () => {
+    const gifPost: PostItem = { ...createdPost, content: 'GIF vui', gifUrl: 'https://tenor.com/view/cat-123' };
+    (feedApi.createPost as jest.Mock).mockResolvedValue(gifPost);
+
+    render(<CommunityFeedPage />);
+
+    const gifInput = screen.getByRole('textbox', { name: /URL GIF/i });
+    await userEvent.type(gifInput, 'https://tenor.com/view/cat-123');
+    await userEvent.type(screen.getByPlaceholderText(/Chia sẻ buổi tập/), 'GIF vui');
+    await userEvent.click(screen.getByRole('button', { name: /Đăng bài/ }));
+
+    await waitFor(() => expect(feedApi.createPost).toHaveBeenCalledTimes(1));
+    const payload = (feedApi.createPost as jest.Mock).mock.calls[0][0];
+    expect(payload.gifUrl).toBe('https://tenor.com/view/cat-123');
+    expect(payload.media).toBeNull();
   });
 });

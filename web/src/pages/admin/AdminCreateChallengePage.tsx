@@ -57,7 +57,7 @@ export default function CreateChallengePage() {
       {error && <div className="notice notice-error">{error}</div>}
 
       <form onSubmit={onSubmit} className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <TextField label="Tên thử thách" value={name} onChange={setName} placeholder="VD: 30 ngày plank challenge" />
+        <TextField label="Tên thử thách" value={name} onChange={(e) => setName(e.target.value)} placeholder="VD: 30 ngày plank challenge" />
 
         <div>
           <label className="text-sm fw-600" style={{ display: 'block', marginBottom: 4 }}>Loại mục tiêu</label>
@@ -73,9 +73,9 @@ export default function CreateChallengePage() {
           </select>
         </div>
 
-        <TextField label="Số ngày" value={durationDays} onChange={setDurationDays} type="number" />
+        <TextField label="Số ngày" value={durationDays} onChange={(e) => setDurationDays(e.target.value)} type="number" />
 
-        <TextField label="Ngày bắt đầu (để trống = hôm nay)" value={startDate} onChange={setStartDate} type="date" />
+        <TextField label="Ngày bắt đầu (để trống = hôm nay)" value={startDate} onChange={(e) => setStartDate(e.target.value)} type="date" />
 
         <Button type="submit" variant="primary" disabled={loading}>
           {loading ? 'Đang tạo...' : 'Tạo thử thách'}

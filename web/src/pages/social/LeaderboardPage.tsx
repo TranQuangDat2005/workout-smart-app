@@ -28,11 +28,13 @@ export default function LeaderboardPage() {
   const [selectedResults, setSelectedResults] = useState<ChallengeResult[] | null>(null);
   const [selectedChallengeName, setSelectedChallengeName] = useState('');
 
-  const load = useCallback(() => {
-    setLoading(true);
+  const load = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
     const req = scope === 'friends' ? socialApi.friendsLeaderboard() : socialApi.leaderboard();
     void Promise.allSettled([
-      req.then(setBoard).catch(() => setError('Không thể tải bảng xếp hạng')),
+      req.then(setBoard).catch(() => {
+        if (!silent) setError('Không thể tải bảng xếp hạng');
+      }),
       socialApi.challenges().then(setChallenges).catch(() => undefined),
       socialApi.myChallenges().then(setMyChallenges).catch(() => undefined),
       profileApi.getProfile().then((p) => setMyUserId(p.id)).catch(() => undefined),
@@ -42,6 +44,16 @@ export default function LeaderboardPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // T048: tự làm mới 60s khi có challenge open/closed để nhận kết quả tổng kết kịp thời
+  useEffect(() => {
+    const hasLive = challenges.some((c) => c.status === 'open' || c.status === 'closed');
+    if (!hasLive) return;
+    const timer = setInterval(() => load(true), 60_000);
+    return () => clearInterval(timer);
+  }, [challenges, load]);
+
+  const rankLabel = (rank: number) => (rank > 0 ? `#${rank}` : '—');
 
   const join = async (id: number) => {
     setNotice(''); setError('');
@@ -98,9 +110,11 @@ export default function LeaderboardPage() {
       {myUserId && (
         <div className="card" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="badge badge-green">Vị trí của bạn</span>
-          <span className="fw-700">#{myRank ? myRank.rank : (viewerRank ?? '?')}</span>
-          <span className="text-secondary">{myRank ? myRank.displayName : ''}</span>
-          <span className="text-green fw-700" style={{ marginLeft: 'auto' }}>{myRank ? myRank.currentStreakWeeks : ''} {myRank ? 'tuần' : ''}</span>
+          <span className="fw-700">{myRank ? rankLabel(myRank.rank) : (viewerRank ? `#${viewerRank}` : '—')}</span>
+          <span className="text-secondary">{myRank && myRank.rank > 0 ? myRank.displayName : 'Chưa có streak'}</span>
+          <span className="text-green fw-700" style={{ marginLeft: 'auto' }}>
+            {myRank && myRank.rank > 0 ? `${myRank.currentStreakWeeks} tuần` : '—'}
+          </span>
         </div>
       )}
 
@@ -129,10 +143,10 @@ export default function LeaderboardPage() {
                   className={item.userId === myUserId ? 'leaderboard-me' : undefined}
                 >
                   <td>
-                    {item.rank <= 3 ? (
+                    {item.rank > 0 && item.rank <= 3 ? (
                       <span><Icon name={MEDAL[item.rank].icon} size={20} style={{ color: MEDAL[item.rank].color }} /></span>
                     ) : (
-                      <span className="fw-700 text-secondary">#{item.rank}</span>
+                      <span className="fw-700 text-secondary">{rankLabel(item.rank)}</span>
                     )}
                   </td>
                   <td>
@@ -187,6 +201,31 @@ export default function LeaderboardPage() {
                 >
                   {c.joined ? '✓ Đã tham gia' : 'Tham gia'}
                 </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Closed challenges — đang tổng kết (FR-010): không còn nút Tham gia */}
+      {challenges.filter((c) => c.status === 'closed').length > 0 && (
+        <div>
+          <h2 className="section-title" style={{ marginBottom: 12 }}><Icon name="clock" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Thử thách đang tổng kết</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {challenges.filter((c) => c.status === 'closed').map((c) => (
+              <div
+                key={c.id}
+                className="card"
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}
+              >
+                <div>
+                  <div className="fw-600" style={{ marginBottom: 4 }}>{c.name}</div>
+                  <div className="text-secondary text-sm">
+                    {c.durationDays} ngày · Kết thúc {c.endDate}
+                    {c.participantCount > 0 && ` · ${c.participantCount} người tham gia`}
+                  </div>
+                </div>
+                <span className="badge badge-neutral">Đang tổng kết</span>
               </div>
             ))}
           </div>

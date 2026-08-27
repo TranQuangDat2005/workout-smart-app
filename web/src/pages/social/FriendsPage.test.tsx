@@ -45,7 +45,7 @@ describe('FriendsPage — nút theo trạng thái quan hệ (FR-004)', () => {
     );
   });
 
-  it('hiển thị Đã gửi lời mời (disabled) khi pending_sent', async () => {
+  it('hiển thị nút Rút lời mời khi pending_sent và gọi unfriend đúng id', async () => {
     (socialApi.searchUsers as jest.Mock).mockResolvedValue([
       searchItem({ relationshipStatus: 'pending_sent', friendshipId: 11 }),
     ]);
@@ -55,9 +55,12 @@ describe('FriendsPage — nút theo trạng thái quan hệ (FR-004)', () => {
     await userEvent.click(screen.getByRole('button', { name: /Tìm/ }));
 
     await waitFor(() => {
-      const btn = screen.getByRole('button', { name: /Đã gửi lời mời/ });
-      expect(btn).toBeDisabled();
+      const btn = screen.getByRole('button', { name: /Rút lời mời/ });
+      expect(btn).toBeInTheDocument();
+      expect(btn).not.toBeDisabled();
     });
+    await userEvent.click(screen.getByRole('button', { name: /Rút lời mời/ }));
+    await waitFor(() => expect(socialApi.unfriend).toHaveBeenCalledWith(11));
   });
 
   it('hiển thị Chấp nhận/Từ chối khi pending_received và gọi accept đúng id', async () => {

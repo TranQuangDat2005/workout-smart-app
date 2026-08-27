@@ -17,8 +17,9 @@ export interface PostItem {
   displayName: string | null;
   avatarUrl: string | null;
   content: string | null;
-  mediaType: 'image' | 'video' | null;
+  mediaType: 'image' | null;
   mediaUrl: string | null;
+  gifUrl: string | null;
   audience: string;
   createdAt: string;
   likeCount: number;
@@ -40,11 +41,12 @@ export const feedApi = {
   feed: (tab: FeedTab, cursor?: number) =>
     http.get<FeedPage>('/feed/posts', { params: { tab, cursor } }).then((r) => r.data),
 
-  createPost: (payload: { content?: string; audience?: string; media?: File | null }) => {
+  createPost: (payload: { content?: string; audience?: string; media?: File | null; gifUrl?: string | null }) => {
     const form = new FormData();
     if (payload.content) form.append('content', payload.content);
     form.append('audience', payload.audience ?? 'public');
     if (payload.media) form.append('media', payload.media);
+    if (payload.gifUrl) form.append('gifUrl', payload.gifUrl);
     return http.post<PostItem>('/feed/posts', form).then((r) => r.data);
   },
 
