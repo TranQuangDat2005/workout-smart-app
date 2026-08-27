@@ -23,10 +23,12 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
                                  @Param("cursor") Long cursor,
                                  Pageable pageable);
 
-    /** Feed "Khám phá": toàn bộ bài public. */
+    /** Feed "Khám phá": toàn bộ bài public, trừ bài của user private (FR-015). */
     @Query("""
             select p from CommunityPost p
             where (:cursor is null or p.id < :cursor) and p.audience = 'public'
+              and not exists (select 1 from com.workoutsmart.auth.entity.User u
+                              where u.id = p.userId and u.isPrivate = true)
             order by p.id desc
             """)
     List<CommunityPost> findDiscover(@Param("cursor") Long cursor, Pageable pageable);

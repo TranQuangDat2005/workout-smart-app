@@ -19,7 +19,18 @@ import com.workoutsmart.feed.repository.CommunityPostRepository;
 import com.workoutsmart.feed.repository.PostCommentRepository;
 import com.workoutsmart.feed.repository.PostLikeRepository;
 import com.workoutsmart.feed.service.SeaweedStorageService;
+import com.workoutsmart.profile.entity.WorkoutSession;
+import com.workoutsmart.profile.entity.WorkoutSet;
+import com.workoutsmart.profile.repository.WorkoutSessionRepository;
+import com.workoutsmart.profile.repository.WorkoutSetRepository;
+import com.workoutsmart.social.entity.Friendship;
+import com.workoutsmart.social.repository.ActivityFeedRepository;
 import com.workoutsmart.social.repository.FriendshipRepository;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +63,12 @@ class SocialFeedControllerIntegrationTest {
     @Autowired
     private FriendshipRepository friendshipRepository;
     @Autowired
+    private ActivityFeedRepository activityFeedRepository;
+    @Autowired
+    private WorkoutSessionRepository sessionRepository;
+    @Autowired
+    private WorkoutSetRepository setRepository;
+    @Autowired
     private CommunityPostRepository postRepository;
     @Autowired
     private PostLikeRepository likeRepository;
@@ -76,11 +93,18 @@ class SocialFeedControllerIntegrationTest {
         cleanFeedTables();
     }
 
+    @Autowired
+    private com.workoutsmart.social.repository.LeaderboardRepository leaderboardRepository;
+
     private void cleanFeedTables() {
         commentRepository.deleteAll();
         likeRepository.deleteAll();
         postRepository.deleteAll();
+        activityFeedRepository.deleteAll();
         friendshipRepository.deleteAll();
+        leaderboardRepository.deleteAll();
+        setRepository.deleteAll();
+        sessionRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         otpRepository.deleteAll();
         userRepository.deleteAll();
@@ -94,6 +118,7 @@ class SocialFeedControllerIntegrationTest {
                 .displayName(name)
                 .accountStatus(AccountStatus.ACTIVE)
                 .emailVerified(true)
+                .isPrivate(false)
                 .build()).getId();
     }
 
@@ -258,5 +283,66 @@ class SocialFeedControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"   \"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void completingSessionPublishesAchievementEventsToFriendFeed() throws Exception {
+        Long idA = createUser("a@example.com", "An");
+        Long idB = createUser("b@example.com", "Bình");
+        String tokenA = login("a@example.com");
+        String tokenB = login("b@example.com");
+
+        // A và B là bạn bè → B thấy feed của A (FR-005/FR-006)
+        friendshipRepository.save(Friendship.builder()
+                .userId1(idA).userId2(idB).status("accepted").initiatedBy(idA).build());
+
+        // A đã hoàn thành 2 buổi tuần này → streak sắp tăng lên 1
+        for (int i = 0; i < 2; i++) {
+            sessionRepository.save(WorkoutSession.builder().userId(idA).status("completed")
+                    .startTime(Instant.now().minus(i + 1, ChronoUnit.HOURS)).build());
+        }
+        // Buổi đang tập với 1 set 20kg × 10 reps (volume 200kg — kỷ lục đầu tiên)
+        Long activeId = sessionRepository.save(WorkoutSession.builder().userId(idA)
+                .status("active").startTime(Instant.now()).build()).getId();
+        setRepository.save(WorkoutSet.builder().sessionId(activeId)
+                .weightUsed(new BigDecimal("20")).repsCompleted(10).build());
+
+        // A hoàn thành buổi → phát streak_milestone + new_pr
+        mockMvc.perform(post("/api/v1/workout-sessions/" + activeId + "/complete")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk());
+
+        // B xem feed → thấy cả 2 sự kiện thành tích của A
+        MvcResult feed = mockMvc.perform(get("/api/v1/feed")
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isOk())
+                .andReturn();
+        var items = objectMapper.readTree(feed.getResponse().getContentAsString());
+        List<String> types = new ArrayList<>();
+        items.forEach(n -> types.add(n.get("actionType").asText()));
+        org.junit.jupiter.api.Assertions.assertTrue(types.contains("streak_milestone"),
+                "Feed phải chứa streak_milestone: " + types);
+        org.junit.jupiter.api.Assertions.assertTrue(types.contains("new_pr"),
+                "Feed phải chứa new_pr: " + types);
+    }
+
+    @Test
+    void completingSessionDoesNotEmitPlainWorkoutEvent() throws Exception {
+        Long idA = createUser("a@example.com", "An");
+        createUser("b@example.com", "Bình");
+        String tokenA = login("a@example.com");
+
+        Long activeId = sessionRepository.save(WorkoutSession.builder().userId(idA)
+                .status("active").startTime(Instant.now()).build()).getId();
+
+        mockMvc.perform(post("/api/v1/workout-sessions/" + activeId + "/complete")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk());
+
+        // Q5=B: KHÔNG phát workout_completed; buổi đầu (0 set) không tạo PR
+        List<Long> all = new ArrayList<>();
+        activityFeedRepository.findAll().forEach(i -> all.add(i.getId()));
+        org.junit.jupiter.api.Assertions.assertTrue(all.isEmpty(),
+                "Không được có event feed cho buổi tập thường: " + all);
     }
 }

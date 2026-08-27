@@ -40,11 +40,11 @@ Tất cả NEEDS CLARIFICATION đã được owner chốt ở bước clarify �
 - **Decision**: `SeaweedStorageService` đọc ≤512 bytes đầu file, kiểm tra signature: JPEG (`FF D8 FF`), PNG (`89 50 4E 47`), WEBP (`RIFF....WEBP`). Extension chỉ là gợi ý thứ cấp. Bỏ `gif` khỏi danh sách cho phép.
 - **Rationale**: Chặn video/GIF đổi đuôi .jpg (edge case trong spec); rẻ và đủ cho v1.
 
-## R7 — Feed events publish sau commit + dedupe (FR-005)
+## R7 — Feed events publish + dedupe (FR-005)
 
-- **Decision**: `ProfileService.completeSession` tính streak mới + tổng volume, publish qua `@TransactionalEventListener(AFTER_COMMIT)` tới `ActivityFeedService`. Milestone: chỉ ghi khi `currentStreakWeeks` tăng so với giá trị lưu trong event `streak_milestone` gần nhất của user (query 1 row, `detailsJson` chứa giá trị streak); cộng thêm 1 event khi chạm mốc 10/30/50/100. PR: ghi khi tổng volume buổi > giá trị trong event `new_pr` gần nhất.
-- **Rationale**: Không làm chậm response "Hoàn thành buổi tập" (ck-predict R4); dedupe bằng giá trị lưu trong event gần nhất tránh query lịch sử đầy đủ; không cần queue (KISS).
-- **Alternatives**: ghi trong transaction chính (làm chậm); Spring Events trong-process (dùng AFTER_COMMIT của chính cơ chế này).
+- **Decision (đã điều chỉnh khi implement)**: `ProfileService.completeSession` gọi TRỰC TIẾP `ActivityFeedService.publishStreakMilestone`/`publishPr` trong cùng transaction buổi tập, bọc try/catch + log warn (lỗi feed KHÔNG rollback buổi tập). Milestone: chỉ ghi khi `currentStreakWeeks` tăng so với giá trị lưu trong event `streak_milestone` gần nhất (query 1 row, `detailsJson` chứa giá trị streak); cộng thêm 1 event khi chạm mốc 10/30/50/100. PR: ghi khi tổng volume buổi > giá trị trong event `new_pr` gần nhất.
+- **Rationale**: Phương án ban đầu (`@TransactionalEventListener AFTER_COMMIT`) bị bỏ vì transaction mở trong callback afterCommit KHÔNG commit được (Spring quirk — đã tái hiện bằng test: event chạy, save gọi nhưng 0 row). Gọi trực tiếp cùng transaction: đơn giản (KISS), feed commit cùng buổi tập, 2 query nhỏ không đáng kể so với response; try/catch bảo đảm buổi tập không hỏng.
+- **Alternatives**: (a) REQUIRES_NEW qua self-proxy (phức tạp, YAGNI); (b) ghi trong transaction chính KHÔNG try/catch (lỗi feed làm hỏng buổi tập — bị loại); (c) queue async (YAGNI).
 
 ## R8 — Leaderboard: incremental + scheduled (FR-007/008/009)
 

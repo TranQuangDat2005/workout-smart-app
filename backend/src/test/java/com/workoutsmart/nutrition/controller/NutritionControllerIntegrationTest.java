@@ -55,6 +55,8 @@ class NutritionControllerIntegrationTest {
     private BodyMetricRepository bodyMetricRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private com.workoutsmart.social.repository.LeaderboardRepository leaderboardRepository;
 
     @BeforeEach
     void clean() {
@@ -63,6 +65,7 @@ class NutritionControllerIntegrationTest {
         mealEntryRepository.deleteAll();
         mealLogRepository.deleteAll();
         foodRepository.deleteAll();
+        leaderboardRepository.deleteAll();
         otpRepository.deleteAll();
         userRepository.deleteAll();
     }

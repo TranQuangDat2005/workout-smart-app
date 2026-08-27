@@ -4,7 +4,7 @@ import Icon from '../../components/Icon';
 import type { IconName } from '../../components/Icon';
 import Spinner from '../../components/Spinner';
 import { socialApi } from '../../services/socialApi';
-import type { Challenge, LeaderboardItem } from '../../services/socialApi';
+import type { Challenge, ChallengeResult, LeaderboardItem } from '../../services/socialApi';
 import { profileApi } from '../../services/profileApi';
 import { CHALLENGE_STATUS_LABELS, label } from '../../services/labels';
 
@@ -25,6 +25,8 @@ export default function LeaderboardPage() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [selectedResults, setSelectedResults] = useState<ChallengeResult[] | null>(null);
+  const [selectedChallengeName, setSelectedChallengeName] = useState('');
 
   const load = useCallback(() => {
     setLoading(true);
@@ -53,7 +55,18 @@ export default function LeaderboardPage() {
     }
   };
 
+  const loadResults = async (challengeId: number, challengeName: string) => {
+    try {
+      const results = await socialApi.challengeResults(challengeId);
+      setSelectedResults(results);
+      setSelectedChallengeName(challengeName);
+    } catch {
+      setError('Không thể tải kết quả thử thách');
+    }
+  };
+
   const myRank = board.find((item) => item.userId === myUserId);
+  const viewerRank = board.find((item) => item.viewerRank !== null && item.viewerRank !== undefined)?.viewerRank;
 
   return (
     <div className="page-container" style={{ maxWidth: 760, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -81,13 +94,13 @@ export default function LeaderboardPage() {
         ))}
       </div>
 
-      {/* Own position pin */}
-      {myRank && (
+      {/* Own position pin — luôn hiển thị khi myUserId có giá trị */}
+      {myUserId && (
         <div className="card" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="badge badge-green">Vị trí của bạn</span>
-          <span className="fw-700">#{myRank.rank}</span>
-          <span className="text-secondary">{myRank.displayName}</span>
-          <span className="text-green fw-700" style={{ marginLeft: 'auto' }}>{myRank.currentStreakWeeks} tuần</span>
+          <span className="fw-700">#{myRank ? myRank.rank : (viewerRank ?? '?')}</span>
+          <span className="text-secondary">{myRank ? myRank.displayName : ''}</span>
+          <span className="text-green fw-700" style={{ marginLeft: 'auto' }}>{myRank ? myRank.currentStreakWeeks : ''} {myRank ? 'tuần' : ''}</span>
         </div>
       )}
 
@@ -147,17 +160,11 @@ export default function LeaderboardPage() {
       </div>
 
       {/* Open challenges */}
-      <div>
-        <h2 className="section-title" style={{ marginBottom: 12 }}><Icon name="zap" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Thử thách đang mở</h2>
-        {challenges.length === 0 ? (
-          <div className="card">
-            <div className="empty-state" style={{ padding: '24px 0' }}>
-              <p className="empty-state-text">Chưa có thử thách nào đang mở.</p>
-            </div>
-          </div>
-        ) : (
+      {challenges.filter((c) => c.status === 'open').length > 0 && (
+        <div>
+          <h2 className="section-title" style={{ marginBottom: 12 }}><Icon name="zap" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Thử thách đang mở</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {challenges.map((c) => (
+            {challenges.filter((c) => c.status === 'open').map((c) => (
               <div
                 key={c.id}
                 className="card card-hover"
@@ -169,6 +176,7 @@ export default function LeaderboardPage() {
                     {c.durationDays} ngày
                     {c.startDate && ` · từ ${c.startDate}`}
                     {c.endDate && ` đến ${c.endDate}`}
+                    {c.participantCount > 0 && ` · ${c.participantCount} người tham gia`}
                   </div>
                 </div>
                 <Button
@@ -182,8 +190,86 @@ export default function LeaderboardPage() {
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Finished challenges */}
+      {challenges.filter((c) => c.status === 'finished').length > 0 && (
+        <div>
+          <h2 className="section-title" style={{ marginBottom: 12 }}><Icon name="award" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Kết quả thử thách</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {challenges.filter((c) => c.status === 'finished').map((c) => (
+              <div
+                key={c.id}
+                className="card card-hover"
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}
+              >
+                <div>
+                  <div className="fw-600" style={{ marginBottom: 4 }}>{c.name}</div>
+                  <div className="text-secondary text-sm">
+                    {c.durationDays} ngày · Kết thúc {c.endDate}
+                    {c.participantCount > 0 && ` · ${c.participantCount} người tham gia`}
+                    {c.joined && c.finalRank != null && (
+                      <span className="text-green fw-600"> · Hạng của bạn: #{c.finalRank}</span>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="dark"
+                  size="sm"
+                  onClick={() => loadResults(c.id, c.name)}
+                >
+                  Xem kết quả
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Challenge results detail */}
+      {selectedResults && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h2 className="section-title" style={{ margin: 0 }}><Icon name="award" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> {selectedChallengeName}</h2>
+            <button className="btn btn-sm btn-dark" onClick={() => setSelectedResults(null)}>Đóng</button>
+          </div>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 60 }}>Hạng</th>
+                  <th>Người dùng</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedResults.map((r) => (
+                  <tr key={r.userId} style={r.finalRank <= 3 ? { background: 'rgba(30,215,96,0.03)' } : undefined}>
+                    <td>
+                      {r.finalRank <= 3 ? (
+                        <span><Icon name={MEDAL[r.finalRank].icon} size={20} style={{ color: MEDAL[r.finalRank].color }} /></span>
+                      ) : (
+                        <span className="fw-700 text-secondary">#{r.finalRank}</span>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div
+                          className="avatar avatar-sm"
+                          style={{ background: `hsl(${(r.userId * 47) % 360}, 60%, 30%)`, color: 'white', fontSize: 11 }}
+                        >
+                          {r.displayName.slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className="fw-600">{r.displayName}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* My challenges */}
       {myChallenges.length > 0 && (

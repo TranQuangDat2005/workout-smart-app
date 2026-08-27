@@ -20,16 +20,22 @@ import com.workoutsmart.profile.repository.WorkoutSessionRepository;
 import com.workoutsmart.profile.repository.WorkoutSetRepository;
 import com.workoutsmart.auth.exception.ApiException;
 import com.workoutsmart.plan.service.DraftExerciseService;
+import com.workoutsmart.social.service.ActivityFeedService;
+import com.workoutsmart.social.service.LeaderboardSyncService;
+import com.workoutsmart.social.service.StreakCalculator;
 import com.workoutsmart.tracking.repository.WorkoutSessionExerciseRepository;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -40,6 +46,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ProfileService {
 
+    private static final Logger log = LoggerFactory.getLogger(ProfileService.class);
+
     private final UserRepository userRepository;
     private final WorkoutSessionRepository sessionRepository;
     private final WorkoutSetRepository setRepository;
@@ -48,6 +56,8 @@ public class ProfileService {
     private final TokenService tokenService;
     private final JwtAuthFilter jwtAuthFilter;
     private final DraftExerciseService draftExerciseService;
+    private final ActivityFeedService activityFeedService;
+    private final LeaderboardSyncService leaderboardSyncService;
 
     public ProfileService(UserRepository userRepository,
                           WorkoutSessionRepository sessionRepository,
@@ -56,7 +66,9 @@ public class ProfileService {
                           ExerciseRepository exerciseRepository,
                           TokenService tokenService,
                           JwtAuthFilter jwtAuthFilter,
-                          DraftExerciseService draftExerciseService) {
+                          DraftExerciseService draftExerciseService,
+                          ActivityFeedService activityFeedService,
+                          LeaderboardSyncService leaderboardSyncService) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
         this.setRepository = setRepository;
@@ -65,6 +77,8 @@ public class ProfileService {
         this.tokenService = tokenService;
         this.jwtAuthFilter = jwtAuthFilter;
         this.draftExerciseService = draftExerciseService;
+        this.activityFeedService = activityFeedService;
+        this.leaderboardSyncService = leaderboardSyncService;
     }
 
     public ProfileResponse getProfile(Long userId) {
@@ -108,6 +122,15 @@ public class ProfileService {
         if (request.goalType() != null && !request.goalType().equals(user.getGoalType())) {
             user.setGoalType(request.goalType());
             goalChanged = true;
+        }
+        // FR-016: toggle privacy tối thiểu 24h giữa các lần chuyển.
+        if (request.isPrivate() != null && request.isPrivate() != user.isPrivate()) {
+            Instant lastChange = user.getUpdatedAt();
+            if (lastChange != null && Duration.between(lastChange, Instant.now()).toHours() < 24) {
+                throw new ApiException(HttpStatus.TOO_MANY_REQUESTS,
+                        "Chỉ được đổi chế độ_privacy tối đa 1 lần mỗi 24h");
+            }
+            user.setPrivate(request.isPrivate());
         }
         userRepository.save(user);
         return new UpdateProfileResponse(toProfileResponse(user), goalChanged);
@@ -280,7 +303,37 @@ public class ProfileService {
         session.setEndTime(Instant.now());
         sessionRepository.save(session);
         draftExerciseService.cleanupBySession(sessionId);
+        // FR-005 (018): ghi sự kiện thành tích cho bạn bè — lỗi feed KHÔNG làm hỏng buổi tập
+        try {
+            activityFeedService.publishStreakMilestone(userId, currentStreakWeeks(userId));
+            activityFeedService.publishPr(userId, sessionTotalVolume(sessionId));
+        } catch (Exception e) {
+            log.warn("Không thể ghi feed thành tích cho user {}", userId, e);
+        }
+        // FR-009 (018): cập nhật leaderboard incremental — lỗi KHÔNG làm hỏng buổi tập
+        try {
+            leaderboardSyncService.updateEntry(userId);
+        } catch (Exception e) {
+            log.warn("Không thể cập nhật leaderboard cho user {}", userId, e);
+        }
         return new MessageResponse("Buổi tập đã hoàn thành");
+    }
+
+    /** Streak hiện tại theo định nghĩa DUY NHẤT (constitution §4) — dùng chung StreakCalculator. */
+    private int currentStreakWeeks(Long userId) {
+        List<Instant> starts = sessionRepository.findByUserIdAndStatus(userId, "completed")
+                .stream()
+                .map(WorkoutSession::getStartTime)
+                .toList();
+        return new StreakCalculator().calculate(starts, ZoneId.systemDefault()).currentStreakWeeks();
+    }
+
+    /** Tổng khối lượng (kg) buổi tập = Σ(reps × weight) của các set. */
+    private BigDecimal sessionTotalVolume(Long sessionId) {
+        return setRepository.findBySessionIdIn(List.of(sessionId)).stream()
+                .map(s -> (s.getWeightUsed() == null ? BigDecimal.ZERO : s.getWeightUsed())
+                        .multiply(BigDecimal.valueOf(s.getRepsCompleted() == null ? 0 : s.getRepsCompleted())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /** 018: xóa toàn bộ lịch sử tập của User (giữ buổi active) — thứ tự con → cha, 1 transaction. */
@@ -321,6 +374,7 @@ public class ProfileService {
                 user.getCustomCalorieOffset(),
                 user.getAccountStatus().name(),
                 user.isEmailVerified(),
+                user.isPrivate(),
                 user.getCreatedAt());
     }
 }

@@ -76,15 +76,15 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 2
 
-- [ ] T015 [P] [US2] Unit test `backend/src/test/java/com/workoutsmart/social/service/ActivityFeedServiceTest.java` — dedupe milestone theo giá trị streak, mốc 10/30/50/100, dedupe PR theo volume, không emit cho buổi thường
-- [ ] T016 [P] [US2] Integration test: completeSession → friend thấy event — `backend/src/test/java/com/workoutsmart/feed/controller/SocialFeedControllerIntegrationTest.java`
+- [x] T015 [P] [US2] Unit test `backend/src/test/java/com/workoutsmart/social/service/ActivityFeedServiceTest.java` — dedupe milestone theo giá trị streak, mốc 10/30/50/100, dedupe PR theo volume, không emit cho buổi thường
+- [x] T016 [P] [US2] Integration test: completeSession → friend thấy event — `backend/src/test/java/com/workoutsmart/feed/controller/SocialFeedControllerIntegrationTest.java`
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Tạo `ActivityFeedService.java` (backend/.../social/service/): publishStreakMilestone + publishPr (idempotent theo event gần nhất — R7)
-- [ ] T018 [US2] Sửa `ProfileService.completeSession` (backend/.../profile/service/ProfileService.java): tính streak mới + tổng volume, publish qua `@TransactionalEventListener(AFTER_COMMIT)`; log warn nếu publish lỗi, KHÔNG rollback buổi tập
-- [ ] T019 [US2] Sửa `ActivityFeedRepository.java` (backend/.../social/repository/) thêm query 7 ngày; `SocialService.feed` dùng query mới
-- [ ] T020 [US2] Web: panel "Hoạt động bạn bè" gọi `socialApi.feed()` với polling 60s — `web/src/pages/HomePage.tsx` + test render theo actionType
+- [x] T017 [US2] Tạo `ActivityFeedService.java` (backend/.../social/service/): publishStreakMilestone + publishPr (idempotent theo event gần nhất — R7)
+- [x] T018 [US2] Sửa `ProfileService.completeSession` (backend/.../profile/service/ProfileService.java): tính streak mới + tổng volume, gọi ActivityFeedService trực tiếp (bọc try/catch log warn, KHÔNG rollback buổi tập). Ghi chú: bỏ phương án AFTER_COMMIT event vì transaction trong callback afterCommit không commit (Spring quirk — đã kiểm chứng, cập nhật research R7)
+- [x] T019 [US2] Sửa `ActivityFeedRepository.java` (backend/.../social/repository/) thêm query 7 ngày; `SocialService.feed` dùng query mới
+- [x] T020 [US2] Web: panel "Hoạt động bạn bè" gọi `socialApi.feed()` với polling 60s — `web/src/pages/UserDashboard.tsx` + test render theo actionType (`web/src/pages/UserDashboard.test.tsx`)
 
 **Checkpoint**: US2 hoàn chỉnh — quickstart.md kịch bản 2 chạy đúng
 
@@ -98,17 +98,17 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 3
 
-- [ ] T021 [P] [US3] Mở rộng `backend/src/test/java/com/workoutsmart/social/service/StreakCalculatorTest.java` — streakStartWeek đúng, >1000 session không cắt thiếu, tuần hiện tại chưa đủ 3 buổi không đứt chuỗi
-- [ ] T022 [P] [US3] Integration test: tie-break 2 user cùng streak + viewer ngoài top 100 vẫn được trả — `backend/src/test/java/com/workoutsmart/social/controller/SocialControllerIntegrationTest.java`
+- [x] T021 [P] [US3] Mở rộng `backend/src/test/java/com/workoutsmart/social/service/StreakCalculatorTest.java` — streakStartWeek đúng, >1000 session không cắt thiếu, tuần hiện tại chưa đủ 3 buổi không đứt chuỗi
+- [x] T022 [P] [US3] Integration test: tie-break 2 user cùng streak + viewer ngoài top 100 vẫn được trả — `backend/src/test/java/com/workoutsmart/social/controller/SocialControllerIntegrationTest.java`
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] Sửa `StreakCalculator.java` (backend/.../social/service/): trả thêm `streakStartWeek`, bỏ cap 1000 session (đếm theo tuần — R8)
-- [ ] T024 [US3] Tạo `LeaderboardSyncService.java` (backend/.../social/service/): `updateEntry(userId)` incremental + job `@Scheduled(fixedDelay=5min)` recompute user có thay đổi + gán `rank`; gọi từ completeSession
-- [ ] T025 [US3] Sửa `SocialService.computeLeaderboard` thành read-only (đọc `leaderboard_entries`, top 100 + row viewer); `SocialController.leaderboard()` nhận `Authentication`; `LeaderboardRepository` thêm query top theo (currentStreakWeeks DESC, streakStartWeek ASC, userId ASC)
-- [ ] T026 [US3] Sửa `web/src/pages/social/LeaderboardPage.tsx`: xử lý row viewer ngoài top-100 (pin cuối bảng) + test `web/src/pages/social/LeaderboardPage.test.tsx`
+- [x] T023 [US3] Sửa `StreakCalculator.java` (backend/.../social/service/): trả thêm `streakStartWeek`, bỏ cap 1000 session (đếm theo tuần — R8)
+- [x] T024 [US3] Tạo `LeaderboardSyncService.java` (backend/.../social/service/): `updateEntry(userId)` incremental + job `@Scheduled(fixedDelay=5min)` recompute user có thay đổi + gán `rank`; gọi từ completeSession
+- [x] T025 [US3] Sửa `SocialService.computeLeaderboard` thành read-only (đọc `leaderboard_entries`, top 100 + row viewer); `SocialController.leaderboard()` nhận `Authentication`; `LeaderboardRepository` thêm query top theo (currentStreakWeeks DESC, streakStartWeek ASC, userId ASC)
+- [x] T026 [US3] Sửa `web/src/pages/social/LeaderboardPage.tsx`: xử lý row viewer ngoài top-100 (pin cuối bảng) + test `web/src/pages/social/LeaderboardPage.test.tsx`
 
-**Checkpoint**: US3 hoàn chỉnh — quickstart.md kịch bản 3 chạy đúng
+**Checkpoint**: US3 hoàn chỉnh — quickstart.md kịch bản 3 chạy đúng ✅ (283 backend + 61 frontend tests pass)
 
 ---
 
@@ -120,16 +120,16 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 4
 
-- [ ] T027 [P] [US4] Unit test `backend/src/test/java/com/workoutsmart/social/service/ChallengeFinalizerTest.java` — idempotent (chạy 2 lần không đổi), xếp hạng theo streak tại end_date + tie-break FR-007
-- [ ] T028 [P] [US4] Integration test: join hết hạn 422, auto-finalize, results — `backend/src/test/java/com/workoutsmart/social/controller/SocialControllerIntegrationTest.java`
+- [x] T027 [P] [US4] Unit test `backend/src/test/java/com/workoutsmart/social/service/ChallengeFinalizerTest.java` — idempotent (chạy 2 lần không đổi), xếp hạng theo streak tại end_date + tie-break FR-007
+- [x] T028 [P] [US4] Integration test: join hết hạn 422, auto-finalize, results — `backend/src/test/java/com/workoutsmart/social/controller/SocialControllerIntegrationTest.java`
 
 ### Implementation for User Story 4
 
-- [ ] T029 [US4] Tạo `ChallengeFinalizer.java` (backend/.../social/service/): `@Scheduled(fixedDelay=60s)`; transition `open → closed → finished` bằng UPDATE guard (idempotent, R9)
-- [ ] T030 [US4] Sửa `SocialService` (createChallenge validation startDate/duration, joinChallenge guard status+end_date, thêm `results(challengeId)`), `SocialController` (+GET /challenges/{id}/results), `ChallengeResponse.java` (+completedAt, finalRank), `CreateChallengeRequest.java` (+Bean Validation) — backend/.../social/
-- [ ] T031 [US4] Web: hiển thị kết quả chung cuộc cho challenge finished (`web/src/pages/social/LeaderboardPage.tsx`) + form tạo challenge cho admin (`web/src/pages/admin/`)
+- [x] T029 [US4] Tạo `ChallengeFinalizer.java` (backend/.../social/service/): `@Scheduled(fixedDelay=60s)`; transition `open → closed → finished` bằng UPDATE guard (idempotent, R9)
+- [x] T030 [US4] Sửa `SocialService` (createChallenge validation startDate/duration, joinChallenge guard status+end_date, thêm `results(challengeId)`), `SocialController` (+GET /challenges/{id}/results), `ChallengeResponse.java` (+completedAt, finalRank), `CreateChallengeRequest.java` (+Bean Validation) — backend/.../social/
+- [x] T031 [US4] Web: hiển thị kết quả chung cuộc cho challenge finished (`web/src/pages/social/LeaderboardPage.tsx`) + form tạo challenge cho admin (`web/src/pages/admin/`)
 
-**Checkpoint**: US4 hoàn chỉnh — quickstart.md kịch bản 4 chạy đúng
+**Checkpoint**: US4 hoàn chỉnh — quickstart.md kịch bản 4 chạy đúng ✅ (283 backend + 61 frontend tests pass)
 
 ---
 
@@ -141,15 +141,15 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 5
 
-- [ ] T032 [P] [US5] Unit test: search ẩn email/avatar cho người lạ khi target private; feed ẩn bài friends/private của user private với người lạ — `backend/src/test/java/com/workoutsmart/social/service/SocialServiceTest.java` + `backend/src/test/java/com/workoutsmart/feed/service/SocialFeedServiceTest.java`
+- [x] T032 [P] [US5] Unit test: search ẩn email/avatar cho người lạ khi target private; feed ẩn bài friends/private của user private với người lạ — `backend/src/test/java/com/workoutsmart/social/service/SocialServiceSearchPrivacyTest.java` + `backend/src/test/java/com/workoutsmart/feed/service/SocialFeedServicePrivacyTest.java` + `backend/src/test/java/com/workoutsmart/profile/service/ProfileServicePrivacyTest.java`
 
 ### Implementation for User Story 5
 
-- [ ] T033 [US5] Sửa `User.java` (backend/.../auth/entity/) khớp `isPrivate`; cập nhật DTO/service profile để đọc/ghi `isPrivate` — `backend/src/main/java/com/workoutsmart/profile/` (phạm vi 001)
-- [ ] T034 [US5] Sửa `SocialService.searchUsers` (ẩn email cho người lạ khi target private) + `SocialFeedService.feed`/`CommunityPostRepository` (bài friends/private của user private chỉ hiện cho bạn bè; bài public vẫn hiện) — backend/.../social/, backend/.../feed/
-- [ ] T035 [US5] Web: toggle "Hồ sơ riêng tư" — `web/src/pages/profile/` + `web/src/services/profileApi.ts`
+- [x] T033 [US5] Sửa `User.java` (backend/.../auth/entity/) khớp `isPrivate`; cập nhật DTO/service profile để đọc/ghi `isPrivate` — `ProfileResponse.java` (+isPrivate), `UpdateProfileRequest.java` (+isPrivate), `ProfileService.java` (+toggle 24h restriction)
+- [x] T034 [US5] Sửa `SocialService.searchUsers` (ẩn email cho người lạ khi target private, relationshipStatus="private") + `SocialFeedService.feed`/`CommunityPostRepository` (discover query exclude private users) — backend/.../social/, backend/.../feed/
+- [x] T035 [US5] Web: toggle "Hồ sơ riêng tư" — `ProfilePage.tsx` (toggle switch + 24h debounce warning), `profileApi.ts` (+isPrivate), `socialApi.ts` (+private relationshipStatus)
 
-**Checkpoint**: US5 hoàn chỉnh — quickstart.md kịch bản 5 (phần privacy) chạy đúng
+**Checkpoint**: US5 hoàn chỉnh — quickstart.md kịch bản 5 (phần privacy) chạy đúng ✅ (295 backend + 61 frontend tests pass)
 
 ---
 

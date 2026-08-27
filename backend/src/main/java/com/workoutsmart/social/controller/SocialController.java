@@ -1,6 +1,7 @@
 package com.workoutsmart.social.controller;
 
 import com.workoutsmart.social.dto.ChallengeResponse;
+import com.workoutsmart.social.dto.ChallengeResultResponse;
 import com.workoutsmart.social.dto.CreateChallengeRequest;
 import com.workoutsmart.social.dto.FeedItemResponse;
 import com.workoutsmart.social.dto.FriendshipRequest;
@@ -76,8 +77,8 @@ public class SocialController {
     }
 
     @GetMapping("/leaderboard")
-    public List<LeaderboardResponse> leaderboard() {
-        return socialService.leaderboard();
+    public List<LeaderboardResponse> leaderboard(Authentication auth) {
+        return socialService.leaderboard(currentUserId(auth));
     }
 
     @GetMapping("/leaderboard/friends")
@@ -105,6 +106,11 @@ public class SocialController {
     @PostMapping("/challenges/{id}/join")
     public MessageResponse joinChallenge(Authentication auth, @PathVariable Long id) {
         return socialService.joinChallenge(currentUserId(auth), id);
+    }
+
+    @GetMapping("/challenges/{id}/results")
+    public List<ChallengeResultResponse> challengeResults(@PathVariable Long id) {
+        return socialService.results(id);
     }
 
     private Long currentUserId(Authentication auth) {

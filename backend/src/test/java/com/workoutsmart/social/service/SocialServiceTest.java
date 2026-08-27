@@ -15,8 +15,6 @@ import com.workoutsmart.auth.entity.AccountStatus;
 import com.workoutsmart.auth.entity.User;
 import com.workoutsmart.auth.exception.ApiException;
 import com.workoutsmart.auth.repository.UserRepository;
-import com.workoutsmart.profile.entity.WorkoutSession;
-import com.workoutsmart.profile.repository.WorkoutSessionRepository;
 import com.workoutsmart.social.dto.FriendshipRequest;
 import com.workoutsmart.social.entity.Friendship;
 import com.workoutsmart.social.entity.LeaderboardEntry;
@@ -26,6 +24,7 @@ import com.workoutsmart.social.repository.ChallengeRepository;
 import com.workoutsmart.social.repository.FriendshipRepository;
 import com.workoutsmart.social.repository.LeaderboardRepository;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -34,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,20 +50,18 @@ class SocialServiceTest {
     private ChallengeRepository challengeRepository;
     @Mock
     private ChallengeParticipantRepository participantRepository;
-    @Mock
-    private WorkoutSessionRepository sessionRepository;
 
     private SocialService service;
 
     @BeforeEach
     void setUp() {
         service = new SocialService(userRepository, friendshipRepository, feedRepository,
-                leaderboardRepository, challengeRepository, participantRepository, sessionRepository);
+                leaderboardRepository, challengeRepository, participantRepository);
     }
 
     private User user(long id, String name, AccountStatus status) {
         return User.builder().id(id).email("u" + id + "@e.c").role("user")
-                .displayName(name).accountStatus(status).build();
+                .displayName(name).accountStatus(status).isPrivate(false).build();
     }
 
     private Friendship friendship(Long id, Long u1, Long u2, String status, Long initiatedBy,
@@ -248,41 +244,90 @@ class SocialServiceTest {
         assertNull(results.get(0).email());
     }
 
-    // ---------- Leaderboard (giữ nguyên từ baseline) ----------
+    // ---------- Leaderboard (US3 — đọc từ leaderboard_entries, FR-007 tie-break) ----------
 
     @Test
-    void leaderboardRanksByCurrentStreakAndExcludesInactive() {
+    void leaderboard_readsFromEntries_andRanksByStreak() {
         User strong = user(1L, "Mạnh", AccountStatus.ACTIVE);
         User weak = user(2L, "Yếu", AccountStatus.ACTIVE);
         User deleted = user(3L, "Đã xóa", AccountStatus.DELETED);
-        when(userRepository.findAll()).thenReturn(List.of(strong, weak, deleted));
 
-        List<WorkoutSession> strongSessions = List.of(
-                WorkoutSession.builder().id(11L).userId(1L).status("completed")
-                        .startTime(Instant.now().minus(1, ChronoUnit.HOURS)).build(),
-                WorkoutSession.builder().id(12L).userId(1L).status("completed")
-                        .startTime(Instant.now().minus(2, ChronoUnit.HOURS)).build(),
-                WorkoutSession.builder().id(13L).userId(1L).status("completed")
-                        .startTime(Instant.now().minus(3, ChronoUnit.HOURS)).build());
-        when(sessionRepository.findByUserIdOrderByStartTimeDesc(eq(1L), any()))
-                .thenReturn(new PageImpl<>(strongSessions));
-        when(sessionRepository.findByUserIdOrderByStartTimeDesc(eq(2L), any()))
-                .thenReturn(new PageImpl<>(List.of()));
-        when(leaderboardRepository.findByUserId(1L))
-                .thenReturn(Optional.of(LeaderboardEntry.builder().userId(1L).build()));
-        when(leaderboardRepository.findByUserId(2L))
-                .thenReturn(Optional.of(LeaderboardEntry.builder().userId(2L).build()));
+        LeaderboardEntry entryStrong = LeaderboardEntry.builder()
+                .userId(1L).currentStreakWeeks(5).longestStreakWeeks(8)
+                .streakStartWeek(LocalDate.of(2026, 7, 6)).build();
+        LeaderboardEntry entryWeak = LeaderboardEntry.builder()
+                .userId(2L).currentStreakWeeks(2).longestStreakWeeks(3)
+                .streakStartWeek(LocalDate.of(2026, 8, 3)).build();
+
+        when(leaderboardRepository.findTop100ByOrderByCurrentStreakWeeksDescStreakStartWeekAscUserIdAsc())
+                .thenReturn(List.of(entryStrong, entryWeak));
+        when(leaderboardRepository.findByUserId(99L)).thenReturn(Optional.empty());
         when(userRepository.findById(1L)).thenReturn(Optional.of(strong));
         when(userRepository.findById(2L)).thenReturn(Optional.of(weak));
 
-        var board = service.leaderboard();
+        var board = service.leaderboard(99L); // viewer ngoài top
 
         assertEquals(2, board.size());
         assertEquals(1, board.get(0).rank());
         assertEquals(1L, board.get(0).userId());
-        assertEquals(1, board.get(0).currentStreakWeeks());
+        assertEquals(5, board.get(0).currentStreakWeeks());
         assertEquals(2, board.get(1).rank());
         assertEquals(2L, board.get(1).userId());
-        assertEquals(0, board.get(1).currentStreakWeeks());
+        assertEquals(2, board.get(1).currentStreakWeeks());
+    }
+
+    @Test
+    void leaderboard_tieBreakByStreakStartWeek() {
+        User a = user(1L, "An", AccountStatus.ACTIVE);
+        User b = user(2L, "Bình", AccountStatus.ACTIVE);
+
+        // Cả 2 cùng streak 3, nhưng A bắt đầu chuỗi sớm hơn (7/7 vs 14/7)
+        LeaderboardEntry entryA = LeaderboardEntry.builder()
+                .userId(1L).currentStreakWeeks(3).longestStreakWeeks(3)
+                .streakStartWeek(LocalDate.of(2026, 7, 7)).build();
+        LeaderboardEntry entryB = LeaderboardEntry.builder()
+                .userId(2L).currentStreakWeeks(3).longestStreakWeeks(3)
+                .streakStartWeek(LocalDate.of(2026, 7, 14)).build();
+
+        when(leaderboardRepository.findTop100ByOrderByCurrentStreakWeeksDescStreakStartWeekAscUserIdAsc())
+                .thenReturn(List.of(entryA, entryB));
+        when(leaderboardRepository.findByUserId(99L)).thenReturn(Optional.empty());
+        when(userRepository.findById(1L)).thenReturn(Optional.of(a));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(b));
+
+        var board = service.leaderboard(99L);
+
+        assertEquals(1L, board.get(0).userId());
+        assertEquals(2L, board.get(1).userId());
+    }
+
+    @Test
+    void leaderboard_viewerOutsideTop100_pinned() {
+        User viewer = user(1L, "Viewer", AccountStatus.ACTIVE);
+        User top = user(2L, "Top", AccountStatus.ACTIVE);
+
+        LeaderboardEntry entryTop = LeaderboardEntry.builder()
+                .userId(2L).currentStreakWeeks(10).longestStreakWeeks(10)
+                .streakStartWeek(LocalDate.of(2026, 5, 4)).build();
+        LeaderboardEntry entryViewer = LeaderboardEntry.builder()
+                .userId(1L).currentStreakWeeks(1).longestStreakWeeks(1)
+                .streakStartWeek(LocalDate.of(2026, 8, 17)).build();
+
+        when(leaderboardRepository.findTop100ByOrderByCurrentStreakWeeksDescStreakStartWeekAscUserIdAsc())
+                .thenReturn(List.of(entryTop));
+        when(leaderboardRepository.findByUserId(1L)).thenReturn(Optional.of(entryViewer));
+        when(leaderboardRepository.findRankByStats(1, LocalDate.of(2026, 8, 17), 1L)).thenReturn(51);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(viewer));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(top));
+
+        var board = service.leaderboard(1L);
+
+        // Top 1 + viewer pinned
+        assertEquals(2, board.size());
+        assertEquals(2L, board.get(0).userId());
+        assertEquals(1, board.get(0).rank());
+        // Viewer appended with viewerRank
+        assertEquals(1L, board.get(1).userId());
+        assertEquals(51, board.get(1).viewerRank());
     }
 }

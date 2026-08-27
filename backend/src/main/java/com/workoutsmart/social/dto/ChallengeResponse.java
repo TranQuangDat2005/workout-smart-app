@@ -1,5 +1,6 @@
 package com.workoutsmart.social.dto;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 public record ChallengeResponse(
@@ -10,5 +11,8 @@ public record ChallengeResponse(
         LocalDate startDate,
         LocalDate endDate,
         String status,
-        boolean joined) {
+        boolean joined,
+        int participantCount,
+        Instant completedAt,
+        Integer finalRank) {
 }

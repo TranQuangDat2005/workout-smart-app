@@ -20,5 +20,6 @@ public record UpdateProfileRequest(
         String calorieGoal,
         @Min(-2000) @Max(2000) Integer customCalorieOffset,
         @Pattern(regexp = "weight_loss|muscle_gain|endurance", message = "Mục tiêu không hợp lệ")
-        String goalType) {
+        String goalType,
+        Boolean isPrivate) {
 }

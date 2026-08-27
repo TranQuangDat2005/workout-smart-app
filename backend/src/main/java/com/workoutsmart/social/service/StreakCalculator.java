@@ -15,7 +15,12 @@ public class StreakCalculator {
 
     public static final int REQUIRED_SESSIONS_PER_WEEK = 3;
 
-    public record StreakResult(int currentStreakWeeks, int longestStreakWeeks) {
+    /**
+     * @param currentStreakWeeks số tuần liên tiếp hiện tại đạt ≥3 buổi
+     * @param longestStreakWeeks chuỗi dài nhất mọi thời đại
+     * @param streakStartWeek    thứ 2 của tuần đầu tiên trong chuỗi hiện tại (null nếu streak = 0)
+     */
+    public record StreakResult(int currentStreakWeeks, int longestStreakWeeks, LocalDate streakStartWeek) {
     }
 
     /**
@@ -24,7 +29,7 @@ public class StreakCalculator {
      */
     public StreakResult calculate(List<Instant> completedStarts, ZoneId zone) {
         if (completedStarts == null || completedStarts.isEmpty()) {
-            return new StreakResult(0, 0);
+            return new StreakResult(0, 0, null);
         }
         // Gom theo tuần (thứ 2 đầu tuần)
         var sessionsByWeek = new java.util.HashMap<LocalDate, Integer>();
@@ -47,6 +52,8 @@ public class StreakCalculator {
             current++;
             cursor = cursor.minusWeeks(1);
         }
+        // cursor chỉ đến tuần TRƯỚC tuần đầu tiên của chuỗi hiện tại
+        LocalDate streakStartWeek = current > 0 ? cursor.plusWeeks(1) : null;
 
         int longest = current;
         // Chuỗi dài nhất có thể nằm hoàn toàn trong quá khứ
@@ -59,6 +66,6 @@ public class StreakCalculator {
             }
             longest = Math.max(longest, run);
         }
-        return new StreakResult(current, longest);
+        return new StreakResult(current, longest, streakStartWeek);
     }
 }

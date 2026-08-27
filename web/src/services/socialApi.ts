@@ -5,7 +5,7 @@ export interface UserSearchItem {
   displayName: string | null;
   avatarUrl: string | null;
   email: string | null;
-  relationshipStatus: 'none' | 'pending_sent' | 'pending_received' | 'accepted' | string;
+  relationshipStatus: 'none' | 'pending_sent' | 'pending_received' | 'accepted' | 'private' | string;
   friendshipId: number | null;
 }
 
@@ -32,6 +32,7 @@ export interface LeaderboardItem {
   displayName: string;
   currentStreakWeeks: number;
   longestStreakWeeks: number;
+  viewerRank: number | null;
 }
 
 export interface Challenge {
@@ -43,6 +44,17 @@ export interface Challenge {
   endDate: string | null;
   status: string;
   joined: boolean;
+  participantCount: number;
+  completedAt: string | null;
+  finalRank: number | null;
+}
+
+export interface ChallengeResult {
+  userId: number;
+  displayName: string;
+  finalRank: number;
+  currentStreakWeeks: number;
+  streakStartWeek: string | null;
 }
 
 export const socialApi = {
@@ -73,4 +85,10 @@ export const socialApi = {
   myChallenges: () => http.get<Challenge[]>('/challenges/mine').then((r) => r.data),
 
   joinChallenge: (id: number) => http.post(`/challenges/${id}/join`).then((r) => r.data),
+
+  challengeResults: (id: number) =>
+    http.get<ChallengeResult[]>(`/challenges/${id}/results`).then((r) => r.data),
+
+  createChallenge: (data: { name: string; goalType?: string; durationDays: number; startDate?: string }) =>
+    http.post<Challenge>('/challenges', data).then((r) => r.data),
 };

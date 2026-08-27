@@ -15,11 +15,28 @@ services:
       timeout: 5s
       retries: 10
 
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.44
+    command: "mini -dir=/data -volumeSizeMB=1024"
+    ports:
+      - "8888:8888"
+      - "9333:9333"
+      - "8333:8333"
+    volumes:
+      - seaweedfs-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8888/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build: ./backend
     image: workoutsmart-backend:0.1.0
     depends_on:
       postgres:
+        condition: service_healthy
+      seaweedfs:
         condition: service_healthy
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/workoutsmart
@@ -30,6 +47,7 @@ services:
       EXERCISES_DATASET_PATH: /data/exercises-dataset/data/exercises.json
       EXERCISES_MEDIA_PATH: /data/exercises-dataset/
       USER_MEDIA_PATH: /app/uploads/media/
+      SEAWEEDFS_FILER_URL: http://seaweedfs:8888
     volumes:
       - ./exercises-dataset:/data/exercises-dataset:ro
       - backend-uploads:/app/uploads
@@ -47,3 +65,4 @@ services:
 volumes:
   pgdata:
   backend-uploads:
+  seaweedfs-data:

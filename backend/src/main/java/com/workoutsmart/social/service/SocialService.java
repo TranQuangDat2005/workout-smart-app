@@ -3,9 +3,8 @@ package com.workoutsmart.social.service;
 import com.workoutsmart.auth.entity.User;
 import com.workoutsmart.auth.exception.ApiException;
 import com.workoutsmart.auth.repository.UserRepository;
-import com.workoutsmart.profile.entity.WorkoutSession;
-import com.workoutsmart.profile.repository.WorkoutSessionRepository;
 import com.workoutsmart.social.dto.ChallengeResponse;
+import com.workoutsmart.social.dto.ChallengeResultResponse;
 import com.workoutsmart.social.dto.CreateChallengeRequest;
 import com.workoutsmart.social.dto.FeedItemResponse;
 import com.workoutsmart.social.dto.FriendshipRequest;
@@ -54,22 +53,19 @@ public class SocialService {
     private final LeaderboardRepository leaderboardRepository;
     private final ChallengeRepository challengeRepository;
     private final ChallengeParticipantRepository participantRepository;
-    private final WorkoutSessionRepository sessionRepository;
 
     public SocialService(UserRepository userRepository,
                          FriendshipRepository friendshipRepository,
                          ActivityFeedRepository feedRepository,
                          LeaderboardRepository leaderboardRepository,
                          ChallengeRepository challengeRepository,
-                         ChallengeParticipantRepository participantRepository,
-                         WorkoutSessionRepository sessionRepository) {
+                         ChallengeParticipantRepository participantRepository) {
         this.userRepository = userRepository;
         this.friendshipRepository = friendshipRepository;
         this.feedRepository = feedRepository;
         this.leaderboardRepository = leaderboardRepository;
         this.challengeRepository = challengeRepository;
         this.participantRepository = participantRepository;
-        this.sessionRepository = sessionRepository;
     }
 
     // ---------- Search ----------
@@ -107,8 +103,11 @@ public class SocialService {
                 .map(u -> {
                     Friendship f = rels.get(u.getId());
                     boolean friend = f != null && "accepted".equals(f.getStatus());
+                    // FR-013/014: private profile — ẩn email nếu viewer không phải bạn; badge "private"
+                    boolean privateProfile = u.isPrivate() && !friend;
                     return new UserSearchResponse(u.getId(), u.getDisplayName(), u.getAvatarUrl(),
-                            friend ? u.getEmail() : null, relationshipStatus(userId, f),
+                            privateProfile ? null : (friend ? u.getEmail() : null),
+                            privateProfile ? "private" : relationshipStatus(userId, f),
                             f == null ? null : f.getId());
                 })
                 .toList();
@@ -262,7 +261,9 @@ public class SocialService {
         if (friendIds.isEmpty()) {
             return List.of();
         }
-        return feedRepository.findTop50ByUserIdInOrderByCreatedAtDesc(friendIds).stream()
+        // FR-006: chỉ sự kiện của bạn bè trong 7 ngày gần nhất, tối đa 50, mới nhất trước
+        Instant since = Instant.now().minus(7, ChronoUnit.DAYS);
+        return feedRepository.findTop50ByUserIdInAndCreatedAtAfterOrderByCreatedAtDesc(friendIds, since).stream()
                 .map(item -> {
                     User u = userRepository.findById(item.getUserId()).orElse(null);
                     return new FeedItemResponse(item.getId(), item.getUserId(),
@@ -274,9 +275,35 @@ public class SocialService {
 
     // ---------- Leaderboard (kỳ thi vô tận) ----------
 
+    /** FR-008: luôn trả về vị trí cá nhân (pin) kể cả ngoài top 100. */
     @Transactional
-    public List<LeaderboardResponse> leaderboard() {
-        return computeLeaderboard(userRepository.findAll(), 100);
+    public List<LeaderboardResponse> leaderboard(Long viewerId) {
+        List<LeaderboardEntry> top100 = leaderboardRepository
+                .findTop100ByOrderByCurrentStreakWeeksDescStreakStartWeekAscUserIdAsc();
+
+        boolean viewerInTop100 = top100.stream().anyMatch(e -> e.getUserId().equals(viewerId));
+
+        List<LeaderboardResponse> result = mapToResponse(top100);
+
+        if (!viewerInTop100) {
+            // Viewer ngoài top 100 → tính rank riêng + append
+            LeaderboardEntry viewerEntry = leaderboardRepository.findByUserId(viewerId).orElse(null);
+            if (viewerEntry != null) {
+                int viewerRank = leaderboardRepository.findRankByStats(
+                        viewerEntry.getCurrentStreakWeeks(),
+                        viewerEntry.getStreakStartWeek(),
+                        viewerId);
+                User viewerUser = userRepository.findById(viewerId).orElse(null);
+                if (viewerUser != null) {
+                    result.add(new LeaderboardResponse(viewerRank, viewerId,
+                            viewerUser.getDisplayName() != null ? viewerUser.getDisplayName() : "Người dùng #" + viewerId,
+                            viewerEntry.getCurrentStreakWeeks(), viewerEntry.getLongestStreakWeeks(),
+                            viewerRank));
+                }
+            }
+        }
+
+        return result;
     }
 
     /** Bảng xếp hạng nhóm bạn bè (bao gồm chính mình) — FR-007 (003). */
@@ -288,37 +315,14 @@ public class SocialService {
         List<Long> ids = new ArrayList<>();
         ids.add(userId);
         ids.addAll(friendIds);
-        return computeLeaderboard(userRepository.findAllById(ids), ids.size());
-    }
 
-    private List<LeaderboardResponse> computeLeaderboard(List<User> users, int limit) {
-        // Chỉ xếp hạng tài khoản đang hoạt động — soft-delete/banned ẩn khỏi bảng (constitution §4/§5).
-        List<User> active = users.stream()
-                .filter(u -> u.getAccountStatus() == com.workoutsmart.auth.entity.AccountStatus.ACTIVE)
-                .toList();
-        for (User user : active) {
-            List<Instant> starts = sessionRepository
-                    .findByUserIdOrderByStartTimeDesc(user.getId(), org.springframework.data.domain.PageRequest.of(0, 1000))
-                    .stream()
-                    .filter(s -> "completed".equals(s.getStatus()))
-                    .map(WorkoutSession::getStartTime)
-                    .toList();
-            StreakCalculator.StreakResult streak = new StreakCalculator().calculate(starts, ZONE);
-            LeaderboardEntry entry = leaderboardRepository.findByUserId(user.getId()).orElseGet(() ->
-                    LeaderboardEntry.builder().userId(user.getId()).build());
-            entry.setCurrentStreakWeeks(streak.currentStreakWeeks());
-            entry.setLongestStreakWeeks(streak.longestStreakWeeks());
-            leaderboardRepository.save(entry);
-        }
-
-        List<LeaderboardEntry> entries = active.stream()
-                .map(u -> leaderboardRepository.findByUserId(u.getId()).orElse(null))
-                .filter(java.util.Objects::nonNull)
+        List<LeaderboardEntry> entries = leaderboardRepository.findAllById(ids).stream()
+                .filter(e -> ids.contains(e.getUserId()))
                 .sorted(Comparator
                         .comparingInt(LeaderboardEntry::getCurrentStreakWeeks).reversed()
-                        .thenComparing(Comparator.comparingInt(LeaderboardEntry::getLongestStreakWeeks).reversed())
+                        .thenComparing(Comparator.comparing(LeaderboardEntry::getStreakStartWeek,
+                                Comparator.nullsLast(Comparator.naturalOrder())))
                         .thenComparingLong(LeaderboardEntry::getUserId))
-                .limit(limit)
                 .toList();
 
         List<LeaderboardResponse> result = new ArrayList<>();
@@ -328,7 +332,20 @@ public class SocialService {
             if (u == null) continue;
             result.add(new LeaderboardResponse(rank++, e.getUserId(),
                     u.getDisplayName() != null ? u.getDisplayName() : "Người dùng #" + u.getId(),
-                    e.getCurrentStreakWeeks(), e.getLongestStreakWeeks()));
+                    e.getCurrentStreakWeeks(), e.getLongestStreakWeeks(), null));
+        }
+        return result;
+    }
+
+    private List<LeaderboardResponse> mapToResponse(List<LeaderboardEntry> entries) {
+        List<LeaderboardResponse> result = new ArrayList<>();
+        int rank = 1;
+        for (LeaderboardEntry e : entries) {
+            User u = userRepository.findById(e.getUserId()).orElse(null);
+            if (u == null) continue;
+            result.add(new LeaderboardResponse(rank++, e.getUserId(),
+                    u.getDisplayName() != null ? u.getDisplayName() : "Người dùng #" + e.getId(),
+                    e.getCurrentStreakWeeks(), e.getLongestStreakWeeks(), null));
         }
         return result;
     }
@@ -336,7 +353,10 @@ public class SocialService {
     // ---------- Challenge ----------
 
     public List<ChallengeResponse> challenges(Long userId) {
-        return challengeRepository.findByStatusOrderByStartDateAsc("open").stream()
+        List<Challenge> all = new java.util.ArrayList<>();
+        all.addAll(challengeRepository.findByStatusOrderByStartDateAsc("open"));
+        all.addAll(challengeRepository.findByStatusOrderByStartDateAsc("finished"));
+        return all.stream()
                 .map(c -> toChallengeResponse(c, userId))
                 .toList();
     }
@@ -371,6 +391,9 @@ public class SocialService {
         if (!"open".equals(challenge.getStatus())) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Thử thách không còn mở đăng ký");
         }
+        if (challenge.getEndDate() != null && LocalDate.now(ZONE).isAfter(challenge.getEndDate())) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Thử thách đã kết thúc");
+        }
         if (participantRepository.findByChallengeIdAndUserId(challengeId, userId).isPresent()) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Bạn đã tham gia thử thách này");
         }
@@ -379,6 +402,28 @@ public class SocialService {
                 .userId(userId)
                 .build());
         return new MessageResponse("Đã tham gia thử thách");
+    }
+
+    /** Kết quả chung cuộc của challenge (FR-011). */
+    public List<ChallengeResultResponse> results(Long challengeId) {
+        Challenge challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Thử thách không tồn tại"));
+        if (!"finished".equals(challenge.getStatus())) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Thử thách chưa tổng kết");
+        }
+        return participantRepository.findByChallengeId(challengeId).stream()
+                .filter(p -> p.getFinalRank() != null)
+                .sorted(Comparator.comparingInt(ChallengeParticipant::getFinalRank))
+                .map(p -> {
+                    User u = userRepository.findById(p.getUserId()).orElse(null);
+                    return new ChallengeResultResponse(
+                            p.getUserId(),
+                            u != null ? u.getDisplayName() : "Người dùng #" + p.getUserId(),
+                            p.getFinalRank(),
+                            0, // streak đã được lưu ý ở time finalize, không cần hiện lại
+                            null);
+                })
+                .toList();
     }
 
     // ---------- helpers ----------
@@ -421,7 +466,16 @@ public class SocialService {
 
     private ChallengeResponse toChallengeResponse(Challenge c, Long viewerId) {
         boolean joined = participantRepository.findByChallengeIdAndUserId(c.getId(), viewerId).isPresent();
+        int participantCount = participantRepository.findByChallengeId(c.getId()).size();
+
+        // Tìm participant của viewer (nếu có) để lấy finalRank
+        ChallengeParticipant viewerParticipant = participantRepository
+                .findByChallengeIdAndUserId(c.getId(), viewerId).orElse(null);
+
         return new ChallengeResponse(c.getId(), c.getName(), c.getGoalType(), c.getDurationDays(),
-                c.getStartDate(), c.getEndDate(), c.getStatus(), joined);
+                c.getStartDate(), c.getEndDate(), c.getStatus(), joined,
+                participantCount,
+                viewerParticipant != null ? viewerParticipant.getCompletedAt() : null,
+                viewerParticipant != null ? viewerParticipant.getFinalRank() : null);
     }
 }
