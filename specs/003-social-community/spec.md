@@ -6,6 +6,17 @@
 
 **Status**: Draft
 
+**Superseded by**: `018-fix-social-flows` (FR-011 through FR-015 đã được sửa đổi toàn diện; xem § below)
+
+> **Lưu ý**: Một số mục trong spec này đã bị018 supersede. Cụ thể:
+> - FR-011 (lời mời chéo) → 018 FR-001 (auto-accept, thay vì chỉ giữ 1 pending)
+> - FR-012 (privacy) → 018 FR-013 (bổ sung chi tiết more)
+> - FR-012b (media restriction) → 018 FR-014 + FR-015 (magic bytes + gifUrl allowlist)
+> - FR-013–FR-015 (challenge lifecycle) → 018 FR-010–FR-012 (open/closed/finished, auto-finalize)
+> - Key Entities (Friendship, Challenge, CommunityPost, LeaderboardEntry) → 018 §Key Entities
+>
+> **Khi làm việc với feature này, luôn tham khảo018 là nguồn canon cho các FR đã được sửa đổi.**
+
 **Input**: User description: "UC-14: Kết bạn & theo dõi người dùng khác; UC-15: Xếp hạng thi đấu (Leaderboard) — Nhóm 6: Xã hội / Cộng đồng"
 
 ## User Scenarios & Testing *(mandatory)*
@@ -21,7 +32,7 @@ Người dùng muốn tìm kiếm và kết bạn với người dùng khác tro
 **Acceptance Scenarios**:
 
 1. **Given** User đã đăng nhập, **When** User tìm kiếm người dùng khác theo tên/username, **Then** hệ thống trả danh sách kết quả phù hợp.
-2. **Given** User đang xem kết quả tìm kiếm, **When** User nhấn "Kết bạn" trên hồ sơ người khác, **Then** hệ thống kiểm tra rate limit (tối đa 5 lời mời/ngày) và gửi lời mời kết bạn. Nếu lời mời đang pending hoặc đang trong cooldown (30 ngày sau khi bị từ chối), hệ thống chặn và thông báo.
+2. **Given** User đang xem kết quả tìm kiếm, **When** User nhấn "Kết bạn" trên hồ sơ người khác, **Then** hệ thống gửi lời mời kết bạn (KHÔNG giới hạn số lượng/ngày — supersede 018; chỉ còn cooldown 30 ngày sau khi từ chối). Nếu lời mời đang pending hoặc đang trong cooldown (30 ngày sau khi bị từ chối), hệ thống chặn và thông báo.
 3. **Given** Người nhận có lời mời kết bạn, **When** Người nhận nhấn "Chấp nhận", **Then** hệ thống thiết lập quan hệ hai chiều và cả hai thấy hoạt động của nhau trên feed (mặc định feed chỉ hiển thị cho bạn bè).
 4. **Given** Người nhận có lời mời kết bạn, **When** Người nhận nhấn "Từ chối", **Then** hệ thống từ chối lời mời mà không thông báo cho người gửi.
 5. **Given** User đã có bạn bè, **When** User mở feed hoạt động, **Then** hệ thống hiển thị hoạt động gần đây của bạn bè (hoàn thành buổi tập, streak mới, v.v.).
@@ -58,9 +69,10 @@ Admin có thể tạo Thử thách (Challenge) có thời hạn (ví dụ "Thử
 
 **Acceptance Scenarios**:
 
-1. **Given** Admin đang ở màn hình quản trị, **When** Admin tạo Challenge (tên, loại mục tiêu, số ngày), **Then** hệ thống tạo challenge với start_date, end_date và status (upcoming/active/completed).
-2. **Given** Challenge đang active, **When** User nhấn "Tham gia", **Then** hệ thống ghi nhận User vào challenge_participants (challenge_id, user_id, joined_at).
-3. **Given** Challenge đến end_date, **When** hệ thống tổng kết, **Then** hệ thống tính completed_at và final_rank cho từng người tham gia, lưu lịch sử xếp hạng và chuyển status sang completed.
+1. **Given** Admin đang ở màn hình quản trị, **When** Admin tạo Challenge (tên, loại mục tiêu, số ngày), **Then** hệ thống tạo challenge với start_date, end_date và status (`open`).
+2. **Given** Challenge đang open, **When** User nhấn "Tham gia", **Then** hệ thống ghi nhận User vào challenge_participants (challenge_id, user_id, joined_at).
+3. **Given** Challenge đến end_date, **When** hệ thống tổng kết, **Then** hệ thống tính completed_at và final_rank cho từng người tham gia, lưu lịch sử xếp hạng và chuyển status sang finished.
+   > **018 supersede**: vòng đời challenge dùng `open/closed/finished` (018 FR-010/FR-011 thay thế thuật ngữ cũ `upcoming/active/completed`).
 
 ---
 
@@ -78,7 +90,7 @@ Admin có thể tạo Thử thách (Challenge) có thời hạn (ví dụ "Thử
 ### Functional Requirements
 
 - **FR-001**: Hệ thống PHẢI cho phép User tìm kiếm người dùng khác theo tên hoặc username.
-- **FR-002**: WHEN User nhấn "Kết bạn", hệ thống PHẢI áp dụng giới hạn (tối đa 5 lời mời/ngày), chặn nếu đã pending, và áp dụng cooldown 30 ngày nếu đã bị từ chối trước đó. Nếu hợp lệ, tạo lời mời kết bạn (trạng thái pending) và thông báo cho người nhận.
+- **FR-002**: WHEN User nhấn "Kết bạn", hệ thống PHẢI chặn nếu đã pending và áp dụng cooldown 30 ngày nếu đã bị từ chối trước đó. **Giới hạn "tối đa 5 lời mời/ngày" ĐÃ ĐƯỢC GỠ BỎ** (supersede bởi 018-fix-social-flows, quyết định 2026-08-27). Nếu hợp lệ, tạo lời mời kết bạn (trạng thái pending) và thông báo cho người nhận. User có thể RÚT lại lời mời pending qua DELETE /friendships/{id} (018 FR-WITHDRAW).
 - **FR-003**: WHEN người nhận chấp nhận lời mời, hệ thống PHẢI thiết lập quan hệ hai chiều (friendship) và cập nhật feed cho cả hai (feed mặc định friends-only).
 - **FR-004**: WHEN người nhận từ chối lời mời, hệ thống PHẢI xóa lời mời mà không thông báo cho người gửi.
 - **FR-004b**: WHEN User nhấn "Hủy kết bạn", hệ thống PHẢI xóa quan hệ hai chiều và loại bỏ các hoạt động tương ứng khỏi feed/leaderboard của nhau.
@@ -89,21 +101,27 @@ Admin có thể tạo Thử thách (Challenge) có thời hạn (ví dụ "Thử
 - **FR-009**: Hệ thống PHẢI highlight vị trí cá nhân của User trên bảng xếp hạng.
 - **FR-010**: Hệ thống PHẢI xử lý tie-breaking khi nhiều User cùng streak (ưu tiên: thời gian duy trì sớm hơn).
 - **FR-011**: WHEN 2 User gửi lời mời kết bạn cho nhau gần như đồng thời, hệ thống PHẢI chỉ tạo một lời mời duy nhất từ bên có timestamp sớm hơn (bên nhấn trước là người gửi); WHERE phía còn lại có lời mời pending từ đối phương, hệ thống PHẢI chuyển nút "Kết bạn" thành "Chấp nhận / Từ chối" lời mời đang chờ (không tạo lời mời thứ 2 đối xứng).
+  > **018 supersede**: FR-001 của 018 thay thế hoàn toàn — auto-accept (không còn giữ pending phía còn lại).
 - **FR-012**: WHERE hồ sơ User ở chế độ private, hệ thống PHẢI chỉ cho người lạ (không phải bạn bè) xem display_name và rank, KHÔNG hiển thị bài đăng trên tường cá nhân. WHERE bài đăng được đánh dấu public, hệ thống PHẢI cho mọi người xem bài đăng đó.
+  > **018 supersede**: FR-013 của 018 bổ sung chi tiết hơn (is_private default private, search privacy filter).
 - **FR-012b**: Hệ thống CHỈ cho phép bài đăng cộng đồng chứa nội dung dạng ảnh (image) — KHÔNG hỗ trợ video, GIF, hoặc file media khác. Ảnh upload lưu SeaweedFS self-hosted qua backend proxy.
+  > **018 supersede**: FR-014 + FR-015 của 018 thay thế — ảnh PNG/JPG/JPEG/WEBP ≤10MB (magic bytes); GIF dùng embed từ Tenor/Instagram (URL do user cung cấp, KHÔNG upload).
 - **FR-013**: WHEN Admin tạo Challenge (name, goal_type, duration_days), hệ thống PHẢI lưu challenge với start_date, end_date và status (upcoming/active/completed).
+  > **018 supersede**: FR-010 của 018 thay thế — status là `open/closed/finished` (không phải `upcoming/active/completed`).
 - **FR-014**: WHEN Challenge đang active, hệ thống PHẢI cho phép User tham gia và ghi nhận vào challenge_participants (challenge_id, user_id, joined_at).
+  > **018 supersede**: FR-012 của 018 thay thế — chặn tham gia khi status != `open` hoặc đã quá end_date.
 - **FR-015**: WHEN Challenge đến end_date, hệ thống PHẢI tự động tổng kết: tính completed_at và final_rank cho từng người tham gia, lưu lịch sử xếp hạng và chuyển status sang completed.
+  > **018 supersede**: FR-011 của 018 thay thế — tổng kết trong vòng 1 phút, streak hiện tại tại thời điểm end_date, tie-break theo FR-007.
 
 ### Key Entities
 
-- **Friendship**: Quan hệ hai chiều giữa 2 User (user_id_1, user_id_2, status: pending/accepted/rejected, created_at).
+- **Friendship**: Quan hệ hai chiều giữa 2 User (user_id_1, user_id_2, status: pending/accepted/rejected/superseded, initiated_by, created_at, updated_at). Bất biến: tối đa 1 bản ghi HOẠT ĐỘNG (khác `superseded`) cho mỗi cặp.
 - **Friend Request**: Lời mời kết bạn (sender_id, receiver_id, status, timestamp).
-- **Leaderboard Entry**: Bản ghi xếp hạng trong kỳ thi vô tận (user_id, current_streak_weeks, longest_streak_weeks, rank, updated_at).
-- **Challenge**: Thử thách có thời hạn do Admin tạo (name, goal_type, duration_days, start_date, end_date, status).
+- **Leaderboard Entry**: Bản ghi xếp hạng trong kỳ thi vô tận (user_id, current_streak_weeks, longest_streak_weeks, streak_start_week, rank, updated_at).
+- **Challenge**: Thử thách có thời hạn do Admin tạo (name, goal_type, duration_days, start_date, end_date, status: open/closed/finished).
 - **Challenge Participant**: Người tham gia Challenge (challenge_id, user_id, joined_at, completed_at, final_rank).
-- **Activity Feed Item**: Hoạt động của User hiển thị cho bạn bè (user_id, action_type, details, timestamp).
-- **Community Post**: Bài đăng cộng đồng của User (user_id, content_text, image_url, visibility: public/friends_only, created_at). Chỉ hỗ trợ ảnh, KHÔNG hỗ trợ video.
+- **Activity Feed Item**: Hoạt động của User hiển thị cho bạn bè (user_id, action_type: friendship_created/streak_milestone/new_pr, details_json, created_at).
+- **Community Post**: Bài đăng cộng đồng của User (user_id, content, media_url, media_type: image, gif_url, audience: public/friends/private, created_at). Chỉ upload ảnh PNG/JPG/JPEG/WEBP; GIF dùng embed URL từ Tenor/Instagram.
 
 ## Success Criteria *(mandatory)*
 

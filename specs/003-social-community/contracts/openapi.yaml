@@ -1,22 +1,37 @@
 openapi: 3.0.3
 info:
   title: WorkoutSmartApp — Social API
-  version: 0.1.0
+  version: 0.2.0
+  description: |
+    Phiên bản 0.2.0: Thêm feed posts (CRUD + like + comment), gifUrl embed, viewer position,
+    relationship status trong search, privacy toggle. Supersedes 018-fix-social-flows.
 servers:
   - url: /api/v1
 
 paths:
   /users/search:
     get:
-      summary: Tìm user theo tên/email (email chỉ hiện cho bạn bè)
+      summary: Tìm user theo tên (email chỉ hiện cho bạn bè; hiển thị relationshipStatus)
       parameters:
         - { name: q, in: query, schema: { type: string } }
       responses:
-        "200": { description: List UserSearchResponse }
+        "200":
+          description: List UserSearchResponse
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer }
+                    displayName: { type: string }
+                    avatarUrl: { type: string, nullable: true }
+                    relationshipStatus: { type: string, enum: [none, pending_sent, pending_received, accepted, private] }
 
   /friendships:
     post:
-      summary: Gửi lời mời kết bạn (max 5/ngày; chéo → auto accept)
+      summary: Gửi lời mời kết bạn (KHÔNG giới hạn số lượng/ngày — đã gỡ bỏ; chéo → auto-accept 018 FR-001; rút lời mời qua DELETE /friendships/{id} 018 FR-WITHDRAW)
       requestBody:
         required: true
         content:
@@ -25,8 +40,8 @@ paths:
       responses:
         "201": { description: FriendshipResponse }
         "409": { description: Đã là bạn / đang pending }
-        "422": { description: Kết bạn chính mình }
-        "429": { description: Rate limit / cooldown từ chối }
+        "422": { description: Kết bạn chính mình / đạt max 500 bạn }
+        "429": { description: Cooldown 30 ngày sau từ chối }
 
   /friendships/pending:
     get:
@@ -45,7 +60,7 @@ paths:
 
   /friendships/{id}:
     delete:
-      summary: Hủy kết bạn
+      summary: Hủy kết bạn (chuyển superseded — constitution §7)
       responses: { "200": { description: OK }, "422": { description: Không phải quan hệ accepted } }
 
   /friends:
@@ -55,20 +70,95 @@ paths:
 
   /feed:
     get:
-      summary: Feed hoạt động bạn bè (50 gần nhất)
+      summary: Feed hoạt động bạn bè (streak_milestone + new_pr, 7 ngày, max 50)
       responses: { "200": { description: List FeedItemResponse } }
+
+  /feed/posts:
+    get:
+      summary: Community feed (2 tab: friends / discover; cursor pagination)
+      parameters:
+        - { name: tab, in: query, schema: { type: string, default: friends } }
+        - { name: cursor, in: query, schema: { type: integer } }
+      responses: { "200": { description: FeedPageResponse } }
+    post:
+      summary: Đăng bài cộng đồng (text + ảnh + gifUrl; multipart/form-data)
+      consumes: multipart/form-data
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                content: { type: string, maxLength: 2000 }
+                audience: { type: string, enum: [public, friends, private], default: public }
+                media: { type: string, format: binary, description: "PNG/JPG/JPEG/WEBP ≤10MB" }
+                gifUrl: { type: string, format: uri, description: "HTTPS từ tenor.com hoặc instagram.com" }
+      responses:
+        "201": { description: PostResponse }
+        "400": { description: Validation lỗi / file không hợp lệ / gifUrl ngoài allowlist }
+
+  /feed/posts/{id}:
+    delete:
+      summary: Xóa bài đăng (chỉ chủ bài)
+      responses: { "200": { description: OK }, "403": { description: Không phải chủ bài } }
+
+  /feed/posts/{id}/like:
+    post:
+      summary: Toggle like bài đăng
+      responses: { "200": { description: LikeResponse (liked, likeCount) } }
+
+  /feed/posts/{id}/comments:
+    post:
+      summary: Thêm bình luận
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [content], properties: { content: { type: string, maxLength: 1000 } } }
+      responses: { "201": { description: CommentResponse } }
+
+  /feed/media/{key}:
+    get:
+      summary: Redirect ảnh media từ SeaweedFS (backend proxy)
+      responses:
+        "302": { description: Redirect đến SeaweedFS filer }
+        "404": { description: Không tìm thấy media }
 
   /leaderboard:
     get:
-      summary: Bảng xếp hạng streak (kỳ thi vô tận, top 100)
-      responses: { "200": { description: List LeaderboardResponse } }
+      summary: Bảng xếp hạng streak (kỳ thi vô tận, top 100 + viewer position)
+      responses:
+        "200":
+          description: LeaderboardResponse (items + viewerPosition)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId: { type: integer }
+                        displayName: { type: string }
+                        currentStreakWeeks: { type: integer }
+                        longestStreakWeeks: { type: integer }
+                        rank: { type: integer }
+                  viewerPosition:
+                    type: object
+                    nullable: true
+                    properties:
+                      rank: { type: integer }
+                      currentStreakWeeks: { type: integer }
 
   /challenges:
     get:
-      summary: Thử thách đang mở
+      summary: Thử thách đang mở (status = open)
       responses: { "200": { description: List ChallengeResponse } }
     post:
-      summary: Tạo thử thách (chỉ Admin)
+      summary: Tạo thử thách (chỉ Admin; status = open)
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -93,8 +183,20 @@ paths:
 
   /challenges/{id}/join:
     post:
-      summary: Tham gia thử thách
+      summary: Tham gia thử thách (chỉ khi status = open và chưa qua end_date)
       responses:
         "200": { description: OK }
         "404": { description: Không tồn tại }
-        "422": { description: Đã tham gia / không còn mở }
+        "422": { description: Đã tham gia / status ≠ open / đã quá end_date }
+
+  /challenges/{id}:
+    get:
+      summary: Chi tiết thử thách + bảng xếp hạng chung cuộc (nếu finished)
+      responses: { "200": { description: ChallengeDetailResponse } }
+
+  /profile/toggle-private:
+    post:
+      summary: Bật/tắt hồ sơ riêng tư (24h cooldown)
+      responses:
+        "200": { description: ProfileResponse (isPrivate updated) }
+        "429": { description: Chưa hết 24h kể từ lần toggle trước }

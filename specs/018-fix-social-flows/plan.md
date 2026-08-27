@@ -6,7 +6,7 @@
 
 ## Summary
 
-Sửa toàn bộ luồng xã hội hiện có (package `com.workoutsmart.social` + `com.workoutsmart.feed`) cho khớp spec 003 + constitution: (1) bất biến 1 quan hệ bạn bè/pair với unique index một phần + trạng thái `superseded`, tái dùng bản ghi sau cooldown, cap 500 bạn, trạng thái quan hệ trong search; (2) feed thành tích (streak_milestone + new_pr, 7 ngày) publish sau commit, không spam; (3) leaderboard tie-break theo tuần bắt đầu chuỗi (`streak_start_week`), ghim vị trí cá nhân ngoài top 100, batch 5 phút; (4) challenge vòng đời `open/closed/finished` + scheduler tổng kết (final_rank = streak tại end_date); (5) privacy `is_private` (001 sở hữu, mặc định private); (6) media: ảnh upload (magic bytes, không GIF/video) + GIF embed Tenor (Instagram link/preview). Migration mới V20–V23, KHÔNG sửa migration cũ.
+Sửa toàn bộ luồng xã hội hiện có (package `com.workoutsmart.social` + `com.workoutsmart.feed`) cho khớp spec 003 + constitution: (1) bất biến 1 quan hệ bạn bè/pair với unique index một phần + trạng thái `superseded`, tái dùng bản ghi sau cooldown, cap 500 bạn, trạng thái quan hệ trong search; (2) feed thành tích (streak_milestone + new_pr, 7 ngày) publish sau commit, không spam; (3) leaderboard tie-break theo tuần bắt đầu chuỗi (`streak_start_week`), ghim vị trí cá nhân ngoài top 100, batch 5 phút; (4) challenge vòng đời `open/closed/finished` + scheduler tổng kết (final_rank = streak tại end_date); (5) privacy `is_private` (001 sở hữu, mặc định private); (6) media: ảnh upload (magic bytes, không GIF/video) + GIF embed Tenor (Instagram link/preview). Migration mới V20–V24, KHÔNG sửa migration cũ.
 
 ## Technical Context
 
@@ -24,7 +24,7 @@ Sửa toàn bộ luồng xã hội hiện có (package `com.workoutsmart.social`
 
 **Performance Goals**: leaderboard read < 200ms với 10k user (SC-004); feed event hiển thị ≤ 1 phút (SC-002); challenge tổng kết ≤ 1 phút sau end_date (SC-003); `completeSession` không tăng đáng kể độ trễ (publish sau commit)
 
-**Constraints**: constitution §4 (streak định nghĩa DUY NHẤT), §5 (external API allowlist), §7 (không sửa/xóa migration cũ, cleanup không xóa business data), §9 (coverage ≥ 80% phần code đổi), §10 (Git Flow, không commit thẳng main); ≤ 5 lời mời/ngày; cooldown 30 ngày; feed 7 ngày; cap 50 items
+**Constraints**: constitution §4 (streak định nghĩa DUY NHẤT), §5 (external API allowlist), §7 (không sửa/xóa migration cũ, cleanup không xóa business data), §9 (coverage ≥ 80% phần code đổi), §10 (Git Flow, không commit thẳng main); KHÔNG giới hạn lời mời/ngày (đã gỡ bỏ — status chỉ `open/finished` lưu trữ, `closed` suy ra); cooldown 30 ngày; feed 7 ngày; cap 50 items
 
 **Scale/Scope**: ~10k users giả định; top 100 leaderboard + row viewer; max 500 bạn/user; 1000+ session/user phải tính streak đúng
 
@@ -33,7 +33,7 @@ Sửa toàn bộ luồng xã hội hiện có (package `com.workoutsmart.social`
 | Nguyên tắc | Đánh giá |
 |---|---|
 | Streak định nghĩa DUY NHẤT (constitution §4) | ✅ StreakCalculator dùng chung; challenge xếp hạng theo streak tại end_date (Clarifications) |
-| Leaderboard vô tận + Challenge có hạn | ✅ open/closed/finished + scheduler tổng kết |
+| Leaderboard vô tận + Challenge có hạn | ✅ status lưu trữ `open/finished` + `closed` SUY RA khi query + scheduler tổng kết (FR-CHALL-CLOSE) |
 | External API allowlist (§5) | ⚠️ CẦN AMENDMENT v2.4.0: thêm "Tenor embed (GIF bài đăng — URL do User cung cấp, chỉ Web client) + Instagram link/preview" vào allowlist — task riêng theo Governance §11 (PR + cập nhật AGENTS.md) |
 | Privacy | ✅ is_private (001 sở hữu, mặc định private) — người lạ chỉ thấy display_name + rank |
 | Migration lifecycle (§7) | ✅ V20–V23 additive; dedupe bằng `superseded` KHÔNG xóa row; không sửa V7/V19 |
@@ -74,7 +74,8 @@ backend/src/main/resources/db/migration/
 ├── V20__friendship_unique.sql          # dedupe + superseded + unique index một phần
 ├── V21__leaderboard_streak_start.sql   # streak_start_week
 ├── V22__user_is_private.sql            # users.is_private default true
-└── V23__community_post_gif_url.sql     # community_posts.gif_url
+├── V23__community_post_gif_url.sql     # community_posts.gif_url
+└── V24__challenge_participants_unique.sql # unique (challenge_id, user_id) chống double-join (FR-011)
 
 backend/src/test/java/com/workoutsmart/{social,feed}/  # bổ sung unit + integration
 

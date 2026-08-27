@@ -54,7 +54,7 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 1 (viết TRƯỚC — phải FAIL trước khi implement)
 
-- [x] T009 [P] [US1] Mở rộng unit test `backend/src/test/java/com/workoutsmart/social/service/SocialServiceTest.java` — cases: rate limit 5/ngày, pending 409, cooldown 30 ngày 429, tái dùng row rejected, cap 500 bạn 422, tự kết bạn 422, auto-accept lời mời chéo
+- [x] T009 [P] [US1] Mở rộng unit test `backend/src/test/java/com/workoutsmart/social/service/SocialServiceTest.java` — cases: pending 409, cooldown 30 ngày 429, tái dùng row rejected, cap 500 bạn 422, tự kết bạn 422, auto-accept lời mời chéo (giới hạn 5 lời mời/ngày đã GỠ BỎ — không còn case rate limit)
 - [x] T010 [P] [US1] Integration test lời mời chéo đồng thời → 1 row + search trả relationshipStatus — `backend/src/test/java/com/workoutsmart/social/controller/SocialControllerIntegrationTest.java`
 
 ### Implementation for User Story 1
@@ -161,16 +161,16 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 6
 
-- [ ] T036 [P] [US6] Mở rộng `backend/src/test/java/com/workoutsmart/feed/service/SeaweedStorageServiceTest.java` — magic bytes JPEG/PNG/WEBP pass, GIF/video/video-đổi-đuôi fail, >10MB fail
-- [ ] T037 [P] [US6] Integration test: POST /feed/posts với media GIF/video → 400; gifUrl ngoài allowlist → 400; tenor.com → 201 — `backend/src/test/java/com/workoutsmart/feed/controller/SocialFeedControllerIntegrationTest.java`
+- [x] T036 [P] [US6] Mở rộng `backend/src/test/java/com/workoutsmart/feed/service/SeaweedStorageServiceTest.java` — magic bytes JPEG/PNG/WEBP pass, GIF/video/video-đổi-đuôi fail, >10MB fail
+- [x] T037 [P] [US6] Integration test: POST /feed/posts với media GIF/video → 400; gifUrl ngoài allowlist → 400; tenor.com → 201 — `backend/src/test/java/com/workoutsmart/feed/controller/SocialFeedControllerIntegrationTest.java`
 
 ### Implementation for User Story 6
 
-- [ ] T038 [US6] Sửa `SeaweedStorageService.java` (backend/.../feed/service/): bỏ `gif` khỏi danh sách cho phép, thêm kiểm tra magic bytes ≤512 bytes đầu (R6)
-- [ ] T039 [US6] Sửa `SocialFeedService.createPost` + `PostResponse.java`: nhận/validate `gifUrl` (https + host allowlist tenor.com/instagram.com), trả trong response — backend/.../feed/
-- [ ] T040 [US6] Sửa `web/src/pages/social/CommunityFeedPage.tsx` + `web/src/services/feedApi.ts`: xóa dead-code render video, thêm ô dán link GIF, render Tenor iframe / Instagram link+preview + cập nhật test `CommunityFeedPage.test.tsx`
+- [x] T038 [US6] Sửa `SeaweedStorageService.java` (backend/.../feed/service/): bỏ `gif` khỏi danh sách cho phép, thêm kiểm tra magic bytes ≤512 bytes đầu (R6)
+- [x] T039 [US6] Sửa `SocialFeedService.createPost` + `PostResponse.java`: nhận/validate `gifUrl` (https + host allowlist tenor.com/instagram.com), trả trong response — backend/.../feed/
+- [x] T040 [US6] Sửa `web/src/pages/social/CommunityFeedPage.tsx` + `web/src/services/feedApi.ts`: xóa dead-code render video, thêm ô dán link GIF, render Tenor iframe / Instagram link+preview + cập nhật test `CommunityFeedPage.test.tsx`
 
-**Checkpoint**: US6 hoàn chỉnh — quickstart.md kịch bản 5 (phần media) chạy đúng
+**Checkpoint**: US6 hoàn chỉnh — quickstart.md kịch bản 5 (phần media) chạy đúng ✅ (307 backend + 64 frontend tests pass)
 
 ---
 
@@ -178,12 +178,32 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Đồng bộ artifacts cũ, gate chất lượng toàn diện
 
-- [ ] T041 [P] Cập nhật `specs/003-social-community/` (spec.md FR-011 auto-accept, status challenge, FR-012b media; data-model.md; contracts/openapi.yaml) — đánh dấu 018 là bản sửa đổi chính thức (supersede các mục mâu thuẫn)
+- [x] T041 [P] Cập nhật `specs/003-social-community/` (spec.md FR-011 auto-accept, status challenge, FR-012b media; data-model.md; contracts/openapi.yaml) — đánh dấu 018 là bản sửa đổi chính thức (supersede các mục mâu thuẫn)
 - [ ] T042 [P] Chạy speckit-analyze trên 018 (spec/plan/tasks consistency) — báo cáo read-only, 0 CRITICAL/HIGH chưa xử lý
-- [ ] T043 Chạy `mvn test` + kiểm tra coverage ≥80% phần code đổi (jacoco) — backend
-- [ ] T044 Chạy `npm test` + `npm run build` + ESLint — web
+- [x] T043 Chạy `mvn test` + kiểm tra coverage ≥80% phần code đổi (jacoco) — backend
+- [x] T044 Chạy `npm test` + `npm run build` + ESLint — web
 - [ ] T045 Chạy toàn bộ `specs/018-fix-social-flows/quickstart.md` end-to-end trên môi trường local
 - [ ] T046 Whole-plan consistency sweep (đọc lại spec/plan/tasks, không còn thuật ngữ cũ: upcoming/active/completed, GIF upload, workout_completed emit) + commit theo Conventional Commits trên `feature/fix-social-flows`
+
+---
+
+## Phase 9.1: Amendment round — FR-AUDIENCE / FR-VISIBILITY / FR-WITHDRAW + edge fixes (2026-08-27)
+
+**Purpose**: Ghi nhận truy vết cho các FR/edge-case sinh ra từ 12-dimension + brainstorm (spec.md §Edge Cases & Decisions — I8/A1, U2/U3/U4, ST1, U5, D1/I2, T5/D2, Bucket C) — đã implement + test xanh (migrate V24, 307 test backend), không nằm trong các task gốc T001–T046.
+
+- [x] T059 [FR-AUDIENCE] Chặn like/unlike/add-comment/đọc comment trên post `friends`/`private` của người không có quyền (403/404, không rò rỉ tồn tại) — `backend/.../feed/service/SocialFeedService.java` (`requireVisible`) + `SocialFeedServiceTest` + `SocialFeedControllerIntegrationTest`
+- [x] T060 [FR-VISIBILITY] Lọc user account BANNED/DELETED khỏi: search user, leaderboard toàn-server + bạn bè, activity feed, feed cộng đồng — `SocialService.searchUsers`, `LeaderboardRepository` (ACTIVE), `ActivityFeedRepository`, `SocialFeedService` (+tests)
+- [x] T061 [FR-WITHDRAW] Endpoint DELETE /friendships/{id}: rút lời mời `pending` do chính mình gửi (xóa row, không phát sự kiện feed); lời mời không còn pending-do-mình → 422 — `SocialService.java` + `SocialController.java` (+`SocialServiceTest`, `SocialControllerIntegrationTest`)
+- [x] T062 [FR-014] Upload file thiếu phần mở rộng → suy extension từ magic bytes — `SeaweedStorageService.store` (+`SeaweedStorageServiceTest`)
+- [x] T063 [FR-015] Từ chối 400 khi bài đăng mang đồng thời `media` + `gif_url` — `SocialFeedService.createPost` (+unit + integration)
+- [x] T064 [FR-015] Chặn `gifUrl` > 500 ký tự với HTTP 400 (không để lỗi DB 500) — `SocialFeedService.createPost` (+unit + integration)
+- [x] T065 [FR-CHALL-CLOSE / FR-CHALL-NOTIFY] Web: section "Thử thách đang tổng kết" + banner/ẩn nút Tham gia khi challenge derived-closed; rank "—" cho unranked + ghim viewer ngoài top 100 — `web/src/pages/social/LeaderboardPage.tsx` (+`LeaderboardPage.test.tsx`)
+- [x] T066 [US5] Web: toggle privacy hiển thị thông báo cooldown 24h từ backend 429 (Retry-After) — `web/src/pages/profile/ProfilePage.tsx`
+- [x] T067 [D1] `ApiException.retryAfterSeconds` + `GlobalExceptionHandler` set header `Retry-After` trên 429 privacy toggle — `ProfileService` (+`ProfileServicePrivacyTest`)
+- [x] T068 [US1] Web: nút "Rút lời mời" cho relationship pending_sent + handler withdraw — `web/src/pages/social/FriendsPage.tsx` (+`FriendsPage.test.tsx`)
+- [x] T069 [V24] Migration `V24__challenge_participants_unique.sql` — unique (challenge_id, user_id) chống double-join race (T5/D2, FR-011) — additive, không sửa migration cũ (§7)
+- [x] T070 [FR-011] `ChallengeFinalizer` loại participant account BANNED/DELETED khỏi ranking khi tổng kết — `ChallengeFinalizer` (+`ChallengeFinalizerTest`)
+- [x] T071 [Bucket C] Xóa bài đăng → xóa file media tương ứng trên storage (best-effort, quyền tác giả, 403 nếu không phải chủ) — `SocialFeedService.deletePost`
 
 ---
 

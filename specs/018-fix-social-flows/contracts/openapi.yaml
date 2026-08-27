@@ -35,7 +35,7 @@ paths:
 
   /friendships:
     post:
-      summary: Gửi lời mời kết bạn (max 5/ngày; chéo → auto-accept; tái dùng row sau cooldown; cap 500 bạn)
+      summary: Gửi lời mời kết bạn (KHÔNG giới hạn số lượng/ngày — đã gỡ bỏ; chéo → auto-accept; tái dùng row sau cooldown; cap 500 bạn)
       requestBody:
         required: true
         content:
@@ -45,7 +45,17 @@ paths:
         "201": { description: FriendshipResponse (status pending hoặc accepted khi chéo) }
         "409": { description: Đã là bạn / đang pending }
         "422": { description: Kết bạn chính mình / đã đạt 500 bạn }
-        "429": { description: Rate limit / cooldown từ chối }
+        "429": { description: Cooldown 30 ngày sau từ chối }
+
+  /friendships/{id}:
+    delete:
+      summary: >
+        Hủy kết bạn (accepted) HOẶC rút lại lời mời pending do mình gửi (FR-WITHDRAW).
+        WHERE lời mời đang pending nhưng không do mình gửi (initiated_by ≠ user) → 422.
+      responses:
+        "204": { description: Đã xóa quan hệ/rút lời mời (không phát sự kiện feed khi rút) }
+        "404": { description: Không tồn tại }
+        "422": { description: Không có quyền (lời mời do người khác gửi) / đang pending nhưng chưa được chấp nhận cho phía nhận }
 
   /leaderboard:
     get:
@@ -81,7 +91,7 @@ paths:
 
   /challenges:
     get:
-      summary: Thử thách đang mở (status=open)
+      summary: Thử thách đang mở (status lưu trữ=open) + đã finished; `closed` (quá end_date chờ tổng kết) là trạng thái SUY RA — hệ thống ẩn nút Tham gia, không lưu xuống DB (FR-CHALL-CLOSE)
       responses: { "200": { description: List ChallengeResponse } }
     post:
       summary: Tạo thử thách (chỉ Admin); status khởi tạo open
@@ -170,7 +180,7 @@ components:
         durationDays: { type: integer }
         startDate: { type: string, format: date, nullable: true }
         endDate: { type: string, format: date, nullable: true }
-        status: { type: string, enum: [open, closed, finished] }
+        status: { type: string, enum: [open, closed, finished], description: "closed là trạng thái SUY RA khi open && endDate < today (không lưu DB)" }
         joined: { type: boolean }
         completedAt: { type: string, format: date-time, nullable: true }
         finalRank: { type: integer, nullable: true }
