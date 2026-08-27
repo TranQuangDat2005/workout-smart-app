@@ -47,11 +47,29 @@ public class Friendship {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** Cặp chuẩn hóa (min, max) — nền của unique index V20. */
+    @Column(name = "pair_min")
+    private Long pairMin;
+
+    @Column(name = "pair_max")
+    private Long pairMax;
+
+    /** 1 = bản ghi hoạt động; NULL = superseded (dedupe V20). */
+    @Column(name = "active_marker")
+    private Integer activeMarker;
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();
         createdAt = now;
         updatedAt = now;
+        if (userId1 != null && userId2 != null) {
+            pairMin = Math.min(userId1, userId2);
+            pairMax = Math.max(userId1, userId2);
+        }
+        if (activeMarker == null) {
+            activeMarker = 1;
+        }
     }
 
     @PreUpdate

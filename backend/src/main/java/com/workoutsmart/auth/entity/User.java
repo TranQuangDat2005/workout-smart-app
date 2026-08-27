@@ -88,6 +88,11 @@ public class User {
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified;
 
+    /** Hồ sơ riêng tư (V22) — spec 001 sở hữu; mặc định private (General Spec §3). */
+    @Column(name = "is_private", nullable = false)
+    @Builder.Default
+    private boolean isPrivate = true;
+
     @Column(name = "deleted_at")
     private Instant deletedAt;
 

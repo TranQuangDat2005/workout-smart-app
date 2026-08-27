@@ -30,7 +30,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +45,7 @@ public class SocialService {
 
     private static final int MAX_REQUESTS_PER_DAY = 5;
     private static final int REJECT_COOLDOWN_DAYS = 30;
+    private static final int MAX_FRIENDS = 500;
     private static final ZoneId ZONE = ZoneId.systemDefault();
 
     private final UserRepository userRepository;
@@ -69,7 +74,7 @@ public class SocialService {
 
     // ---------- Search ----------
 
-    /** Tìm user theo email/displayName; email chỉ lộ cho bạn bè/chính mình (privacy). */
+    /** Tìm user theo email/displayName; email chỉ lộ cho bạn bè (privacy); kèm trạng thái quan hệ (FR-004). */
     public List<UserSearchResponse> searchUsers(Long userId, String query) {
         String q = query == null ? "" : query.trim();
         if (q.isEmpty()) {
@@ -85,17 +90,33 @@ public class SocialService {
         for (User u : byName) {
             if (seen.add(u.getId())) results.add(u);
         }
-        return results.stream()
+        List<User> limited = results.stream()
                 .filter(u -> !u.getId().equals(userId))
                 .limit(20)
-                .map(u -> new UserSearchResponse(u.getId(), u.getDisplayName(), u.getAvatarUrl(),
-                        isFriend(userId, u.getId()) ? u.getEmail() : null))
+                .toList();
+
+        // 1 query batch lấy trạng thái quan hệ (R12 — tránh N+1)
+        Map<Long, Friendship> rels = friendshipRepository
+                .findWithAnyOf(userId, limited.stream().map(User::getId).toList()).stream()
+                .collect(Collectors.toMap(
+                        f -> f.getUserId1().equals(userId) ? f.getUserId2() : f.getUserId1(),
+                        Function.identity(),
+                        (a, b) -> a));
+
+        return limited.stream()
+                .map(u -> {
+                    Friendship f = rels.get(u.getId());
+                    boolean friend = f != null && "accepted".equals(f.getStatus());
+                    return new UserSearchResponse(u.getId(), u.getDisplayName(), u.getAvatarUrl(),
+                            friend ? u.getEmail() : null, relationshipStatus(userId, f),
+                            f == null ? null : f.getId());
+                })
                 .toList();
     }
 
     // ---------- Friendship ----------
 
-    /** FR-002: gửi lời mời (max 5/ngày, chặn pending, cooldown 30 ngày sau khi bị từ chối). */
+    /** FR-001/002/003: gửi lời mời (max 5/ngày, cap 500 bạn, reuse row sau cooldown, chéo → auto-accept). */
     @Transactional
     public FriendshipResponse sendRequest(Long userId, FriendshipRequest request) {
         Long targetId = request.targetUserId();
@@ -105,10 +126,16 @@ public class SocialService {
         User target = userRepository.findById(targetId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại"));
 
-        // Lời mời chéo: đối phương đã gửi pending cho mình → accept luôn
-        Optional<Friendship> existing = friendshipRepository.findBetween(userId, targetId);
-        if (existing.isPresent()) {
-            Friendship f = existing.get();
+        // Cap 500 bạn (FR-003) — chặn khi một trong hai bên đã đủ
+        if (friendshipRepository.countAcceptedFor(userId) >= MAX_FRIENDS
+                || friendshipRepository.countAcceptedFor(targetId) >= MAX_FRIENDS) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Đã đạt giới hạn 500 bạn bè");
+        }
+
+        // Quan hệ hiện có (chỉ bản ghi hoạt động — sau V20 tối đa 1/pair)
+        List<Friendship> existing = friendshipRepository.findBetween(userId, targetId);
+        if (!existing.isEmpty()) {
+            Friendship f = existing.get(0);
             if ("accepted".equals(f.getStatus())) {
                 throw new ApiException(HttpStatus.CONFLICT, "Đã là bạn bè");
             }
@@ -116,18 +143,22 @@ public class SocialService {
                 if (f.getInitiatedBy().equals(userId)) {
                     throw new ApiException(HttpStatus.CONFLICT, "Lời mời đang chờ phản hồi");
                 }
-                // Đối phương đã gửi → auto accept (ai nhấn trước là người gửi)
+                // Đối phương đã gửi → auto accept (FR-001, Clarifications Q1)
                 f.setStatus("accepted");
                 friendshipRepository.save(f);
                 addFeed(f.getUserId1(), f.getUserId2(), "friendship_created");
                 return toFriendshipResponse(f, userId, target);
             }
-            // rejected → cooldown check
+            // rejected → cooldown 30 ngày; hết hạn thì TÁI SỬ DỤNG row (FR-002 — không tạo mới)
             Instant since = Instant.now().minus(REJECT_COOLDOWN_DAYS, ChronoUnit.DAYS);
             if (f.getUpdatedAt() != null && f.getUpdatedAt().isAfter(since)) {
                 throw new ApiException(HttpStatus.TOO_MANY_REQUESTS,
                         "Đã bị từ chối gần đây, vui lòng thử lại sau");
             }
+            f.setStatus("pending");
+            f.setInitiatedBy(userId);
+            friendshipRepository.save(f);
+            return toFriendshipResponse(f, userId, target);
         }
 
         Instant dayStart = Instant.now().atZone(ZONE).toLocalDate().atStartOfDay(ZONE).toInstant();
@@ -136,12 +167,29 @@ public class SocialService {
                     "Đã đạt giới hạn 5 lời mời/ngày");
         }
 
-        Friendship friendship = friendshipRepository.save(Friendship.builder()
+        Friendship friendship = Friendship.builder()
                 .userId1(userId)
                 .userId2(targetId)
                 .status("pending")
                 .initiatedBy(userId)
-                .build());
+                .build();
+        try {
+            friendshipRepository.saveAndFlush(friendship);
+        } catch (DataIntegrityViolationException e) {
+            // Race đồng thời (FR-001): đối phương tạo lời mời giữa lúc check và insert
+            List<Friendship> raced = friendshipRepository.findBetween(userId, targetId);
+            if (!raced.isEmpty()) {
+                Friendship f = raced.get(0);
+                if ("pending".equals(f.getStatus()) && !f.getInitiatedBy().equals(userId)) {
+                    f.setStatus("accepted");
+                    friendshipRepository.save(f);
+                    addFeed(f.getUserId1(), f.getUserId2(), "friendship_created");
+                    return toFriendshipResponse(f, userId, target);
+                }
+                throw new ApiException(HttpStatus.CONFLICT, "Lời mời đã tồn tại");
+            }
+            throw e;
+        }
         return toFriendshipResponse(friendship, userId, target);
     }
 
@@ -336,9 +384,18 @@ public class SocialService {
     // ---------- helpers ----------
 
     private boolean isFriend(Long userId, Long otherId) {
-        return friendshipRepository.findBetween(userId, otherId)
-                .map(f -> "accepted".equals(f.getStatus()))
-                .orElse(false);
+        return friendshipRepository.findBetween(userId, otherId).stream()
+                .anyMatch(f -> "accepted".equals(f.getStatus()));
+    }
+
+    private String relationshipStatus(Long viewerId, Friendship f) {
+        if (f == null || "rejected".equals(f.getStatus())) {
+            return "none";
+        }
+        if ("accepted".equals(f.getStatus())) {
+            return "accepted";
+        }
+        return f.getInitiatedBy().equals(viewerId) ? "pending_sent" : "pending_received";
     }
 
     private Friendship requireFriendship(Long id) {

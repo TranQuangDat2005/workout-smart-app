@@ -5,6 +5,8 @@ export interface UserSearchItem {
   displayName: string | null;
   avatarUrl: string | null;
   email: string | null;
+  relationshipStatus: 'none' | 'pending_sent' | 'pending_received' | 'accepted' | string;
+  friendshipId: number | null;
 }
 
 export interface FriendItem {

@@ -40,6 +40,10 @@ public class CommunityPost {
     @Column(name = "media_type")
     private String mediaType;
 
+    /** URL embed GIF (tenor.com/instagram.com) — nullable (V23, FR-015). */
+    @Column(name = "gif_url")
+    private String gifUrl;
+
     /** public | friends | private. */
     @Column(nullable = false)
     @Builder.Default

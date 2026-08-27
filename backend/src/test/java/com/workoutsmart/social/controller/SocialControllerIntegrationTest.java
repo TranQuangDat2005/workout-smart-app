@@ -20,6 +20,7 @@ import com.workoutsmart.social.repository.ChallengeParticipantRepository;
 import com.workoutsmart.social.repository.ChallengeRepository;
 import com.workoutsmart.social.repository.FriendshipRepository;
 import com.workoutsmart.social.repository.LeaderboardRepository;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -64,6 +66,8 @@ class SocialControllerIntegrationTest {
     private WorkoutSetRepository setRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void clean() {
@@ -258,5 +262,86 @@ class SocialControllerIntegrationTest {
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/v1/feed"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rejectedRequestIsReusedAfterCooldown() throws Exception {
+        createUser("a@example.com", "An");
+        createUser("b@example.com", "Bình");
+        String tokenA = login("a@example.com");
+        String tokenB = login("b@example.com");
+        Long idB = userRepository.findByEmail("b@example.com").orElseThrow().getId();
+
+        // A gửi, B từ chối
+        MvcResult send = mockMvc.perform(post("/api/v1/friendships")
+                        .header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetUserId\":" + idB + "}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long friendshipId = objectMapper.readTree(send.getResponse().getContentAsString()).get("id").asLong();
+        mockMvc.perform(post("/api/v1/friendships/" + friendshipId + "/reject")
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isOk());
+
+        // Gửi lại trong cooldown → 429
+        mockMvc.perform(post("/api/v1/friendships")
+                        .header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetUserId\":" + idB + "}"))
+                .andExpect(status().isTooManyRequests());
+
+        // Đẩy updated_at về 31 ngày trước (mô phỏng hết cooldown) — SQL trực tiếp để bypass @PreUpdate
+        jdbcTemplate.update("UPDATE friendships SET updated_at = ? WHERE id = ?",
+                Timestamp.from(Instant.now().minus(31, ChronoUnit.DAYS)), friendshipId);
+
+        // Gửi lại sau cooldown → tái sử dụng row (pending), KHÔNG tạo row mới
+        mockMvc.perform(post("/api/v1/friendships")
+                        .header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetUserId\":" + idB + "}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("pending"));
+        org.junit.jupiter.api.Assertions.assertEquals(1, friendshipRepository.count());
+    }
+
+    @Test
+    void searchReturnsRelationshipStatus() throws Exception {
+        createUser("a@example.com", "An");
+        createUser("b@example.com", "Bình");
+        String tokenA = login("a@example.com");
+        Long idB = userRepository.findByEmail("b@example.com").orElseThrow().getId();
+
+        // Chưa có quan hệ → none
+        mockMvc.perform(get("/api/v1/users/search").param("q", "Bình")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].relationshipStatus").value("none"));
+
+        // A gửi → pending_sent
+        mockMvc.perform(post("/api/v1/friendships")
+                        .header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetUserId\":" + idB + "}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(get("/api/v1/users/search").param("q", "Bình")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].relationshipStatus").value("pending_sent"));
+
+        // B chấp nhận → accepted
+        String tokenB = login("b@example.com");
+        mockMvc.perform(get("/api/v1/friendships/pending")
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isOk());
+        var pending = friendshipRepository.findPendingFor(userRepository.findByEmail("b@example.com")
+                .orElseThrow().getId());
+        mockMvc.perform(post("/api/v1/friendships/" + pending.get(0).getId() + "/accept")
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/users/search").param("q", "Bình")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].relationshipStatus").value("accepted"));
     }
 }
