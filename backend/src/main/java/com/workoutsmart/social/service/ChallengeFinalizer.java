@@ -1,5 +1,8 @@
 package com.workoutsmart.social.service;
 
+import com.workoutsmart.auth.entity.AccountStatus;
+import com.workoutsmart.auth.entity.User;
+import com.workoutsmart.auth.repository.UserRepository;
 import com.workoutsmart.profile.entity.WorkoutSession;
 import com.workoutsmart.profile.repository.WorkoutSessionRepository;
 import com.workoutsmart.social.entity.Challenge;
@@ -12,6 +15,8 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -38,13 +43,16 @@ public class ChallengeFinalizer {
     private final ChallengeRepository challengeRepository;
     private final ChallengeParticipantRepository participantRepository;
     private final WorkoutSessionRepository sessionRepository;
+    private final UserRepository userRepository;
 
     public ChallengeFinalizer(ChallengeRepository challengeRepository,
                               ChallengeParticipantRepository participantRepository,
-                              WorkoutSessionRepository sessionRepository) {
+                              WorkoutSessionRepository sessionRepository,
+                              UserRepository userRepository) {
         this.challengeRepository = challengeRepository;
         this.participantRepository = participantRepository;
         this.sessionRepository = sessionRepository;
+        this.userRepository = userRepository;
     }
 
     /** Record giữ kết quả tính streak cho 1 participant. */
@@ -76,8 +84,18 @@ public class ChallengeFinalizer {
      */
     @Transactional
     void finalizeOne(Challenge challenge) {
-        List<ChallengeParticipant> participants =
+        List<ChallengeParticipant> all =
                 participantRepository.findByChallengeId(challenge.getId());
+
+        // FR-VISIBILITY/FR-011: loại participant BANNED/DELETED khỏi ranking (batch 1 query)
+        Set<Long> activeIds = userRepository.findAllById(
+                        all.stream().map(ChallengeParticipant::getUserId).toList()).stream()
+                .filter(u -> u.getAccountStatus() == AccountStatus.ACTIVE)
+                .map(User::getId)
+                .collect(Collectors.toSet());
+        List<ChallengeParticipant> participants = all.stream()
+                .filter(p -> activeIds.contains(p.getUserId()))
+                .toList();
 
         // Tính streak cho mỗi participant (chỉ xét sessions ≤ end_date — FR-011)
         LocalDate endDate = challenge.getEndDate();

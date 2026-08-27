@@ -40,11 +40,6 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
     long countAcceptedFor(@Param("userId") Long userId);
 
     @Query("SELECT COUNT(f) FROM Friendship f WHERE f.initiatedBy = :userId "
-            + "AND f.activeMarker = 1 AND f.createdAt > :since")
-    long countByInitiatedByAndCreatedAtAfter(@Param("userId") Long initiatedBy,
-                                             @Param("since") Instant since);
-
-    @Query("SELECT COUNT(f) FROM Friendship f WHERE f.initiatedBy = :userId "
             + "AND f.userId2 = :target AND f.status = 'rejected' AND f.activeMarker = 1 "
             + "AND f.updatedAt > :since")
     long countRejectedSince(@Param("userId") Long userId, @Param("target") Long target,

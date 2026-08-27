@@ -123,12 +123,12 @@ public class ProfileService {
             user.setGoalType(request.goalType());
             goalChanged = true;
         }
-        // FR-016: toggle privacy tối thiểu 24h giữa các lần chuyển.
+        // FR-016: toggle privacy tối thiểu 24h giữa các lần chuyển — kèm Retry-After (T055).
         if (request.isPrivate() != null && request.isPrivate() != user.isPrivate()) {
             Instant lastChange = user.getUpdatedAt();
             if (lastChange != null && Duration.between(lastChange, Instant.now()).toHours() < 24) {
                 throw new ApiException(HttpStatus.TOO_MANY_REQUESTS,
-                        "Chỉ được đổi chế độ_privacy tối đa 1 lần mỗi 24h");
+                        "Chỉ được đổi chế độ privacy tối đa 1 lần mỗi 24h", 86400L);
             }
             user.setPrivate(request.isPrivate());
         }
