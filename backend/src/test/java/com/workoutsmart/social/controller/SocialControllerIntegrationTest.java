@@ -410,6 +410,110 @@ class SocialControllerIntegrationTest {
     }
 
     @Test
+    void withdrawPendingRequest_removesRow() throws Exception {
+        createUser("a@example.com", "An");
+        createUser("b@example.com", "Bình");
+        String tokenA = login("a@example.com");
+        Long idB = userRepository.findByEmail("b@example.com").orElseThrow().getId();
+
+        // A gửi lời mời
+        MvcResult send = mockMvc.perform(post("/api/v1/friendships")
+                        .header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetUserId\":" + idB + "}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long friendshipId = objectMapper.readTree(send.getResponse().getContentAsString()).get("id").asLong();
+
+        // A rút lại lời mời — FR-WITHDRAW
+        mockMvc.perform(delete("/api/v1/friendships/" + friendshipId)
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Đã rút lại lời mời"));
+        org.junit.jupiter.api.Assertions.assertEquals(0, friendshipRepository.count());
+
+        // B không còn thấy pending
+        String tokenB = login("b@example.com");
+        mockMvc.perform(get("/api/v1/friendships/pending")
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void withdrawPendingRequest_forbiddenForReceiver() throws Exception {
+        createUser("a@example.com", "An");
+        createUser("b@example.com", "Bình");
+        String tokenA = login("a@example.com");
+        String tokenB = login("b@example.com");
+        Long idB = userRepository.findByEmail("b@example.com").orElseThrow().getId();
+
+        MvcResult send = mockMvc.perform(post("/api/v1/friendships")
+                        .header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetUserId\":" + idB + "}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long friendshipId = objectMapper.readTree(send.getResponse().getContentAsString()).get("id").asLong();
+
+        // Receiver B không được rút thay A → 422
+        mockMvc.perform(delete("/api/v1/friendships/" + friendshipId)
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isUnprocessableEntity());
+        org.junit.jupiter.api.Assertions.assertEquals(1, friendshipRepository.count());
+    }
+
+    @Test
+    void searchExcludesBannedUsers() throws Exception {
+        createUser("a@example.com", "An");
+        createUser("b@example.com", "Bình");
+        createUser("c@example.com", "Bảo");
+        String tokenA = login("a@example.com");
+
+        // Ban Bình — FR-VISIBILITY: banned ẩn khỏi search
+        User bo = userRepository.findByEmail("b@example.com").orElseThrow();
+        bo.setAccountStatus(AccountStatus.BANNED);
+        userRepository.save(bo);
+
+        // q="b" match displayName "Bình"/"Bảo" và email b@ — chỉ còn "Bảo" (ACTIVE)
+        mockMvc.perform(get("/api/v1/users/search").param("q", "b")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].displayName").value("Bảo"));
+    }
+
+    @Test
+    void leaderboardExcludesBannedUsers() throws Exception {
+        Long idA = createUser("a@example.com", "An");
+        createUser("b@example.com", "Bình");
+        String tokenA = login("a@example.com");
+
+        for (int i = 0; i < 3; i++) {
+            sessionRepository.save(WorkoutSession.builder()
+                    .userId(idA).status("completed")
+                    .startTime(Instant.now().minus(i, ChronoUnit.HOURS))
+                    .build());
+        }
+        leaderboardSyncService.updateEntry(idA);
+
+        // Bình có entry (streak 5) nhưng bị ban → phải biến mất khỏi bảng
+        Long idB = userRepository.findByEmail("b@example.com").orElseThrow().getId();
+        leaderboardRepository.save(com.workoutsmart.social.entity.LeaderboardEntry.builder()
+                .userId(idB).currentStreakWeeks(5).longestStreakWeeks(5)
+                .streakStartWeek(LocalDate.of(2026, 1, 5)).build());
+        User bannedB = userRepository.findByEmail("b@example.com").orElseThrow();
+        bannedB.setAccountStatus(AccountStatus.BANNED);
+        userRepository.save(bannedB);
+
+        mockMvc.perform(get("/api/v1/leaderboard")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].displayName").value("An"));
+    }
+
+    @Test
     void challengeJoinAfterEndDate_returns422() throws Exception {
         createUser("a@example.com", "An");
         String tokenA = login("a@example.com");

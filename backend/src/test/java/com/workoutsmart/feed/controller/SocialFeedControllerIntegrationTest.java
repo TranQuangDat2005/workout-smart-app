@@ -345,4 +345,137 @@ class SocialFeedControllerIntegrationTest {
         org.junit.jupiter.api.Assertions.assertTrue(all.isEmpty(),
                 "Không được có event feed cho buổi tập thường: " + all);
     }
+
+    @Test
+    void createPostWithFileDelegatesToStorageService() throws Exception {
+        createUser("a@example.com", "An");
+        String tokenA = login("a@example.com");
+
+        MockMultipartFile png = new MockMultipartFile("media", "photo.png", "image/png",
+                new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+
+        mockMvc.perform(multipart("/api/v1/feed/posts")
+                        .file(png)
+                        .param("content", "Ảnh test")
+                        .param("audience", "public")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.mediaUrl").isNotEmpty());
+
+        org.mockito.Mockito.verify(storageService).store(any());
+    }
+
+    @Test
+    void createPostAcceptsGifUrlFromTenor() throws Exception {
+        createUser("a@example.com", "An");
+        String tokenA = login("a@example.com");
+
+        mockMvc.perform(multipart("/api/v1/feed/posts")
+                        .param("content", "Funny GIF")
+                        .param("audience", "public")
+                        .param("gifUrl", "https://tenor.com/view/cat-funny-cat-gif-12345678")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.gifUrl").value("https://tenor.com/view/cat-funny-cat-gif-12345678"));
+    }
+
+    @Test
+    void createPostAcceptsGifUrlFromMediaTenorCdn() throws Exception {
+        createUser("a@example.com", "An");
+        String tokenA = login("a@example.com");
+
+        mockMvc.perform(multipart("/api/v1/feed/posts")
+                        .param("content", "GIF CDN")
+                        .param("audience", "public")
+                        .param("gifUrl", "https://media.tenor.com/view/cat-gif-12345678")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.gifUrl").value("https://media.tenor.com/view/cat-gif-12345678"));
+    }
+
+    @Test
+    void createPostRejectsGifUrlOver500() throws Exception {
+        createUser("a@example.com", "An");
+        String tokenA = login("a@example.com");
+
+        String tooLong = "https://media.tenor.com/" + "a".repeat(600);
+
+        mockMvc.perform(multipart("/api/v1/feed/posts")
+                        .param("content", "GIF quá dài")
+                        .param("audience", "public")
+                        .param("gifUrl", tooLong)
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createPostRejectsMediaAndGifTogether() throws Exception {
+        createUser("a@example.com", "An");
+        String tokenA = login("a@example.com");
+
+        MockMultipartFile media = new MockMultipartFile(
+                "media", "pic.png", "image/png", new byte[]{1, 2, 3});
+
+        mockMvc.perform(multipart("/api/v1/feed/posts")
+                        .file(media)
+                        .param("content", "Vừa ảnh vừa GIF")
+                        .param("audience", "public")
+                        .param("gifUrl", "https://tenor.com/view/some-gif")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void likeAndCommentsBlockedForPrivatePostOfStranger() throws Exception {
+        createUser("a@example.com", "An");
+        createUser("b@example.com", "Bình");
+        String tokenA = login("a@example.com");
+        String tokenB = login("b@example.com");
+
+        long postId = createPost(tokenA, "Chỉ mình An", "private");
+
+        // B không phải tác giả → FR-AUDIENCE: like/comments/đọc comments đều 403
+        mockMvc.perform(post("/api/v1/feed/posts/" + postId + "/like")
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/feed/posts/" + postId + "/comments")
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/feed/posts/" + postId + "/comments")
+                        .header("Authorization", "Bearer " + tokenB)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"Không nên thấy\"}"))
+                .andExpect(status().isForbidden());
+
+        // Chính tác giả still OK
+        mockMvc.perform(get("/api/v1/feed/posts/" + postId + "/comments")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void createPostRejectsGifUrlFromUnknownHost() throws Exception {
+        createUser("a@example.com", "An");
+        String tokenA = login("a@example.com");
+
+        mockMvc.perform(multipart("/api/v1/feed/posts")
+                        .param("content", "Evil GIF")
+                        .param("audience", "public")
+                        .param("gifUrl", "https://evil.com/malicious.gif")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createPostRejectsGifUrlWithHttp() throws Exception {
+        createUser("a@example.com", "An");
+        String tokenA = login("a@example.com");
+
+        mockMvc.perform(multipart("/api/v1/feed/posts")
+                        .param("content", "HTTP GIF")
+                        .param("audience", "public")
+                        .param("gifUrl", "http://tenor.com/view/some-gif")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isBadRequest());
+    }
 }

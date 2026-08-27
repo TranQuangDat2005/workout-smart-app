@@ -10,6 +10,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.workoutsmart.auth.entity.AccountStatus;
+import com.workoutsmart.auth.entity.User;
+import com.workoutsmart.auth.repository.UserRepository;
 import com.workoutsmart.profile.entity.WorkoutSession;
 import com.workoutsmart.profile.repository.WorkoutSessionRepository;
 import com.workoutsmart.social.entity.Challenge;
@@ -36,12 +39,15 @@ class ChallengeFinalizerTest {
     private ChallengeParticipantRepository participantRepository;
     @Mock
     private WorkoutSessionRepository sessionRepository;
+    @Mock
+    private UserRepository userRepository;
 
     private ChallengeFinalizer finalizer;
 
     @BeforeEach
     void setUp() {
-        finalizer = new ChallengeFinalizer(challengeRepository, participantRepository, sessionRepository);
+        finalizer = new ChallengeFinalizer(challengeRepository, participantRepository,
+                sessionRepository, userRepository);
     }
 
     private Challenge challenge(long id, String status, LocalDate endDate) {
@@ -103,6 +109,7 @@ class ChallengeFinalizerTest {
         when(participantRepository.findByChallengeId(1L)).thenReturn(List.of(pA, pB, pC));
 
         // A: 6 sessions → longest streak, B: 3 → streak=1, C: 0 → streak=0
+        stubActiveUsers(1L, 2L, 3L);
         stubSessions(1L, 6);
         stubSessions(2L, 3);
         stubSessions(3L, 0);
@@ -130,6 +137,7 @@ class ChallengeFinalizerTest {
 
         // Both have 3 sessions this week (streak=1, same start week)
         // Tie-break goes to userId ASC → A first
+        stubActiveUsers(1L, 2L);
         stubSessionsThisWeek(1L);
         stubSessionsThisWeek(2L);
 
@@ -149,6 +157,7 @@ class ChallengeFinalizerTest {
         when(participantRepository.findByChallengeId(1L)).thenReturn(List.of(pA, pB));
 
         // Both 3 sessions this week, same streak, same startWeek → userId ASC
+        stubActiveUsers(1L, 2L);
         stubSessionsThisWeek(1L);
         stubSessionsThisWeek(2L);
 
@@ -221,5 +230,39 @@ class ChallengeFinalizerTest {
                     .startTime(now.minus(i, ChronoUnit.HOURS)).build());
         }
         when(sessionRepository.findByUserIdAndStatus(userId, "completed")).thenReturn(sessions);
+    }
+
+    /** Helper: stub UserRepository trả về các user ACTIVE. */
+    private void stubActiveUsers(Long... ids) {
+        List<User> users = new ArrayList<>();
+        for (Long id : ids) {
+            users.add(User.builder().id(id).email("u" + id + "@example.com").role("user")
+                    .displayName("U" + id).accountStatus(AccountStatus.ACTIVE).build());
+        }
+        when(userRepository.findAllById(any())).thenReturn(users);
+    }
+
+    @Test
+    void finalize_excludesBannedParticipantsFromRanking() {
+        Challenge c = challenge(1L, "open", LocalDate.now().minusDays(1));
+        ChallengeParticipant pActive = participant(10L, 1L, 1L);
+        ChallengeParticipant pBanned = participant(11L, 1L, 2L);
+
+        when(challengeRepository.findByStatus("open")).thenReturn(List.of(c));
+        when(participantRepository.findByChallengeId(1L)).thenReturn(List.of(pActive, pBanned));
+
+        User active = User.builder().id(1L).email("a@example.com").role("user").displayName("A")
+                .accountStatus(AccountStatus.ACTIVE).build();
+        User banned = User.builder().id(2L).email("b@example.com").role("user").displayName("B")
+                .accountStatus(AccountStatus.BANNED).build();
+        when(userRepository.findAllById(any())).thenReturn(List.of(active, banned));
+
+        stubSessionsThisWeek(1L);
+
+        finalizer.run();
+
+        assertEquals(1, pActive.getFinalRank());
+        assertNull(pBanned.getFinalRank());
+        assertNull(pBanned.getCompletedAt());
     }
 }

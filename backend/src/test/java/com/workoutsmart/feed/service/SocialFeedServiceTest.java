@@ -15,14 +15,17 @@ import com.workoutsmart.auth.entity.AccountStatus;
 import com.workoutsmart.auth.entity.User;
 import com.workoutsmart.auth.exception.ApiException;
 import com.workoutsmart.auth.repository.UserRepository;
+import com.workoutsmart.feed.dto.CommentResponse;
 import com.workoutsmart.feed.dto.FeedPageResponse;
 import com.workoutsmart.feed.dto.LikeResponse;
 import com.workoutsmart.feed.dto.PostResponse;
 import com.workoutsmart.feed.entity.CommunityPost;
+import com.workoutsmart.feed.entity.PostComment;
 import com.workoutsmart.feed.entity.PostLike;
 import com.workoutsmart.feed.repository.CommunityPostRepository;
 import com.workoutsmart.feed.repository.PostCommentRepository;
 import com.workoutsmart.feed.repository.PostLikeRepository;
+import com.workoutsmart.social.entity.Friendship;
 import com.workoutsmart.social.repository.FriendshipRepository;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -75,14 +78,14 @@ class SocialFeedServiceTest {
     @Test
     void createPostRejectsEmptyContentWithoutMedia() {
         ApiException ex = assertThrows(ApiException.class,
-                () -> service.createPost(1L, "   ", "public", null));
+                () -> service.createPost(1L, "   ", "public", null, null));
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
     }
 
     @Test
     void createPostRejectsInvalidAudience() {
         ApiException ex = assertThrows(ApiException.class,
-                () -> service.createPost(1L, "Nội dung", "everyone", null));
+                () -> service.createPost(1L, "Nội dung", "everyone", null, null));
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
     }
 
@@ -95,7 +98,7 @@ class SocialFeedServiceTest {
         });
         when(userRepository.findAllById(any())).thenReturn(List.of(user(1L, "An", AccountStatus.ACTIVE)));
 
-        PostResponse res = service.createPost(1L, "  Xin chào  ", "public", null);
+        PostResponse res = service.createPost(1L, "  Xin chào  ", "public", null, null);
 
         assertEquals("Xin chào", res.content());
         assertEquals("public", res.audience());
@@ -148,7 +151,7 @@ class SocialFeedServiceTest {
 
     @Test
     void toggleLikeAddsThenRemoves() {
-        when(postRepository.existsById(5L)).thenReturn(true);
+        when(postRepository.findById(5L)).thenReturn(Optional.of(post(5L, 1L, "public", "Bài của tôi")));
         when(likeRepository.findByPostIdAndUserId(5L, 1L)).thenReturn(Optional.empty());
         when(likeRepository.countByPostId(5L)).thenReturn(1L);
 
@@ -168,10 +171,95 @@ class SocialFeedServiceTest {
 
     @Test
     void addCommentRejectsBlankContent() {
-        when(postRepository.existsById(5L)).thenReturn(true);
+        when(postRepository.findById(5L)).thenReturn(Optional.of(post(5L, 1L, "public", "Bài")));
         ApiException ex = assertThrows(ApiException.class,
                 () -> service.addComment(1L, 5L, "   "));
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+    }
+
+    @Test
+    void toggleLikeForbiddenForPrivatePostOfStranger() {
+        when(postRepository.findById(5L)).thenReturn(Optional.of(post(5L, 2L, "private", "Rêng")));
+
+        ApiException ex = assertThrows(ApiException.class, () -> service.toggleLike(1L, 5L));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatus());
+        verify(likeRepository, never()).save(any());
+    }
+
+    @Test
+    void commentsForbiddenForPrivatePostOfStranger() {
+        when(postRepository.findById(5L)).thenReturn(Optional.of(post(5L, 2L, "private", "Rêng")));
+
+        ApiException ex = assertThrows(ApiException.class, () -> service.comments(1L, 5L));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatus());
+        verify(commentRepository, never()).findByPostIdOrderByIdAsc(any());
+    }
+
+    @Test
+    void commentsForbiddenForFriendsPostOfNonFriend() {
+        when(postRepository.findById(5L)).thenReturn(Optional.of(post(5L, 2L, "friends", "Chỉ bạn bè")));
+        when(friendshipRepository.findBetween(1L, 2L)).thenReturn(List.of());
+
+        ApiException ex = assertThrows(ApiException.class, () -> service.comments(1L, 5L));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatus());
+    }
+
+    @Test
+    void addComment_savesForVisiblePost() {
+        when(postRepository.findById(5L)).thenReturn(Optional.of(post(5L, 2L, "friends", "Chỉ bạn bè")));
+        when(friendshipRepository.findBetween(1L, 2L))
+                .thenReturn(List.of(Friendship.builder().id(9L).userId1(1L).userId2(2L)
+                        .status("accepted").initiatedBy(1L)
+                        .createdAt(Instant.now()).build()));
+        when(commentRepository.save(any())).thenAnswer(inv -> {
+            PostComment c = inv.getArgument(0);
+            c.setId(40L);
+            return c;
+        });
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user(1L, "An", AccountStatus.ACTIVE)));
+
+        CommentResponse res = service.addComment(1L, 5L, "  Hay quá  ");
+
+        assertEquals("Hay quá", res.content());
+        assertEquals("An", res.displayName());
+    }
+
+    @Test
+    void createPostRejectsGifUrlOver500() {
+        String tooLong = "https://media.tenor.com/" + "a".repeat(500);
+
+        ApiException ex = assertThrows(ApiException.class,
+                () -> service.createPost(1L, "GIF dài", "public", null, tooLong));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        verify(storageService, never()).store(any());
+    }
+
+    @Test
+    void createPostRejectsMediaAndGifTogether() {
+        MultipartFile file = org.mockito.Mockito.mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+
+        ApiException ex = assertThrows(ApiException.class,
+                () -> service.createPost(1L, "Vừa ảnh vừa gif", "public", file,
+                        "https://media.tenor.com/view/sumogif"));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        verify(storageService, never()).store(any());
+    }
+
+    @Test
+    void createPostAcceptsGifUrlFromMediaTenor() {
+        when(postRepository.save(any())).thenAnswer(inv -> {
+            CommunityPost p = inv.getArgument(0);
+            p.setId(12L);
+            return p;
+        });
+        when(userRepository.findAllById(any())).thenReturn(List.of(user(1L, "An", AccountStatus.ACTIVE)));
+
+        PostResponse res = service.createPost(1L, "GIF", "public", null,
+                "https://media.tenor.com/view/sumogif");
+
+        assertEquals("https://media.tenor.com/view/sumogif", res.gifUrl());
+        verify(storageService).store(null);
     }
 
     @Test
@@ -208,7 +296,7 @@ class SocialFeedServiceTest {
         });
         when(userRepository.findAllById(any())).thenReturn(List.of(user(1L, "An", AccountStatus.ACTIVE)));
 
-        PostResponse res = service.createPost(1L, "", "friends", file);
+        PostResponse res = service.createPost(1L, "", "friends", file, null);
 
         assertEquals("image", res.mediaType());
         assertEquals("workoutsmart-media/x.png", res.mediaUrl());
