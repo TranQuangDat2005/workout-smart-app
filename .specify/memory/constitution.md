@@ -33,14 +33,20 @@
   - §5 Media upload: mở rộng cho BÀI ĐĂNG CỘNG ĐỒNG (video/ảnh), lưu trên
     SeaweedFS self-hosted qua backend proxy (không gọi external API).
     Phê duyệt: owner 2026-08-19 (chọn phương án C, lưu SeaweedFS).
+  Version change: 2.3.0 → 2.4.0 (2026-08-27)
+  Modified principles:
+  - §5 External API allowlist: thêm Tenor embed (GIF bài đăng cộng đồng — chỉ Web
+    client, URL do User cung cấp, không gọi từ backend) + Instagram link/preview;
+    làm rõ upload media bài đăng cộng đồng: chỉ ảnh PNG/JPG/JPEG/WEBP, KHÔNG GIF/video.
+    Phê duyệt: owner 2026-08-27 (clarify Q2/Q3 của 018-fix-social-flows).
   Templates requiring updates: không.
   Runtime guidance updated: AGENTS.md (đã đồng bộ).
   Follow-up TODOs: không.
 -->
 
-**Version**: 2.3.0
+**Version**: 2.4.0
 **Ratified**: 2026-08-17
-**Last Amended**: 2026-08-19
+**Last Amended**: 2026-08-27
 **Status**: Active
 
 Constitution này là nguồn quy tắc canonical cho Speckit agents và người review.
@@ -120,7 +126,7 @@ Functional Requirements viết bằng cú pháp EARS (WHEN/WHERE/THE hệ thốn
 
 - Mọi thao tác Admin (khóa/mở khóa user, thêm/sửa/ẩn bài tập) phải ghi audit log: actor, action, target type/id, reason, timestamp. Audit log append-only.
 - KHÔNG commit secrets/mật khẩu/API key/JWT secret; KHÔNG đọc `.env`, `*.secret`, `credentials/*`.
-- External API allowlist: Email Service (SendGrid / AWS SES / SMTP Gmail — gửi OTP), FCM (push — chỉ Mobile), YouTube IFrame Player API + Spotify embed (nhạc luyện tập — chỉ Web client, URL do User cung cấp, không gọi từ backend). Media hệ thống dùng `exercises-dataset/` local; upload media mới cho bài tập tự tạo cá nhân (lưu local/S3) VÀ cho bài đăng cộng đồng (ảnh, lưu SeaweedFS self-hosted qua backend proxy) — không gọi external API.
+- External API allowlist: Email Service (SendGrid / AWS SES / SMTP Gmail — gửi OTP), FCM (push — chỉ Mobile), YouTube IFrame Player API + Spotify embed (nhạc luyện tập — chỉ Web client, URL do User cung cấp, không gọi từ backend), Tenor embed + Instagram link/preview (GIF bài đăng cộng đồng — chỉ Web client, URL do User cung cấp, không gọi từ backend). Media hệ thống dùng `exercises-dataset/` local; upload media mới cho bài tập tự tạo cá nhân (lưu local/S3) VÀ cho bài đăng cộng đồng (chỉ ảnh PNG/JPG/JPEG/WEBP — KHÔNG GIF/video — lưu SeaweedFS self-hosted qua backend proxy) — không gọi external API.
 - JWT middleware phải check trạng thái ban ở mọi request, kể cả token còn hạn; ban → revoke token ngay, hiệu lực khi user kết nối lại (chặn ≤ 3 giây ở request kế tiếp).
 - Mật khẩu lưu bằng bcrypt; không lưu mật khẩu thô.
 - Master data soft-delete; dữ liệu giao dịch (session, bữa ăn) không xóa cứng trước thời hạn retention đã chốt.

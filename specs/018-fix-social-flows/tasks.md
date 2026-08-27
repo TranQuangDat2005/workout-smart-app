@@ -36,11 +36,11 @@ description: "Task list template for feature implementation"
 
 **⚠️ CRITICAL**: Không user story nào bắt đầu trước khi phase này xong (entity là nền của tất cả)
 
-- [ ] T004 Tạo migration `backend/src/main/resources/db/migration/V20__friendship_unique.sql` — dedupe (bản ghi thắng accepted > pending > rejected mới nhất; bản ghi thua → `superseded`, KHÔNG DELETE) + unique index một phần `LEAST/GREATEST ... WHERE status <> 'superseded'`
-- [ ] T005 [P] Tạo migration `backend/src/main/resources/db/migration/V21__leaderboard_streak_start.sql` — thêm cột `streak_start_week DATE`
-- [ ] T006 [P] Tạo migration `backend/src/main/resources/db/migration/V22__user_is_private.sql` — `users.is_private BOOLEAN NOT NULL DEFAULT TRUE`
-- [ ] T007 [P] Tạo migration `backend/src/main/resources/db/migration/V23__community_post_gif_url.sql` — `community_posts.gif_url VARCHAR(500)`
-- [ ] T008 Cập nhật entities khớp migration: `Friendship.java` (status superseded), `LeaderboardEntry.java` (+streakStartWeek), `User.java` (+isPrivate), `CommunityPost.java` (+gifUrl) — `backend/src/main/java/com/workoutsmart/{social,auth,feed}/entity/`
+- [x] T004 Tạo migration `backend/src/main/resources/db/migration/V20__friendship_unique.sql` — dedupe (bản ghi thắng accepted > pending > rejected mới nhất; bản ghi thua → `superseded`, KHÔNG DELETE) + unique index một phần `LEAST/GREATEST ... WHERE status <> 'superseded'`
+- [x] T005 [P] Tạo migration `backend/src/main/resources/db/migration/V21__leaderboard_streak_start.sql` — thêm cột `streak_start_week DATE`
+- [x] T006 [P] Tạo migration `backend/src/main/resources/db/migration/V22__user_is_private.sql` — `users.is_private BOOLEAN NOT NULL DEFAULT TRUE`
+- [x] T007 [P] Tạo migration `backend/src/main/resources/db/migration/V23__community_post_gif_url.sql` — `community_posts.gif_url VARCHAR(500)`
+- [x] T008 Cập nhật entities khớp migration: `Friendship.java` (status superseded), `LeaderboardEntry.java` (+streakStartWeek), `User.java` (+isPrivate), `CommunityPost.java` (+gifUrl) — `backend/src/main/java/com/workoutsmart/{social,auth,feed}/entity/`
 
 **Checkpoint**: `mvn test` vẫn xanh; DB migrate V20–V23 sạch trên bản sao có dữ liệu trùng
 
@@ -54,15 +54,15 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 1 (viết TRƯỚC — phải FAIL trước khi implement)
 
-- [ ] T009 [P] [US1] Mở rộng unit test `backend/src/test/java/com/workoutsmart/social/service/SocialServiceTest.java` — cases: rate limit 5/ngày, pending 409, cooldown 30 ngày 429, tái dùng row rejected, cap 500 bạn 422, tự kết bạn 422, auto-accept lời mời chéo
-- [ ] T010 [P] [US1] Integration test lời mời chéo đồng thời → 1 row + search trả relationshipStatus — `backend/src/test/java/com/workoutsmart/social/controller/SocialControllerIntegrationTest.java`
+- [x] T009 [P] [US1] Mở rộng unit test `backend/src/test/java/com/workoutsmart/social/service/SocialServiceTest.java` — cases: rate limit 5/ngày, pending 409, cooldown 30 ngày 429, tái dùng row rejected, cap 500 bạn 422, tự kết bạn 422, auto-accept lời mời chéo
+- [x] T010 [P] [US1] Integration test lời mời chéo đồng thời → 1 row + search trả relationshipStatus — `backend/src/test/java/com/workoutsmart/social/controller/SocialControllerIntegrationTest.java`
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Sửa `FriendshipRepository.java` (backend/src/main/java/com/workoutsmart/social/repository/): `findBetween` → `List<Friendship>` (không ném khi nhiều row), thêm query batch trạng thái quan hệ cho search (R12) + `countAcceptedFor`
-- [ ] T012 [US1] Sửa `SocialService.sendRequest` (backend/.../social/service/SocialService.java): reuse row `rejected` khi hết cooldown (UPDATE, không INSERT), guard cap 500, giữ auto-accept (depends T011)
-- [ ] T013 [US1] Sửa `SocialService.searchUsers` + `UserSearchResponse.java` (backend/.../social/): thêm `relationshipStatus` (none/pending_sent/pending_received/accepted) bằng 1 query batch
-- [ ] T014 [US1] Sửa `web/src/pages/social/FriendsPage.tsx` + `web/src/services/socialApi.ts`: nút theo relationshipStatus ("Kết bạn"/"Đã gửi lời mời"/"Chấp nhận–Từ chối"/"Bạn bè") + tạo test `web/src/pages/social/FriendsPage.test.tsx`
+- [x] T011 [US1] Sửa `FriendshipRepository.java` (backend/src/main/java/com/workoutsmart/social/repository/): `findBetween` → `List<Friendship>` (không ném khi nhiều row), thêm query batch trạng thái quan hệ cho search (R12) + `countAcceptedFor`
+- [x] T012 [US1] Sửa `SocialService.sendRequest` (backend/.../social/service/SocialService.java): reuse row `rejected` khi hết cooldown (UPDATE, không INSERT), guard cap 500, giữ auto-accept (depends T011)
+- [x] T013 [US1] Sửa `SocialService.searchUsers` + `UserSearchResponse.java` (backend/.../social/): thêm `relationshipStatus` (none/pending_sent/pending_received/accepted) bằng 1 query batch
+- [x] T014 [US1] Sửa `web/src/pages/social/FriendsPage.tsx` + `web/src/services/socialApi.ts`: nút theo relationshipStatus ("Kết bạn"/"Đã gửi lời mời"/"Chấp nhận–Từ chối"/"Bạn bè") + tạo test `web/src/pages/social/FriendsPage.test.tsx`
 
 **Checkpoint**: US1 hoàn chỉnh — quickstart.md kịch bản 1 chạy đúng
 

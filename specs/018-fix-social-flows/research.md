@@ -4,14 +4,14 @@ Tất cả NEEDS CLARIFICATION đã được owner chốt ở bước clarify �
 
 ## R1 — Bất biến 1 quan hệ bạn bè/pair (FR-001, FR-002)
 
-- **Decision**: Partial unique index trên cặp chuẩn hóa + trạng thái `superseded` cho bản ghi cũ.
+- **Decision**: Cặp chuẩn hóa `pair_min`/`pair_max` + cờ `active_marker` + unique index thường (portable H2 + PostgreSQL):
   ```sql
   CREATE UNIQUE INDEX uq_friendships_active_pair
-    ON friendships (LEAST(user_id_1, user_id_2), GREATEST(user_id_1, user_id_2))
-    WHERE status <> 'superseded';
+    ON friendships (pair_min, pair_max, active_marker);
   ```
-- **Rationale**: Unique index toàn phần sẽ chặn cả bản ghi `superseded` (dữ liệu cũ giữ lại theo Clarifications A). Index một phần (PostgreSQL) cho phép nhiều bản ghi `superseded` nhưng chỉ 1 bản ghi hoạt động/pair. `LEAST/GREATEST` xử lý 2 chiều (A→B và B→A).
-- **Alternatives**: (a) cột `pair_key` chuẩn hóa (thêm cột, đơn giản hơn nhưng phải backfill); (b) unique toàn phần + xóa cứng bản ghi thua — bị loại vì constitution §7. Chọn index expression để không thêm cột.
+  Bản ghi hoạt động có `active_marker = 1`; bản ghi `superseded` có `active_marker = NULL` (unique index cho phép nhiều NULL ở cả H2 lẫn PostgreSQL). App tự gán pair_min/pair_max/active_marker trong `@PrePersist` của entity.
+- **Rationale**: Phương án ban đầu (partial index `WHERE status <> 'superseded'` trên biểu thức LEAST/GREATEST) KHÔNG chạy được trên H2 (test DB) — đã kiểm chứng thực nghiệm H2 2.2.224: không hỗ trợ expression index lẫn filtered index. Thiết kế cột chuẩn hóa đạt cùng hiệu ứng, chạy cả hai DB.
+- **Alternatives**: (a) partial index chỉ PostgreSQL + bỏ ràng buộc ở H2 (lệch môi trường); (b) xóa cứng bản ghi thua (vi phạm constitution §7 — owner không chọn); (c) archive sang bảng khác (owner chọn A — giữ cùng bảng).
 
 ## R2 — Dedupe dữ liệu cũ (FR-001, Clarifications A)
 

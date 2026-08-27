@@ -5,17 +5,13 @@ Migration mới V20–V23 (additive — KHÔNG sửa V7/V19, constitution §7).
 ## V20 — friendships: dedupe + bất biến 1 bản ghi hoạt động/pair
 
 ```sql
--- 1. Thêm giá trị trạng thái mới (dữ liệu cũ trùng lặp được giữ, không xóa)
--- status: pending / accepted / rejected / superseded
-
--- 2. Dedupe: với mỗi cặp (LEAST, GREATEST) có >1 bản ghi hoạt động,
---    giữ bản ghi thắng (accepted > pending > rejected; updated_at mới nhất),
---    các bản ghi còn lại → 'superseded'.
-
--- 3. Unique index một phần — chỉ 1 bản ghi hoạt động cho mỗi cặp:
+-- Thêm cột: pair_min/pair_max (cặp chuẩn hóa), active_marker (1 = hoạt động, NULL = superseded)
+-- Dedupe: với mỗi cặp giữ bản ghi thắng (accepted > pending > rejected; updated_at mới nhất, rồi id nhỏ hơn);
+--         bản ghi thua → status 'superseded' (KHÔNG DELETE — constitution §7).
+-- Unique index thường (portable H2 + PostgreSQL — đã kiểm chứng H2 không hỗ trợ partial index):
 CREATE UNIQUE INDEX uq_friendships_active_pair
-  ON friendships (LEAST(user_id_1, user_id_2), GREATEST(user_id_1, user_id_2))
-  WHERE status <> 'superseded';
+  ON friendships (pair_min, pair_max, active_marker);
+-- Nhiều bản ghi superseded cùng pair OK (active_marker NULL, NULLs distinct); chỉ 1 bản ghi active/pair.
 ```
 
 ### State transitions (friendship)
