@@ -53,6 +53,12 @@ Người dùng muốn lọc dữ liệu thống kê theo các khoảng thời gi
 
 ### Functional Requirements
 
+### Clarifications
+
+- `completed` là trạng thái session, không đồng nghĩa với đạt toàn bộ target.
+- Hệ thống phải hiển thị thêm target attainment theo từng set: set reps đạt khi actual reps >= target reps; set duration đạt khi actual duration >= target duration.
+- Target attainment dùng actual data của các set đã ghi; cho phép actual bằng 0 hoặc vượt target nếu payload đúng kiểu bài.
+
 - **FR-001**: Hệ thống PHẢI hiển thị biểu đồ cân nặng theo thời gian (line chart) sử dụng dữ liệu từ UC-13.
 - **FR-002**: Hệ thống PHẢI hiển thị biểu đồ volume tổng kg nâng theo tuần (bar chart) sử dụng dữ liệu từ `workout_sets`.
 - **FR-003**: Hệ thống PHẢI hiển thị streak — chuỗi TUẦN liên tiếp đạt ≥ 3 buổi tập (định nghĩa duy nhất toàn hệ thống), gồm streak hiện tại và streak dài nhất. Streak KHÔNG tính theo số ngày tập liên tiếp.

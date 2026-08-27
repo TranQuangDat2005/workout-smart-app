@@ -23,6 +23,7 @@ import com.workoutsmart.tracking.dto.SyncRequest;
 import com.workoutsmart.tracking.dto.SyncResponse;
 import com.workoutsmart.tracking.dto.SyncSessionRequest;
 import com.workoutsmart.tracking.dto.SyncSetRequest;
+import com.workoutsmart.tracking.entity.WorkoutSessionExercise;
 import com.workoutsmart.tracking.repository.WorkoutSessionExerciseRepository;
 import com.workoutsmart.tracking.repository.WorkoutSessionExerciseSetRepository;
 import java.math.BigDecimal;
@@ -194,6 +195,19 @@ class TrackingServiceTest {
                 new RecordSetRequest(null, 1, 20, BigDecimal.valueOf(20), 60, null, "warm_up", null));
 
         assertEquals("warm_up", res.setType());
+    }
+
+    @Test
+    void recordSetRejectsValuesThatDoNotMatchExerciseMeasureType() {
+        when(sessionRepository.findById(10L)).thenReturn(Optional.of(activeSession()));
+        when(sessionExerciseRepository.findById(20L)).thenReturn(Optional.of(
+                WorkoutSessionExercise.builder().id(20L).sessionId(10L).exerciseId(99L)
+                        .measureType("duration").build()));
+
+        ApiException ex = assertThrows(ApiException.class, () -> service.recordSet(1L, 10L,
+                new RecordSetRequest(99L, 1, 10, null, null, 20L, null, null)));
+
+        assertEquals(400, ex.getStatus().value());
     }
 
     @Test

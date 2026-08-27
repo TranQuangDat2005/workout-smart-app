@@ -55,6 +55,11 @@ Người dùng đã hoàn thành ít nhất 1 buổi tập muốn xem lại toà
 
 ### Functional Requirements
 
+### Clarifications
+
+- Session kết thúc sớm vẫn được lưu là `completed`; lịch sử giữ các reps/weight/duration thực tế đã ghi.
+- Các thao tác xóa lịch sử hoặc thao tác nguy hiểm phải dùng Modal accessible thay cho `window.confirm`.
+
 - **FR-001**: Hệ thống PHẢI hiển thị đầy đủ thông tin hồ sơ cá nhân gồm: tên, ảnh đại diện, tuổi, cân nặng (đồng bộ từ lịch sử đo), chiều cao (cm), mục tiêu hiện tại khi User truy cập trang hồ sơ. Hồ sơ mặc định ở chế độ Private (chỉ bạn bè mới xem được).
 - **FR-002**: Hệ thống PHẢI cho phép User chỉnh sửa một hoặc nhiều trường hồ sơ (trừ cân nặng) đồng thời và lưu trong một lần thao tác.
 - **FR-003**: Hệ thống PHẢI validate dữ liệu đầu vào: chiều cao > 0, tuổi trong khoảng 10–120 tuổi. Nếu không hợp lệ, hiển thị lỗi inline tại trường tương ứng và không lưu.

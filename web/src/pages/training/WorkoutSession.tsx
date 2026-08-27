@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import Button from '../../components/Button';
 import Icon from '../../components/Icon';
+import Modal from '../../components/Modal';
 import TextField from '../../components/TextField';
 import { trackingApi } from '../../services/trackingApi';
 import { mediaUrl as toMediaUrl } from '../../services/planApi';
@@ -99,6 +100,7 @@ export default function WorkoutSession({ hasSchedule }: { hasSchedule: boolean }
   const [starting, setStarting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [completeConfirmOpen, setCompleteConfirmOpen] = useState(false);
 
   // Nghỉ giữa hiệp — deadline tuyệt đối để không trôi giờ khi tab ẩn.
   const [restDeadline, setRestDeadline] = useState<number | null>(null);
@@ -401,7 +403,7 @@ export default function WorkoutSession({ hasSchedule }: { hasSchedule: boolean }
 
   const onComplete = async () => {
     if (!session || saving || completing) return;
-    if (!window.confirm('Kết thúc buổi tập này?')) return;
+    setCompleteConfirmOpen(false);
     setCompleting(true);
     try {
       await trackingApi.completeSession(session.id);
@@ -626,13 +628,29 @@ export default function WorkoutSession({ hasSchedule }: { hasSchedule: boolean }
       <div style={{ display: 'flex', gap: 10 }}>
         <Button
           variant="outlined"
-          onClick={() => void onComplete()}
+          onClick={() => setCompleteConfirmOpen(true)}
           disabled={completing || saving}
           style={{ flex: 1, color: 'var(--green)', borderColor: 'rgba(30,215,96,0.4)' }}
         >
           Kết thúc buổi tập
         </Button>
       </div>
+
+      <Modal
+        open={completeConfirmOpen}
+        title="Kết thúc buổi tập?"
+        onClose={() => setCompleteConfirmOpen(false)}
+        footer={(
+          <>
+            <Button variant="dark" onClick={() => setCompleteConfirmOpen(false)}>Tiếp tục tập</Button>
+            <Button onClick={() => void onComplete()} loading={completing}>Kết thúc</Button>
+          </>
+        )}
+      >
+        <p className="text-secondary">
+          Buổi tập sẽ được lưu với các reps/thời lượng thực tế đã ghi. Bạn vẫn có thể kết thúc sớm.
+        </p>
+      </Modal>
     </>
   );
 }

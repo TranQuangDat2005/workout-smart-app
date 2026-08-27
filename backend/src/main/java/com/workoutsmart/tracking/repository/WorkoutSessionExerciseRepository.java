@@ -8,5 +8,7 @@ public interface WorkoutSessionExerciseRepository extends JpaRepository<WorkoutS
 
     List<WorkoutSessionExercise> findBySessionIdOrderBySortOrderAscIdAsc(Long sessionId);
 
+    List<WorkoutSessionExercise> findBySessionIdIn(List<Long> sessionIds);
+
     long deleteBySessionIdIn(List<Long> sessionIds);
 }

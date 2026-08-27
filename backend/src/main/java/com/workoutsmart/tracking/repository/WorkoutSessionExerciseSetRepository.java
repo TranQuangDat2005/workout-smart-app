@@ -9,5 +9,7 @@ public interface WorkoutSessionExerciseSetRepository extends JpaRepository<Worko
 
     List<WorkoutSessionExerciseSet> findBySessionExerciseIdOrderBySetNumberAsc(Long sessionExerciseId);
 
+    List<WorkoutSessionExerciseSet> findBySessionExerciseIdIn(List<Long> sessionExerciseIds);
+
     Optional<WorkoutSessionExerciseSet> findBySessionExerciseIdAndSetNumber(Long sessionExerciseId, int setNumber);
 }

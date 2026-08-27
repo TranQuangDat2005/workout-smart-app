@@ -126,6 +126,8 @@ public class TrackingService {
                             .setNumber(request.setNumber())
                             .build());
         }
+        validateActualValues(request.exerciseId(), request.sessionExerciseId(), request.repsCompleted(),
+                request.weightUsed(), request.durationSeconds());
         set.setExerciseId(request.exerciseId());
         set.setSessionExerciseId(request.sessionExerciseId());
         set.setRepsCompleted(request.repsCompleted());
@@ -216,6 +218,8 @@ public class TrackingService {
                 if (set == null) {
                     set = WorkoutSet.builder().sessionId(session.getId()).setNumber(setReq.setNumber()).build();
                 }
+                validateActualValues(setReq.exerciseId(), sessionExerciseId, setReq.repsCompleted(),
+                        setReq.weightUsed(), setReq.durationSeconds());
                 set.setSessionExerciseId(sessionExerciseId);
                 set.setExerciseId(setReq.exerciseId());
                 set.setRepsCompleted(setReq.repsCompleted());
@@ -242,6 +246,35 @@ public class TrackingService {
                 .filter(row -> sessionId.equals(row.getSessionId()))
                 .map(WorkoutSessionExercise::getId)
                 .orElse(null);
+    }
+
+    private void validateActualValues(Long exerciseId, Long sessionExerciseId, Integer reps,
+                                      java.math.BigDecimal weight, Integer durationSeconds) {
+        String measureType = null;
+        if (sessionExerciseId != null) {
+            measureType = sessionExerciseRepository.findById(sessionExerciseId)
+                    .map(WorkoutSessionExercise::getMeasureType)
+                    .orElse(null);
+        }
+        if (measureType == null && exerciseId != null) {
+            measureType = exerciseRepository.findById(exerciseId)
+                    .map(Exercise::getMeasureType)
+                    .orElse(null);
+        }
+        // Legacy/manual records may not carry an exercise reference. Infer only when
+        // the payload is unambiguous; snapshot-backed requests always use the stored type.
+        if (measureType == null) {
+            measureType = durationSeconds != null ? "duration" : "reps_weight";
+        }
+        if ("duration".equals(measureType)) {
+            if (durationSeconds == null || durationSeconds < 0 || reps != null || weight != null) {
+                throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "Bài tính thời gian chỉ nhận duration_seconds và không nhận reps/weight");
+            }
+        } else if (reps == null || durationSeconds != null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Bài tính reps/tạ phải có reps và không nhận duration_seconds");
+        }
     }
 
     private boolean snapshotToday(WorkoutSession session, Long planId) {

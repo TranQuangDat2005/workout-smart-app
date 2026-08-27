@@ -23,6 +23,10 @@ import com.workoutsmart.stats.dto.StatsDashboardResponse.CaloriePoint;
 import com.workoutsmart.stats.dto.StatsDashboardResponse.PlanCompletion;
 import com.workoutsmart.stats.dto.StatsDashboardResponse.VolumePoint;
 import com.workoutsmart.stats.dto.StatsDashboardResponse.WeightPoint;
+import com.workoutsmart.tracking.entity.WorkoutSessionExercise;
+import com.workoutsmart.tracking.entity.WorkoutSessionExerciseSet;
+import com.workoutsmart.tracking.repository.WorkoutSessionExerciseRepository;
+import com.workoutsmart.tracking.repository.WorkoutSessionExerciseSetRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
@@ -58,6 +62,8 @@ public class StatsService {
     private final MealDailySummaryRepository summaryRepository;
     private final WorkoutPlanRepository planRepository;
     private final WorkoutPlanDayRepository planDayRepository;
+    private final WorkoutSessionExerciseRepository sessionExerciseRepository;
+    private final WorkoutSessionExerciseSetRepository sessionExerciseSetRepository;
     private final ObjectMapper objectMapper;
     private final ZoneId zone;
 
@@ -69,6 +75,8 @@ public class StatsService {
                         MealDailySummaryRepository summaryRepository,
                         WorkoutPlanRepository planRepository,
                         WorkoutPlanDayRepository planDayRepository,
+                        WorkoutSessionExerciseRepository sessionExerciseRepository,
+                        WorkoutSessionExerciseSetRepository sessionExerciseSetRepository,
                         ObjectMapper objectMapper) {
         this.sessionRepository = sessionRepository;
         this.setRepository = setRepository;
@@ -78,6 +86,8 @@ public class StatsService {
         this.summaryRepository = summaryRepository;
         this.planRepository = planRepository;
         this.planDayRepository = planDayRepository;
+        this.sessionExerciseRepository = sessionExerciseRepository;
+        this.sessionExerciseSetRepository = sessionExerciseSetRepository;
         this.objectMapper = objectMapper;
         this.zone = ZoneId.systemDefault();
     }
@@ -103,6 +113,7 @@ public class StatsService {
                 volume(userId, fromInstant, toInstant),
                 streak(userId),
                 planCompletion(userId),
+                targetAttainment(userId, fromInstant, toInstant),
                 calories(userId, start, end));
     }
 
@@ -172,6 +183,48 @@ public class StatsService {
                         .multiply(BigDecimal.valueOf(100))
                         .divide(BigDecimal.valueOf(plannedDays), 1, RoundingMode.HALF_UP);
         return new PlanCompletion(completed, plannedDays, pct);
+    }
+
+    private StatsDashboardResponse.TargetAttainment targetAttainment(Long userId, Instant from, Instant to) {
+        List<WorkoutSession> sessions = sessionRepository
+                .findByUserIdAndStatusAndStartTimeBetween(userId, STATUS_COMPLETED, from, to);
+        if (sessions.isEmpty()) {
+            return new StatsDashboardResponse.TargetAttainment(0, 0, BigDecimal.ZERO);
+        }
+        List<Long> sessionIds = sessions.stream().map(WorkoutSession::getId).toList();
+        List<WorkoutSessionExercise> exercises = sessionExerciseRepository.findBySessionIdIn(sessionIds);
+        if (exercises.isEmpty()) {
+            return new StatsDashboardResponse.TargetAttainment(0, 0, BigDecimal.ZERO);
+        }
+        Map<Long, WorkoutSessionExercise> exerciseById = exercises.stream()
+                .collect(java.util.stream.Collectors.toMap(WorkoutSessionExercise::getId, e -> e));
+        List<Long> exerciseIds = new ArrayList<>(exerciseById.keySet());
+        Map<Long, WorkoutSessionExerciseSet> targets = sessionExerciseSetRepository
+                .findBySessionExerciseIdIn(exerciseIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        s -> s.getSessionExerciseId() * 100000L + s.getSetNumber(), s -> s,
+                        (first, ignored) -> first));
+        long total = 0;
+        long achieved = 0;
+        for (WorkoutSet actual : setRepository.findBySessionIdIn(sessionIds)) {
+            if (actual.getSessionExerciseId() == null) continue;
+            WorkoutSessionExercise exercise = exerciseById.get(actual.getSessionExerciseId());
+            if (exercise == null) continue;
+            total++;
+            WorkoutSessionExerciseSet target = targets.get(actual.getSessionExerciseId() * 100000L + actual.getSetNumber());
+            boolean isDuration = "duration".equals(exercise.getMeasureType());
+            boolean met = isDuration
+                    ? target != null && actual.getDurationSeconds() != null
+                        && target.getTargetDurationSeconds() != null
+                        && actual.getDurationSeconds() >= target.getTargetDurationSeconds()
+                    : target != null && actual.getRepsCompleted() != null
+                        && actual.getRepsCompleted() >= target.getTargetReps();
+            if (met) achieved++;
+        }
+        BigDecimal pct = total == 0 ? BigDecimal.ZERO
+                : BigDecimal.valueOf(achieved).multiply(BigDecimal.valueOf(100))
+                        .divide(BigDecimal.valueOf(total), 1, RoundingMode.HALF_UP);
+        return new StatsDashboardResponse.TargetAttainment(achieved, total, pct);
     }
 
     // ---------- Calo nạp vs tiêu thụ ----------

@@ -44,17 +44,16 @@ Hệ thống tự động đếm ngược thời gian nghỉ giữa các hiệp 
 
 ### User Story 3 - Phát hiện phân tâm (Focus Detection) (Priority: P2)
 
-Hệ thống phát hiện khi người dùng rời khỏi màn hình tập luyện trong lúc đang tập (không tính lúc nghỉ) và ghi nhận số lần phân tâm, đồng thời nhắc nhở trên Mobile để kéo người dùng quay lại.
+Web ghi nhận ngay khi người dùng rời khỏi màn hình tập luyện trong lúc đang tập (không tính lúc nghỉ). Mobile lifecycle và nhắc nhở local được deferred.
 
 **Why this priority**: Focus Detection cung cấp dữ liệu cho success metric "60% người dùng tập trung hơn" và giúp duy trì động lực, nhưng là tính năng bổ trợ sau khi tracking cơ bản hoạt động.
 
-**Independent Test**: Có thể kiểm thử bằng cách thu nhỏ ứng dụng Flutter khi đang tập quá 15 giây → xác nhận hệ thống cộng 1 vào số lần phân tâm và gửi thông báo nhắc nhở.
+**Independent Test**: Có thể kiểm thử trên Web bằng cách chuyển tab khi đang tập → xác nhận hệ thống ghi nhận 1 lần phân tâm ngay tại sự kiện `visibilitychange`.
 
 **Acceptance Scenarios**:
 
-1. **Given** Người dùng đang tập (không trong thời gian nghỉ), **When** người dùng rời màn hình liên tục quá 15 giây, **Then** hệ thống cộng 1 vào số lần phân tâm.
-2. **Given** Người dùng trên Mobile rời màn hình quá 15 giây khi đang tập, **When** hệ thống phát hiện phân tâm, **Then** hệ thống gửi thông báo đẩy nhắc nhở "Đừng phân tâm, quay lại tập nào!".
-3. **Given** Người dùng trên Web chuyển tab sang tab khác quá 15 giây khi đang tập, **When** hệ thống phát hiện, **Then** hệ thống cộng 1 vào số lần phân tâm.
+1. **Given** Người dùng Web đang tập (không trong thời gian nghỉ), **When** tab chuyển sang `hidden`, **Then** hệ thống cộng 1 vào số lần phân tâm ngay lập tức.
+2. **Given** Người dùng Mobile rời màn hình khi đang tập, **When** hệ thống phát hiện lifecycle thay đổi, **Then** hành vi này được deferred trong phase Web hiện tại.
 4. **Given** Đồng hồ nghỉ đang chạy, **When** người dùng rời màn hình, **Then** hệ thống KHÔNG tính là phân tâm.
 
 ---
@@ -87,14 +86,23 @@ Người dùng muốn kết thúc buổi tập để hoàn tất phiên, lưu tr
 
 ### Functional Requirements
 
+### Clarifications
+
+- Phase hiện tại chỉ hỗ trợ Web; yêu cầu Flutter lifecycle/local notification và offline queue/sync phía client được deferred.
+- Focus interruption trên Web được ghi nhận ngay khi tab chuyển `hidden`; không chờ 15 giây.
+- Khi User bị ban giữa buổi, session chuyển `interrupted`, dữ liệu đã ghi được giữ lại và request tiếp theo bị chặn.
+- User được phép kết thúc sớm; session vẫn chuyển `completed` và giữ actual reps/weight/duration đã ghi.
+- Rest timer vẫn hiển thị sau set cuối; User tự kết thúc session sau khi nghỉ.
+- Set reps/weight phải có `repsCompleted` (cho phép 0 và vượt target), không nhận `durationSeconds`; set duration phải có `durationSeconds` (cho phép 0), không nhận reps/weight.
+
 - **FR-001**: WHEN người dùng nhấn "Hoàn thành hiệp", hệ thống PHẢI lưu dữ liệu hiệp (số lần, khối lượng) và tự động bắt đầu đồng hồ đếm ngược thời gian nghỉ.
 - **FR-002**: WHILE đồng hồ nghỉ đang chạy, hệ thống PHẢI phát cảnh báo âm thanh/rung ở 5 giây cuối trên thiết bị di động.
-- **FR-003**: WHERE người dùng rời màn hình bài tập liên tục quá 15 giây trong lúc đang tập (không tính lúc nghỉ), hệ thống PHẢI cộng 1 vào số lần phân tâm.
+- **FR-003**: WHEN người dùng chuyển tab/app khỏi màn hình bài tập trong lúc đang tập (không tính lúc nghỉ), hệ thống Web PHẢI ghi nhận ngay 1 lần phân tâm tại sự kiện `visibilitychange` sang `hidden`.
 - **FR-004**: Trên Web, hệ thống PHẢI phát hiện chuyển tab (document không còn hiển thị) để tính phân tâm.
-- **FR-005**: Trên Mobile, hệ thống PHẢI phát hiện app chuyển nền/không hoạt động để tính phân tâm và gửi thông báo đẩy nhắc nhở.
+- **FR-005**: Mobile lifecycle, local notification và hành vi app chuyển nền được deferred; không thuộc phạm vi triển khai Web hiện tại.
 - **FR-006**: WHEN người dùng cố bắt đầu buổi tập mới trong khi buổi trước còn status active, hệ thống PHẢI hiển thị cảnh báo tiếp tục hay kết thúc (không áp dụng cho session đã expired).
 - **FR-007**: WHEN Admin ban User đang giữa buổi tập, hệ thống PHẢI chặn User ở request kế tiếp (độ trễ tối đa 3 giây), giữ dữ liệu đã ghi và đánh dấu session "interrupted". Lệnh ban PHẢI có hiệu lực ngay khi User kết nối lại online (kể cả khi User đang offline lúc bị ban).
-- **FR-008**: WHEN mất mạng trong lúc lưu hiệp tập, hệ thống PHẢI lưu vào hàng đợi offline. WHEN thiết bị khôi phục kết nối mạng, hệ thống PHẢI tự động trigger sync (push queue lên server) — CHỈ sync khi reconnect event, KHÔNG dùng periodic retry (xem UC-21 trong General Spec).
+- **FR-008**: Offline queue và client-side sync khi reconnect được deferred; không thuộc phạm vi triển khai Web hiện tại.
 - **FR-009**: WHEN xảy ra xung đột sync (đăng nhập 2 thiết bị), hệ thống PHẢI xử lý DUY NHẤT theo Last-Write-Wins (bản ghi đến sau thắng) dựa trên timestamp; với dữ liệu hiệp tập dùng UPSERT theo (session_id, session_exercise_id, set_number). Hệ thống KHÔNG hiển thị cảnh báo conflict cho User.
 - **FR-010**: WHEN bắt đầu ngày mới theo giờ địa phương, WHERE buổi tập vẫn còn status active, hệ thống PHẢI tự động đánh dấu session đó là expired (status enum: active/completed/interrupted/expired).
 - **FR-011**: WHEN người dùng nhấn nhanh nhiều lần nút "Hoàn thành hiệp" (hoặc nút lưu tương tự), client PHẢI kiểm tra trạng thái "đang gửi" và chỉ gửi đúng 1 request, KHÔNG tạo bản ghi hiệp trùng lặp.
@@ -112,12 +120,12 @@ Người dùng muốn kết thúc buổi tập để hoàn tất phiên, lưu tr
 - **SC-001**: 100% hiệp tập được lưu chính xác khi người dùng nhấn "Hoàn thành hiệp".
 - **SC-002**: Đồng hồ nghỉ bắt đầu trong vòng 1 giây sau khi hoàn thành hiệp.
 - **SC-003**: Cảnh báo 5 giây cuối phát chính xác ở mọi thiết bị di động.
-- **SC-004**: Dữ liệu offline được đồng bộ lại chính xác sau khi có mạng trở lại.
+- **SC-004**: Offline queue/sync được deferred; không đánh giá trong phase Web hiện tại.
 
 ## Assumptions
 
 - Thời gian nghỉ mặc định được cấu hình chung cho mọi bài tập (có thể tùy chỉnh sau).
-- Phát hiện phân tâm trên Web dựa trên trạng thái hiển thị tab, trên Mobile dựa trên trạng thái vòng đời app.
+- Phát hiện phân tâm phase hiện tại trên Web dựa trên trạng thái hiển thị tab; Mobile lifecycle được deferred.
 - Offline queue lưu dữ liệu hiệp tập và đồng bộ khi thiết bị khôi phục kết nối mạng (reconnect event — xem UC-21 trong General Spec).
 - Người dùng có thể bắt đầu buổi tập dựa trên lộ trình đã tạo hoặc chọn bài tập tự do.
 - Ranh giới "ngày mới" (dùng cho auto-expire session) tính theo giờ địa phương của thiết bị người dùng.

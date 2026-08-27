@@ -21,6 +21,12 @@ export interface PlanCompletion {
   completionPct: number;
 }
 
+export interface TargetAttainment {
+  achievedSets: number;
+  totalSets: number;
+  attainmentPct: number;
+}
+
 export interface CaloriePoint {
   date: string;
   caloriesIn: number;
@@ -32,6 +38,7 @@ export interface StatsDashboard {
   volume: VolumePoint[];
   streak: StreakStats;
   planCompletion: PlanCompletion;
+  targetAttainment: TargetAttainment;
   calories: CaloriePoint[];
 }
 

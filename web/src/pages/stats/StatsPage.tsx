@@ -206,6 +206,14 @@ export default function StatsPage() {
                 </div>
               </div>
             </div>
+
+            <div className="card">
+              <h2 className="section-title" style={{ marginBottom: 14 }}>Đạt mục tiêu</h2>
+              <div className="stat-value">{data.targetAttainment.attainmentPct}%</div>
+              <p className="text-secondary text-sm">
+                {data.targetAttainment.achievedSets}/{data.targetAttainment.totalSets} hiệp đạt hoặc vượt target
+              </p>
+            </div>
             <div className="card">
               <h2 className="section-title" style={{ marginBottom: 14 }}><Icon name="check" size={16} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Hoàn thành lộ trình</h2>
               {data.planCompletion.plannedDays === 0 ? (

@@ -26,6 +26,10 @@ import com.workoutsmart.profile.entity.WorkoutSet;
 import com.workoutsmart.profile.repository.WorkoutSessionRepository;
 import com.workoutsmart.profile.repository.WorkoutSetRepository;
 import com.workoutsmart.stats.dto.StatsDashboardResponse;
+import com.workoutsmart.tracking.repository.WorkoutSessionExerciseRepository;
+import com.workoutsmart.tracking.repository.WorkoutSessionExerciseSetRepository;
+import com.workoutsmart.tracking.entity.WorkoutSessionExercise;
+import com.workoutsmart.tracking.entity.WorkoutSessionExerciseSet;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.Instant;
@@ -48,6 +52,8 @@ class StatsServiceTest {
     private MealDailySummaryRepository summaryRepository;
     private WorkoutPlanRepository planRepository;
     private WorkoutPlanDayRepository planDayRepository;
+    private WorkoutSessionExerciseRepository sessionExerciseRepository;
+    private WorkoutSessionExerciseSetRepository sessionExerciseSetRepository;
     private StatsService service;
 
     @BeforeEach
@@ -60,9 +66,12 @@ class StatsServiceTest {
         summaryRepository = mock(MealDailySummaryRepository.class);
         planRepository = mock(WorkoutPlanRepository.class);
         planDayRepository = mock(WorkoutPlanDayRepository.class);
+        sessionExerciseRepository = mock(WorkoutSessionExerciseRepository.class);
+        sessionExerciseSetRepository = mock(WorkoutSessionExerciseSetRepository.class);
         service = new StatsService(sessionRepository, setRepository, bodyMetricRepository,
                 mealLogRepository, mealEntryRepository, summaryRepository,
-                planRepository, planDayRepository, new ObjectMapper());
+                planRepository, planDayRepository, sessionExerciseRepository,
+                sessionExerciseSetRepository, new ObjectMapper());
     }
 
     @Test
@@ -252,5 +261,41 @@ class StatsServiceTest {
         assertTrue(response.volume().isEmpty());
         assertEquals(0, response.streak().currentStreakWeeks());
         assertEquals(0, response.streak().longestStreakWeeks());
+    }
+
+    @Test
+    void targetAttainmentUsesActualSetsAgainstSnapshotTargets() {
+        Long userId = 1L;
+        LocalDate today = LocalDate.now();
+        Instant start = today.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        WorkoutSession session = WorkoutSession.builder().id(10L).userId(userId).status("completed")
+                .startTime(start).endTime(start.plus(20, ChronoUnit.MINUTES)).build();
+
+        when(sessionRepository.findByUserIdAndStatusAndStartTimeBetween(any(), any(), any(), any()))
+                .thenReturn(List.of(session));
+        when(sessionRepository.findByUserIdAndStatus(userId, "completed")).thenReturn(List.of(session));
+        when(sessionExerciseRepository.findBySessionIdIn(anyList())).thenReturn(List.of(
+                WorkoutSessionExercise.builder().id(20L).sessionId(10L).measureType("reps_weight").build()));
+        when(sessionExerciseSetRepository.findBySessionExerciseIdIn(anyList())).thenReturn(List.of(
+                WorkoutSessionExerciseSet.builder().sessionExerciseId(20L).setNumber(1)
+                        .targetReps(10).build(),
+                WorkoutSessionExerciseSet.builder().sessionExerciseId(20L).setNumber(2)
+                        .targetReps(10).build()));
+        when(setRepository.findBySessionIdIn(anyList())).thenReturn(List.of(
+                WorkoutSet.builder().sessionId(10L).sessionExerciseId(20L).setNumber(1)
+                        .repsCompleted(12).build(),
+                WorkoutSet.builder().sessionId(10L).sessionExerciseId(20L).setNumber(2)
+                        .repsCompleted(8).build()));
+        when(bodyMetricRepository.findByUserIdAndRecordedAtBetweenOrderByRecordedAtAsc(any(), any(), any()))
+                .thenReturn(List.of());
+        when(mealLogRepository.findByUserIdAndLogDateBetween(any(), any(), any())).thenReturn(List.of());
+        when(summaryRepository.findByUserIdAndLogDateBetween(any(), any(), any())).thenReturn(List.of());
+        when(planRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of());
+
+        StatsDashboardResponse response = service.dashboard(userId, today, today);
+
+        assertEquals(1, response.targetAttainment().achievedSets());
+        assertEquals(2, response.targetAttainment().totalSets());
+        assertEquals(new BigDecimal("50.0"), response.targetAttainment().attainmentPct());
     }
 }

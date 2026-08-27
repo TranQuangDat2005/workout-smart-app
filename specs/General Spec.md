@@ -37,9 +37,9 @@ Kiến trúc: Backend Spring Boot = Web API (REST JSON thuần, không server-re
 **Workout Tracking & Focus Detection (UC-07 → UC-09):**
 * WHEN người tập nhấn nút "Hoàn thành hiệp" (Done set), THE hệ thống SHALL lưu dữ liệu hiệp tập (reps, weight) vào cơ sở dữ liệu và tự động đếm ngược thời gian nghỉ (Rest Timer).
 * WHILE đồng hồ đếm ngược thời gian nghỉ đang chạy, THE hệ thống SHALL phát âm thanh/rung cảnh báo ở 5 giây cuối cùng trên thiết bị di động.
-* WHERE người tập rời khỏi màn hình bài tập liên tục quá 15 giây trong lúc ĐANG TẬP (không tính thời gian Rest Timer đang chạy):
+* WHEN người tập chuyển tab/app khỏi màn hình bài tập trong lúc ĐANG TẬP (không tính thời gian Rest Timer đang chạy):
   - Trên Web (dựa vào `document.visibilityState == 'hidden'`): THE hệ thống SHALL cộng 1 vào `focus_interruptions_count`.
-  - Trên Mobile (Flutter - dựa vào `AppLifecycleState.paused/inactive`): THE hệ thống SHALL cộng 1 vào `focus_interruptions_count` và gửi Local Push Notification nhắc nhở: "Đừng phân tâm, quay lại tập nào!".
+  - Mobile lifecycle/local notification được deferred, không thuộc phase Web hiện tại.
 
 * WHEN tài khoản bị khóa (banned) bởi Admin trong lúc người tập đang ở giữa buổi tập, THE hệ thống SHALL chặn người dùng ở request kế tiếp (độ trễ tối đa 3 giây), giữ lại dữ liệu đã ghi và đánh dấu session là `interrupted`. Lệnh ban có hiệu lực ngay khi người dùng kết nối lại online (kể cả khi đang offline tại thời điểm bị ban); mọi request đi qua middleware đều kiểm tra trạng thái ban và token của tài khoản bị ban bị vô hiệu hóa ngay.
 
@@ -76,7 +76,7 @@ Kiến trúc: Backend Spring Boot = Web API (REST JSON thuần, không server-re
 
 **Offline & Sync Management (UC-21):**
 * THE hệ thống SHALL yêu cầu kết nối mạng khi đăng nhập. Sau khi xác thực thành công, THE hệ thống SHALL batch fetch toàn bộ dữ liệu user (profile, workout plan hiện tại, meals tuần hiện tại, body_metrics, exercise library) và lưu vào Local Storage (SQLite) trên thiết bị.
-* WHERE thiết bị mất kết nối mạng trong lúc người tập đang ghi nhận hiệp tập (sets/reps), THE ứng dụng SHALL lưu dữ liệu vào local queue. ONLY workout tracking data (workout_sessions, workout_sets) được phép offline — tất cả các tính năng khác (meals, body metrics, profile editing, friends, social) SHALL yêu cầu online và hiển thị thông báo lỗi khi không có mạng.
+* Offline workout queue và client-side sync được deferred, không thuộc phase Web hiện tại.
 * WHEN thiết bị khôi phục kết nối mạng (chuyển đổi online→offline→online), THE ứng dụng SHALL tự động trigger sync: push toàn bộ local queue (workout_sets chưa sync) lên server theo thứ tự thời gian (chronological order).
 * THE ứng dụng SHALL cung cấp Sync Management Screen với các thành phần: (a) Trạng thái hiện tại (● Đang đồng bộ / ● Đã đồng bộ / ● Lỗi), (b) Thời gian đồng bộ gần nhất (timestamp), (c) Số items chờ đồng bộ (pending count), (d) Nút "Đồng bộ ngay" (manual sync trigger).
 * WHEN sync conflict xảy ra với workout_sets, THE hệ thống SHALL xử lý Last-Write-Wins dựa trên `client_timestamp`: bản ghi có timestamp mới hơn thắng. Server KHÔNG hiển thị conflict dialog cho user — ghi đè im lặng.
@@ -190,6 +190,11 @@ UC-21 ──include──► UC-03    (Sync management cần user đang đăng n
 ```
 
 ## 9. Out of Scope
+
+### Clarifications — Workout domain
+* Phase hiện tại chỉ triển khai Web app. Mobile-specific behavior (Flutter lifecycle, rung/âm thanh và local push notification) và offline tracking/sync phía client được deferred.
+* Focus detection trên Web ghi nhận ngay khi `document.visibilityState` chuyển sang `hidden` trong session active.
+* Khi tài khoản bị ban giữa session, hệ thống giữ dữ liệu đã ghi, chuyển session sang `interrupted` và chặn request tiếp theo.
 ### KHÔNG thực hiện trong sprint/phase này:
 * Social Login (Google, Facebook, Apple) - Chỉ hỗ trợ Email/Password cho Phase 1.
 * Thuật toán AI Machine Learning cho việc gợi ý (Tạm thời chỉ dùng Rule-based map theo tags).

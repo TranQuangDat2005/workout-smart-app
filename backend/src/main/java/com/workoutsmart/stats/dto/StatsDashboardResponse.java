@@ -10,6 +10,7 @@ public record StatsDashboardResponse(
         List<VolumePoint> volume,
         StreakStats streak,
         PlanCompletion planCompletion,
+        TargetAttainment targetAttainment,
         List<CaloriePoint> calories) {
 
     public record WeightPoint(LocalDate date, BigDecimal weightKg) {
@@ -22,6 +23,9 @@ public record StatsDashboardResponse(
     }
 
     public record PlanCompletion(long completedSessions, long plannedDays, BigDecimal completionPct) {
+    }
+
+    public record TargetAttainment(long achievedSets, long totalSets, BigDecimal attainmentPct) {
     }
 
     public record CaloriePoint(LocalDate date, BigDecimal caloriesIn, BigDecimal caloriesBurned) {

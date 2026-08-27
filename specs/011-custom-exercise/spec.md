@@ -71,6 +71,11 @@ Người tập muốn chỉnh sửa thông tin bài tập do chính mình tạo,
 
 ### Functional Requirements
 
+### Clarifications
+
+- Khi xóa custom exercise, hệ thống soft-delete và giữ bản ghi draft trong 7 ngày; sau đó job định kỳ hard-delete bản ghi đủ hạn.
+- Lịch sử workout cũ vẫn giữ actual data sau khi custom exercise bị xóa.
+
 - **FR-001**: THE hệ thống SHALL cho phép User đã đăng nhập tạo bài tập cá nhân với các trường: tên (bắt buộc), nhóm cơ (bắt buộc), dụng cụ (bắt buộc), Category kho dữ liệu (bắt buộc — 012), hướng dẫn từng bước (tuỳ chọn), media GIF/ảnh (tuỳ chọn).
 - **FR-002**: THE hệ thống SHALL validate dữ liệu bài tập cá nhân: tên không trống, nhóm cơ và dụng cụ hợp lệ; WHERE thiếu trường bắt buộc, THE hệ thống SHALL từ chối kèm lỗi inline.
 - **FR-003**: THE hệ thống SHALL lưu bài tập cá nhân với `source = user_custom` và `created_by = userId`; bài tập cá nhân PHẢI riêng tư — chỉ chủ sở hữu nhìn thấy trong tìm kiếm và chi tiết.

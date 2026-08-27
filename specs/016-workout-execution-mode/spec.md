@@ -126,6 +126,12 @@ Bài hiện hành hiển thị GIF/ảnh 180×180 từ kho media local; bài kh�
 
 ### Functional Requirements
 
+### Clarifications
+
+- Focus interruption trên Web được ghi nhận ngay khi tab chuyển `hidden` trong session active.
+- Khi User kết thúc sớm, session vẫn completed và ghi nhận actual data; không yêu cầu đủ toàn bộ target.
+- Rest overlay vẫn mở sau set cuối cùng; User tự kết thúc session sau khi nghỉ.
+
 - **FR-001**: WHEN buổi tập đang active, THE client SHALL hiển thị màn tập trung tối giản theo đúng thứ tự: (1) tên bài tập + thời lượng buổi tính từ `startTime`, (2) GIF/media hướng dẫn, (3) dòng "Hiệp X - mục tiêu hiệp X", (4) một nút hành động chính; KHÔNG hiển thị form nhập liệu mặc định.
 - **FR-002**: WHEN bài hiện hành kiểu `reps_weight`, THE client SHALL hiển thị nút "HOÀN THÀNH"; WHEN User chạm nút, THE hệ thống SHALL ghi hiệp với reps = mục tiêu hiệp hiện tại, tạ = tạ của hiệp liền trước cùng bài (nếu có, nếu không thì rỗng), kiểu set = kiểu set của target hiệp trong kế hoạch; nút SHALL có double-tap guard.
 - **FR-003**: WHEN bài hiện hành kiểu `duration`, THE client SHALL hiển thị đồng hồ đếm ngược prefilled bằng mục tiêu hiệp (mặc định 60 giây nếu target rỗng) với nút Bắt đầu/Tạm dừng; WHEN đếm về 0, THE client SHALL tự ghi hiệp với `durationSeconds` = số giây đã đếm và tự chuyển màn nghỉ; WHEN tạm dừng, client SHALL hiển thị nút "Lưu" để ghi số giây đã đếm.

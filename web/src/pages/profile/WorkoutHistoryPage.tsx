@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Button from '../../components/Button';
 import Icon from '../../components/Icon';
+import Modal from '../../components/Modal';
 import Spinner from '../../components/Spinner';
 import { profileApi } from '../../services/profileApi';
 import type { ExerciseProgress, WorkoutSessionDetail, WorkoutSessionItem } from '../../services/profileApi';
@@ -32,6 +33,7 @@ export default function WorkoutHistoryPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [notice, setNotice] = useState('');
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
   useEffect(() => {
     setProgressLoading(true);
@@ -66,16 +68,7 @@ export default function WorkoutHistoryPage() {
   };
 
   const clearHistory = async () => {
-    if (
-      !window.confirm(
-        'Xóa toàn bộ lịch sử tập? Thống kê, streak và bảng tiến bộ sẽ bị ảnh hưởng. Hành động này KHÔNG thể hoàn tác.',
-      )
-    ) {
-      return;
-    }
-    if (!window.confirm('Bạn chắc chắn chứ? Dữ liệu các buổi tập đã qua sẽ bị xóa vĩnh viễn.')) {
-      return;
-    }
+    setClearConfirmOpen(false);
     setClearing(true);
     setError('');
     setNotice('');
@@ -111,7 +104,7 @@ export default function WorkoutHistoryPage() {
         <h1><Icon name="clipboard" size={22} style={{ verticalAlign: '-3px', marginRight: 8 }} /> Lịch sử buổi tập</h1>
         <div style={{ display: 'flex', gap: 8 }}>
           {sessions.length > 0 && !detailSessionId && (
-            <Button variant="danger" size="sm" loading={clearing} onClick={clearHistory}>
+            <Button variant="danger" size="sm" loading={clearing} onClick={() => setClearConfirmOpen(true)}>
               Xóa lịch sử tập
             </Button>
           )}
@@ -274,6 +267,21 @@ export default function WorkoutHistoryPage() {
       )}
         </>
       )}
+      <Modal
+        open={clearConfirmOpen}
+        title="Xóa lịch sử tập?"
+        onClose={() => setClearConfirmOpen(false)}
+        footer={(
+          <>
+            <Button variant="dark" onClick={() => setClearConfirmOpen(false)}>Hủy</Button>
+            <Button variant="danger" onClick={() => void clearHistory()} loading={clearing}>Xóa vĩnh viễn</Button>
+          </>
+        )}
+      >
+        <p className="text-secondary">
+          Toàn bộ lịch sử buổi tập sẽ bị xóa và ảnh hưởng đến thống kê, streak và bảng tiến bộ. Hành động này không thể hoàn tác.
+        </p>
+      </Modal>
     </div>
   );
 }

@@ -32,3 +32,8 @@
 - [ ] `mvn test` pass — coverage profile ≥80%
 - [ ] `npm run build` + `npm run lint` pass
 - [ ] `git flow feature finish 001-profile-history`
+
+## Clarifications applied
+
+- [x] Early-completed sessions retain actual workout data in history.
+- [x] Destructive history confirmation uses accessible Modal in the Web UI.

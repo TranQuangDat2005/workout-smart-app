@@ -121,6 +121,10 @@ Người dùng ghi bữa ăn phải thấy đúng tên món và calo/macro. Bả
 
 ### Functional Requirements
 
+### Clarifications
+
+- Xác nhận kết thúc workout và xóa lịch sử phải dùng component Modal có role dialog, aria-modal và thao tác bàn phím; không dùng `window.confirm`.
+
 - **FR-001**: THE hệ thống SHALL dùng một HTTP client dùng chung cho mọi request từ Web, gắn access token và tự động silent refresh (dùng refresh token) khi nhận 401 trước khi thực hiện lại request gốc; WHEN refresh token cũng hết hạn, THE hệ thống SHALL xoá phiên và chuyển về màn hình đăng nhập.
 - **FR-002**: THE hệ thống SHALL áp dụng breakpoint responsive theo `DESIGN.md §8`; WHERE viewport < 576px, THE điều hướng chính SHALL thu gọn (bottom bar hoặc drawer) thay vì sidebar cố định; các grid nhiều cột SHALL xếp lại phù hợp, không tràn ngang.
 - **FR-003**: WHEN người dùng lưu một hiệp tập thành công, THE hệ thống SHALL tự động bắt đầu đồng hồ nghỉ đếm ngược và hiển thị thời gian còn lại; WHILE còn 5 giây cuối, THE hệ thống SHALL phát cảnh báo; WHEN về 0, THE hệ thống SHALL phát tín hiệu kết thúc nghỉ.

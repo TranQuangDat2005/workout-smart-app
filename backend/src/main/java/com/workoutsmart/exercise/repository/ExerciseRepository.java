@@ -21,7 +21,7 @@ public interface ExerciseRepository extends JpaRepository<Exercise, Long>,
 
     Optional<Exercise> findByIdAndCreatedBy(Long id, Long createdBy);
 
-    List<Exercise> findByDeletedAtBefore(Instant deletedAtBefore);
+    List<Exercise> findBySourceAndDeletedAtBefore(String source, Instant deletedAtBefore);
 
     List<Exercise> findByNameContainingIgnoreCaseAndStatus(String keyword, String status);
 

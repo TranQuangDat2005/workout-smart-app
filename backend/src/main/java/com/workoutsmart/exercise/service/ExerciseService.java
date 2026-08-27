@@ -19,6 +19,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Scheduled;
 
 /** Nghiệp vụ tra cứu bài tập + bài tập tự tạo cá nhân — FR-003, FR-004, FR-006, FR-007 + 011. */
 @Service
@@ -159,10 +160,12 @@ public class ExerciseService {
     }
 
     /** Xóa cứng bài tập đã soft-delete quá 1 tuần (retention). */
+    @Scheduled(cron = "0 45 3 * * *")
     @Transactional
     public void purgeExpiredCustomExercises() {
         Instant threshold = Instant.now().minus(7, ChronoUnit.DAYS);
-        exerciseRepository.deleteAll(exerciseRepository.findByDeletedAtBefore(threshold));
+        exerciseRepository.deleteAll(
+                exerciseRepository.findBySourceAndDeletedAtBefore("user_custom", threshold));
     }
 
     private Exercise requireOwnCustom(Long userId, Long exerciseId) {
