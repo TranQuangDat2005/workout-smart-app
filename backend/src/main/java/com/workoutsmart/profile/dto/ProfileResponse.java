@@ -19,5 +19,6 @@ public record ProfileResponse(
         Integer customCalorieOffset,
         String accountStatus,
         boolean emailVerified,
+        boolean isPrivate,
         Instant createdAt) {
 }

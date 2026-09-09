@@ -16,6 +16,7 @@ export interface Profile {
   customCalorieOffset: number | null;
   accountStatus: string;
   emailVerified: boolean;
+  isPrivate: boolean;
   createdAt: string;
 }
 
@@ -66,6 +67,7 @@ export const profileApi = {
     calorieGoal?: string;
     customCalorieOffset?: number;
     goalType?: string;
+    isPrivate?: boolean;
   }) => http.put<{ profile: Profile; goalChanged: boolean }>('/profile', body).then((r) => r.data),
 
   deleteAccount: (password?: string) =>

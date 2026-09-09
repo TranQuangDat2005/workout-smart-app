@@ -13,7 +13,7 @@ const AUDIENCE_OPTIONS = [
   { value: 'private', label: 'Chỉ mình tôi' },
 ];
 
-const MEDIA_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm,video/mov';
+const MEDIA_ACCEPT = 'image/png,image/jpeg,image/webp';
 
 function audienceLabel(value: string): string {
   return AUDIENCE_OPTIONS.find((o) => o.value === value)?.label ?? 'Công khai';
@@ -33,6 +33,7 @@ function Composer({ onPosted }: { onPosted: (post: PostItem) => void }) {
   const [audience, setAudience] = useState('public');
   const [media, setMedia] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [gifUrl, setGifUrl] = useState('');
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,7 +54,7 @@ function Composer({ onPosted }: { onPosted: (post: PostItem) => void }) {
   };
 
   const submit = async () => {
-    if ((!content.trim() && !media) || posting) return;
+    if ((!content.trim() && !media && !gifUrl.trim()) || posting) return;
     setPosting(true);
     setError('');
     try {
@@ -61,9 +62,11 @@ function Composer({ onPosted }: { onPosted: (post: PostItem) => void }) {
         content: content.trim() || undefined,
         audience,
         media,
+        gifUrl: gifUrl.trim() || undefined,
       });
       setContent('');
       pickFile(null);
+      setGifUrl('');
       setAudience('public');
       onPosted(post);
     } catch (err: unknown) {
@@ -85,16 +88,30 @@ function Composer({ onPosted }: { onPosted: (post: PostItem) => void }) {
       />
       {media && previewUrl && (
         <div style={{ position: 'relative', marginBottom: 12 }}>
-          {media.type.startsWith('video') ? (
-            <video className="feed-media" src={previewUrl} controls />
-          ) : (
-            <img className="feed-media" src={previewUrl} alt="Xem trước media" />
-          )}
+          <img className="feed-media" src={previewUrl} alt="Xem trước media" />
           <button
             className="btn-icon"
             style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)' }}
             onClick={() => pickFile(null)}
             aria-label="Gỡ media"
+          >
+            <Icon name="trash" size={16} />
+          </button>
+        </div>
+      )}
+      {!media && gifUrl.trim() && (
+        <div style={{ position: 'relative', marginBottom: 12 }}>
+          <img
+            className="feed-media"
+            src={gifUrl.trim()}
+            alt="Xem trước GIF"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+          <button
+            className="btn-icon"
+            style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)' }}
+            onClick={() => setGifUrl('')}
+            aria-label="Gỡ GIF"
           >
             <Icon name="trash" size={16} />
           </button>
@@ -123,8 +140,17 @@ function Composer({ onPosted }: { onPosted: (post: PostItem) => void }) {
           <Icon name="image" size={15} style={{ marginRight: 6, verticalAlign: '-3px' }} />
           Ảnh
         </Button>
+        <input
+          className="input-field"
+          style={{ width: 180, fontSize: 13 }}
+          placeholder="URL GIF (tenor/instagram)"
+          value={gifUrl}
+          onChange={(e) => setGifUrl(e.target.value)}
+          maxLength={500}
+          aria-label="URL GIF"
+        />
         <div style={{ marginLeft: 'auto' }}>
-          <Button size="sm" loading={posting} disabled={!content.trim() && !media} onClick={() => void submit()}>
+          <Button size="sm" loading={posting} disabled={!content.trim() && !media && !gifUrl.trim()} onClick={() => void submit()}>
             Đăng bài
           </Button>
         </div>
@@ -235,11 +261,11 @@ function PostCard({ post, meId, onUpdate, onDelete }: {
         </p>
       )}
 
-      {post.mediaUrl && post.mediaType === 'video' && (
-        <video className="feed-media" controls preload="metadata" src={postMediaUrl(post.mediaUrl) ?? undefined} />
-      )}
       {post.mediaUrl && post.mediaType === 'image' && (
         <img className="feed-media" src={postMediaUrl(post.mediaUrl) ?? undefined} alt="Nội dung bài đăng" loading="lazy" />
+      )}
+      {post.gifUrl && (
+        <img className="feed-media" src={post.gifUrl} alt="GIF bài đăng" loading="lazy" />
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>

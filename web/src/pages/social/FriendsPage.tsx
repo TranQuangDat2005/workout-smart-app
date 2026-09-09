@@ -37,14 +37,59 @@ export default function FriendsPage() {
       const res = await socialApi.sendFriendRequest(userId);
       setNotice(res.status === 'accepted' ? 'Hai bạn đã trở thành bạn bè!' : 'Đã gửi lời mời kết bạn.');
       load();
+      search();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setError(msg ?? 'Gửi lời mời thất bại');
     }
   };
 
-  const accept = async (id: number) => { await socialApi.accept(id); load(); };
-  const reject = async (id: number) => { await socialApi.reject(id); load(); };
+  const accept = async (id: number) => { await socialApi.accept(id); load(); search(); };
+  const reject = async (id: number) => { await socialApi.reject(id); load(); search(); };
+
+  /** FR-WITHDRAW (018): rút lại lời mời kết bạn đã gửi — chỉ người gửi mới được phép. */
+  const withdraw = async (id: number) => {
+    setError(''); setNotice('');
+    try {
+      await socialApi.unfriend(id);
+      setNotice('Đã rút lại lời mời kết bạn.');
+      load();
+      search();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(msg ?? 'Rút lời mời thất bại');
+    }
+  };
+
+  /** FR-004: nút hành động theo trạng thái quan hệ của từng kết quả tìm kiếm. */
+  const renderSearchAction = (u: UserSearchItem) => {
+    switch (u.relationshipStatus) {
+      case 'accepted':
+        return <span className="badge badge-green">Bạn bè</span>;
+      case 'pending_sent':
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="badge badge-info">Đã gửi</span>
+            <Button variant="outlined" size="sm" onClick={() => u.friendshipId != null && withdraw(u.friendshipId)}>
+              Rút lời mời
+            </Button>
+          </div>
+        );
+      case 'pending_received':
+        return (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button size="sm" onClick={() => u.friendshipId != null && accept(u.friendshipId)}>Chấp nhận</Button>
+            <Button variant="outlined" size="sm" onClick={() => u.friendshipId != null && reject(u.friendshipId)}>Từ chối</Button>
+          </div>
+        );
+      default:
+        return (
+          <Button variant="primary" size="sm" onClick={() => sendRequest(u.id)}>
+            + Kết bạn
+          </Button>
+        );
+    }
+  };
   const openUnfriend = (friend: FriendItem) => setUnfriendTarget(friend);
 
   const confirmUnfriend = async () => {
@@ -105,11 +150,7 @@ export default function FriendsPage() {
                 key={u.id}
                 name={u.displayName}
                 email={u.email}
-                action={
-                  <Button variant="primary" size="sm" onClick={() => sendRequest(u.id)}>
-                    + Kết bạn
-                  </Button>
-                }
+                action={renderSearchAction(u)}
               />
             ))}
           </div>

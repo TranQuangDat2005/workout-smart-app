@@ -16,6 +16,8 @@ import com.workoutsmart.feed.repository.PostCommentRepository;
 import com.workoutsmart.feed.repository.PostLikeRepository;
 import com.workoutsmart.social.entity.Friendship;
 import com.workoutsmart.social.repository.FriendshipRepository;
+import java.net.URI;
+import java.net.URL;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +42,10 @@ public class SocialFeedService {
 
     private static final int PAGE_SIZE = 10;
     private static final Set<String> AUDIENCES = Set.of("public", "friends", "private");
+    /** FR-015 / R5: host allowlist cho gifUrl embed — tenor.com (+ media.tenor.com) + instagram.com. */
+    private static final Set<String> GIF_HOST_ALLOWLIST = Set.of(
+            "tenor.com", "www.tenor.com", "media.tenor.com",
+            "instagram.com", "www.instagram.com");
 
     private final CommunityPostRepository postRepository;
     private final PostLikeRepository likeRepository;
@@ -63,10 +69,12 @@ public class SocialFeedService {
     }
 
     @Transactional
-    public PostResponse createPost(Long userId, String content, String audience, MultipartFile media) {
+    public PostResponse createPost(Long userId, String content, String audience,
+                                   MultipartFile media, String gifUrl) {
         String text = content == null ? null : content.trim();
-        if ((text == null || text.isEmpty()) && (media == null || media.isEmpty())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Bài đăng cần có nội dung hoặc media");
+        if ((text == null || text.isEmpty()) && (media == null || media.isEmpty())
+                && (gifUrl == null || gifUrl.isBlank())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Bài đăng cần có nội dung, media hoặc GIF");
         }
         if (text != null && text.length() > 2000) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Nội dung bài đăng tối đa 2000 ký tự");
@@ -75,6 +83,14 @@ public class SocialFeedService {
         if (!AUDIENCES.contains(aud)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "audience phải là public, friends hoặc private");
         }
+        // FR-015: validate gifUrl — HTTPS + host allowlist (trước khi upload để không tốn media)
+        String validatedGifUrl = validateGifUrl(gifUrl);
+        boolean hasMedia = media != null && !media.isEmpty();
+        // data-model.md R3: bài không mang đồng thời media + gif_url
+        if (hasMedia && validatedGifUrl != null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Không thể đăng bài vừa có ảnh vừa có GIF");
+        }
 
         SeaweedStorageService.StoredMedia stored = storageService.store(media);
         CommunityPost post = CommunityPost.builder()
@@ -82,6 +98,7 @@ public class SocialFeedService {
                 .content(text == null || text.isEmpty() ? null : text)
                 .mediaUrl(stored == null ? null : stored.key())
                 .mediaType(stored == null ? null : stored.mediaType())
+                .gifUrl(validatedGifUrl)
                 .audience(aud)
                 .createdAt(Instant.now())
                 .build();
@@ -116,7 +133,7 @@ public class SocialFeedService {
 
     @Transactional
     public LikeResponse toggleLike(Long userId, Long postId) {
-        requirePost(postId);
+        requireVisible(userId, postId);
         Optional<PostLike> existing = likeRepository.findByPostIdAndUserId(postId, userId);
         boolean liked;
         if (existing.isPresent()) {
@@ -130,15 +147,15 @@ public class SocialFeedService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentResponse> comments(Long postId) {
-        requirePost(postId);
+    public List<CommentResponse> comments(Long userId, Long postId) {
+        requireVisible(userId, postId);
         List<PostComment> list = commentRepository.findByPostIdOrderByIdAsc(postId);
         return toCommentResponses(list);
     }
 
     @Transactional
     public CommentResponse addComment(Long userId, Long postId, String content) {
-        requirePost(postId);
+        requireVisible(userId, postId);
         if (content == null || content.trim().isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Nội dung bình luận không được để trống");
         }
@@ -173,10 +190,30 @@ public class SocialFeedService {
                 .toList();
     }
 
-    private void requirePost(Long postId) {
-        if (!postRepository.existsById(postId)) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy bài đăng");
+    /** FR-AUDIENCE: bài đăng phải tồn tại và viewer phải có quyền xem — nếu không → 403/404. */
+    private void requireVisible(Long viewerId, Long postId) {
+        CommunityPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy bài đăng"));
+        if (!canView(viewerId, post)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Bạn không có quyền xem bài đăng này");
         }
+    }
+
+    /** FR-AUDIENCE: public → mọi user; bạn tác giả → xem được; friends → bạn bè hoặc tác giả; private → chỉ tác giả. */
+    private boolean canView(Long viewerId, CommunityPost post) {
+        if (post.getUserId().equals(viewerId)) {
+            return true;
+        }
+        return switch (post.getAudience()) {
+            case "public" -> true;
+            case "friends" -> isFriend(viewerId, post.getUserId());
+            default -> false; // private
+        };
+    }
+
+    private boolean isFriend(Long a, Long b) {
+        return friendshipRepository.findBetween(a, b).stream()
+                .anyMatch(f -> "accepted".equals(f.getStatus()));
     }
 
     /** Ẩn bài của tác giả không còn ACTIVE (banned/deleted). */
@@ -222,6 +259,7 @@ public class SocialFeedService {
                     post.getContent(),
                     post.getMediaType(),
                     post.getMediaUrl(),
+                    post.getGifUrl(),
                     post.getAudience(),
                     post.getCreatedAt(),
                     likes.size(),
@@ -250,5 +288,32 @@ public class SocialFeedService {
                 author == null ? null : author.getAvatarUrl(),
                 comment.getContent(),
                 comment.getCreatedAt());
+    }
+
+    /** FR-015 / R5: validate gifUrl — HTTPS, host allowlist; null/blank → null. */
+    private String validateGifUrl(String gifUrl) {
+        if (gifUrl == null || gifUrl.isBlank()) {
+            return null;
+        }
+        String trimmed = gifUrl.trim();
+        URI uri;
+        try {
+            uri = URI.create(trimmed);
+        } catch (IllegalArgumentException e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "gifUrl không hợp lệ");
+        }
+        if (!"https".equalsIgnoreCase(uri.getScheme())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "gifUrl phải dùng HTTPS");
+        }
+        String host = uri.getHost();
+        if (host == null || !GIF_HOST_ALLOWLIST.contains(host.toLowerCase(Locale.ROOT))) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "gifUrl chỉ chấp nhận tenor.com hoặc instagram.com");
+        }
+        // D1/I2: gif_url ≤500 ký tự — tránh lỗi DB 500 thay vì 400
+        if (trimmed.length() > 500) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "gifUrl tối đa 500 ký tự");
+        }
+        return trimmed;
     }
 }

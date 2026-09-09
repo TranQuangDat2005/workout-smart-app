@@ -8,12 +8,11 @@ import com.workoutsmart.feed.dto.PostResponse;
 import com.workoutsmart.feed.service.SeaweedStorageService;
 import com.workoutsmart.feed.service.SocialFeedService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import java.io.IOException;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,8 +43,9 @@ public class SocialFeedController {
     public PostResponse createPost(Authentication auth,
                                    @RequestParam(value = "content", required = false) String content,
                                    @RequestParam(value = "audience", defaultValue = "public") String audience,
-                                   @RequestParam(value = "media", required = false) MultipartFile media) {
-        return feedService.createPost(currentUserId(auth), content, audience, media);
+                                   @RequestParam(value = "media", required = false) MultipartFile media,
+                                   @RequestParam(value = "gifUrl", required = false) String gifUrl) {
+        return feedService.createPost(currentUserId(auth), content, audience, media, gifUrl);
     }
 
     @GetMapping("/posts")
@@ -61,8 +61,8 @@ public class SocialFeedController {
     }
 
     @GetMapping("/posts/{id}/comments")
-    public List<CommentResponse> comments(@PathVariable Long id) {
-        return feedService.comments(id);
+    public List<CommentResponse> comments(Authentication auth, @PathVariable Long id) {
+        return feedService.comments(currentUserId(auth), id);
     }
 
     @PostMapping("/posts/{id}/comments")
@@ -79,15 +79,14 @@ public class SocialFeedController {
         feedService.deletePost(currentUserId(auth), id);
     }
 
-    /**
-     * Redirect media sang SeaweedFS filer (302 để browser tự cache ảnh).
-     * Endpoint public vì browser không gửi Authorization khi load <img>;
-     * key chứa UUID ngẫu nhiên nên không thể đoán (chấp nhận v1).
-     */
+    /** Endpoint public để browser tải ảnh mà không cần gửi Authorization. */
     @GetMapping("/media/**")
-    public void media(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public ResponseEntity<byte[]> media(HttpServletRequest request) {
         String key = request.getRequestURI().substring("/api/v1/feed/media/".length());
-        response.sendRedirect(storageService.mediaUrl(key));
+        SeaweedStorageService.MediaContent media = storageService.fetch(key);
+        return ResponseEntity.status(media.statusCode())
+                .contentType(MediaType.parseMediaType(media.contentType()))
+                .body(media.body());
     }
 
     private Long currentUserId(Authentication auth) {

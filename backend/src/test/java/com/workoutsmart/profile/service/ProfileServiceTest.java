@@ -58,13 +58,18 @@ class ProfileServiceTest {
     private JwtAuthFilter jwtAuthFilter;
     @Mock
     private DraftExerciseService draftExerciseService;
+    @Mock
+    private com.workoutsmart.social.service.ActivityFeedService activityFeedService;
+    @Mock
+    private com.workoutsmart.social.service.LeaderboardSyncService leaderboardSyncService;
 
     private ProfileService service;
 
     @BeforeEach
     void setUp() {
         service = new ProfileService(userRepository, sessionRepository, setRepository,
-                sessionExerciseRepository, exerciseRepository, tokenService, jwtAuthFilter, draftExerciseService);
+                sessionExerciseRepository, exerciseRepository, tokenService, jwtAuthFilter,
+                draftExerciseService, activityFeedService, leaderboardSyncService);
     }
 
     private User user() {
@@ -110,7 +115,7 @@ class ProfileServiceTest {
 
         UpdateProfileResponse res = service.updateProfile(1L,
                 new UpdateProfileRequest("Tên Mới", "http://img/x.png", 30, new BigDecimal("175.00"),
-                        new BigDecimal("71.50"), "female", "active", "custom", -350, "muscle_gain"));
+                        new BigDecimal("71.50"), "female", "active", "custom", -350, "muscle_gain", null));
 
         assertTrue(res.goalChanged());
         assertEquals("Tên Mới", u.getDisplayName());
@@ -131,7 +136,7 @@ class ProfileServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(u));
 
         UpdateProfileResponse res = service.updateProfile(1L,
-                new UpdateProfileRequest("Tên Mới", null, null, null, null, null, null, null, null, "weight_loss"));
+                new UpdateProfileRequest("Tên Mới", null, null, null, null, null, null, null, null, "weight_loss", null));
 
         org.junit.jupiter.api.Assertions.assertFalse(res.goalChanged());
     }

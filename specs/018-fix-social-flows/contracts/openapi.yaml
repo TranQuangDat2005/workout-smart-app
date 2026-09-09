@@ -1,0 +1,186 @@
+openapi: 3.0.3
+info:
+  title: WorkoutSmartApp — Social & Community API (018-fix-social-flows)
+  version: 0.2.0
+  description: >
+    Contract cho feature sửa luồng xã hội. Chỉ liệt kê endpoint THAY ĐỔI hoặc MỚI
+    so với spec 003; các endpoint giữ nguyên không lặp lại ở đây.
+servers:
+  - url: /api/v1
+
+paths:
+  /users/search:
+    get:
+      summary: Tìm user theo tên/email (kèm trạng thái quan hệ với người xem)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Danh sách kết quả, email chỉ hiện khi là bạn bè (hoặc chính mình), ẩn với người lạ nếu hồ sơ private
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer }
+                    displayName: { type: string }
+                    avatarUrl: { type: string, nullable: true }
+                    email: { type: string, nullable: true }
+                    relationshipStatus:
+                      type: string
+                      enum: [none, pending_sent, pending_received, accepted]
+                      description: Để UI hiển thị nút đúng (FR-004)
+
+  /friendships:
+    post:
+      summary: Gửi lời mời kết bạn (KHÔNG giới hạn số lượng/ngày — đã gỡ bỏ; chéo → auto-accept; tái dùng row sau cooldown; cap 500 bạn)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [targetUserId], properties: { targetUserId: { type: integer } } }
+      responses:
+        "201": { description: FriendshipResponse (status pending hoặc accepted khi chéo) }
+        "409": { description: Đã là bạn / đang pending }
+        "422": { description: Kết bạn chính mình / đã đạt 500 bạn }
+        "429": { description: Cooldown 30 ngày sau từ chối }
+
+  /friendships/{id}:
+    delete:
+      summary: >
+        Hủy kết bạn (accepted) HOẶC rút lại lời mời pending do mình gửi (FR-WITHDRAW).
+        WHERE lời mời đang pending nhưng không do mình gửi (initiated_by ≠ user) → 422.
+      responses:
+        "204": { description: Đã xóa quan hệ/rút lời mời (không phát sự kiện feed khi rút) }
+        "404": { description: Không tồn tại }
+        "422": { description: Không có quyền (lời mời do người khác gửi) / đang pending nhưng chưa được chấp nhận cho phía nhận }
+
+  /leaderboard:
+    get:
+      summary: Bảng xếp hạng streak (top 100) + LUÔN kèm vị trí cá nhân của viewer (FR-008)
+      parameters:
+        - name: X-Viewer
+          in: header
+          required: false
+          description: "Không dùng — viewer lấy từ JWT (Authentication)"
+      responses:
+        "200":
+          description: >
+            Danh sách top 100 sắp theo currentStreakWeeks DESC, streakStartWeek ASC, userId ASC.
+            Row của viewer luôn được bổ sung vào cuối response nếu nằm ngoài top 100 (kèm rank thật).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    rank: { type: integer }
+                    userId: { type: integer }
+                    displayName: { type: string }
+                    currentStreakWeeks: { type: integer }
+                    longestStreakWeeks: { type: integer }
+
+  /leaderboard/friends:
+    get:
+      summary: Bảng xếp hạng nhóm bạn bè (bao gồm chính mình)
+      responses:
+        "200": { description: Danh sách như /leaderboard nhưng phạm vi bạn bè }
+
+  /challenges:
+    get:
+      summary: Thử thách đang mở (status lưu trữ=open) + đã finished; `closed` (quá end_date chờ tổng kết) là trạng thái SUY RA — hệ thống ẩn nút Tham gia, không lưu xuống DB (FR-CHALL-CLOSE)
+      responses: { "200": { description: List ChallengeResponse } }
+    post:
+      summary: Tạo thử thách (chỉ Admin); status khởi tạo open
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, durationDays]
+              properties:
+                name: { type: string, maxLength: 255 }
+                goalType: { type: string }
+                durationDays: { type: integer, minimum: 1 }
+                startDate: { type: string, format: date }
+      responses:
+        "201": { description: ChallengeResponse }
+        "400": { description: startDate trong quá khứ / validation }
+        "403": { description: Không phải Admin }
+
+  /challenges/mine:
+    get:
+      summary: Thử thách tôi đã tham gia (kèm status + completedAt + finalRank nếu đã tổng kết)
+      responses: { "200": { description: List ChallengeResponse } }
+
+  /challenges/{id}/join:
+    post:
+      summary: Tham gia thử thách (chỉ khi status=open và chưa qua end_date)
+      responses:
+        "200": { description: OK }
+        "404": { description: Không tồn tại }
+        "422": { description: Đã tham gia / đã hết hạn / không còn mở }
+
+  /challenges/{id}/results:
+    get:
+      summary: Kết quả chung cuộc (chỉ khi status=finished) — MỚI
+      responses:
+        "200":
+          description: Danh sách người tham gia kèm final_rank
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    userId: { type: integer }
+                    displayName: { type: string }
+                    finalRank: { type: integer }
+                    completedAt: { type: string, format: date-time }
+        "422": { description: Challenge chưa tổng kết }
+
+  /feed:
+    get:
+      summary: Feed hoạt động bạn bè (7 ngày, top 50) — sự kiện streak_milestone/new_pr/friendship_created
+      responses:
+        "200":
+          description: List FeedItemResponse (actionType ∈ friendship_created | streak_milestone | new_pr)
+
+  /feed/posts:
+    post:
+      summary: Đăng bài cộng đồng (content, audience, media ảnh, gifUrl)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                content: { type: string, maxLength: 2000 }
+                audience: { type: string, enum: [public, friends, private], default: public }
+                media: { type: string, format: binary, description: "Chỉ ảnh PNG/JPG/JPEG/WEBP ≤10MB (kiểm tra nội dung file)" }
+                gifUrl: { type: string, description: "https, host tenor.com hoặc instagram.com" }
+      responses:
+        "201": { description: PostResponse (gifUrl + mediaUrl) }
+        "400": { description: "File không phải ảnh / quá 10MB / gifUrl ngoài allowlist / thiếu nội dung" }
+
+components:
+  schemas:
+    ChallengeResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        goalType: { type: string, nullable: true }
+        durationDays: { type: integer }
+        startDate: { type: string, format: date, nullable: true }
+        endDate: { type: string, format: date, nullable: true }
+        status: { type: string, enum: [open, closed, finished], description: "closed là trạng thái SUY RA khi open && endDate < today (không lưu DB)" }
+        joined: { type: boolean }
+        completedAt: { type: string, format: date-time, nullable: true }
+        finalRank: { type: integer, nullable: true }

@@ -9,6 +9,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -36,6 +37,10 @@ public class LeaderboardEntry {
 
     @Column(name = "longest_streak_weeks", nullable = false)
     private int longestStreakWeeks;
+
+    /** Thứ 2 của tuần đầu tiên trong chuỗi hiện tại — tie-break FR-007 (V21). */
+    @Column(name = "streak_start_week")
+    private LocalDate streakStartWeek;
 
     private Integer rank;
 

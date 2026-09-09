@@ -9,6 +9,8 @@ import { statsApi } from '../services/statsApi';
 import type { StatsDashboard } from '../services/statsApi';
 import { nutritionApi } from '../services/nutritionApi';
 import type { NutritionSummary } from '../services/nutritionApi';
+import { socialApi } from '../services/socialApi';
+import type { FeedItem } from '../services/socialApi';
 import { todayLocalISO } from '../services/date';
 
 const DAY_LABELS = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
@@ -26,12 +28,31 @@ function getGreeting() {
   return 'Chào buổi tối';
 }
 
+/** FR-005/FR-006 (018): label tiếng Việt cho từng loại sự kiện thành tích. */
+function feedLabel(item: FeedItem): string {
+  switch (item.actionType) {
+    case 'streak_milestone': {
+      const weeks = /"streakWeeks":(\d+)/.exec(item.detailsJson ?? '');
+      return weeks ? `đạt chuỗi ${weeks[1]} tuần` : 'đạt mốc chuỗi mới';
+    }
+    case 'new_pr': {
+      const kg = /"volumeKg":([0-9.]+)/.exec(item.detailsJson ?? '');
+      return kg ? `phá kỷ lục: tổng khối lượng ${kg[1]} kg` : 'phá kỷ lục cá nhân';
+    }
+    case 'friendship_created':
+      return 'kết bạn mới';
+    default:
+      return item.actionType;
+  }
+}
+
 /** Dashboard người dùng — tổng quan mục tiêu, streak, hôm nay tập gì, dinh dưỡng. */
 export default function UserDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
   const [stats, setStats] = useState<StatsDashboard | null>(null);
   const [summary, setSummary] = useState<NutritionSummary | null>(null);
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,6 +62,13 @@ export default function UserDashboard() {
       statsApi.dashboard().then(setStats).catch(() => {}),
       nutritionApi.getSummary(todayLocalISO()).then(setSummary).catch(() => {}),
     ]).finally(() => setLoading(false));
+    // Feed bạn bè: tải ngay + polling 60s (SC-002: sự kiện mới ≤ 1 phút)
+    const loadFeed = () => {
+      socialApi.feed().then(setFeedItems).catch(() => {});
+    };
+    loadFeed();
+    const timer = setInterval(loadFeed, 60_000);
+    return () => clearInterval(timer);
   }, []);
 
   const today = new Date().getDay();
@@ -112,6 +140,29 @@ export default function UserDashboard() {
                 Mục tiêu: {caloTarget} kcal
               </div>
             </>
+          )}
+        </div>
+      </div>
+
+      {/* Hoạt động bạn bè (FR-005/006) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="card" style={{ gridColumn: '1 / -1' }}>
+          <h2 className="section-title">
+            <Icon name="users" size={17} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Hoạt động bạn bè
+          </h2>
+          {feedItems.length === 0 ? (
+            <p className="text-secondary text-sm" style={{ padding: '12px 0' }}>
+              Chưa có hoạt động mới từ bạn bè trong 7 ngày qua.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              {feedItems.slice(0, 5).map((item) => (
+                <div key={item.id} className="row-item" style={{ justifyContent: 'flex-start' }}>
+                  <span className="fw-600" style={{ fontSize: 14 }}>{item.displayName ?? 'Bạn của bạn'}</span>
+                  <span className="text-secondary text-sm" style={{ marginLeft: 8 }}>{feedLabel(item)}</span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>

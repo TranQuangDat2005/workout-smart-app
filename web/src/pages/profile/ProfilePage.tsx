@@ -27,6 +27,8 @@ export default function ProfilePage() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(true);
+  const [privacySaving, setPrivacySaving] = useState(false);
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -42,6 +44,7 @@ export default function ProfilePage() {
         setAge(p.age != null ? String(p.age) : '');
         setHeightCm(p.heightCm != null ? String(p.heightCm) : '');
         setGoalType(p.goalType ?? 'weight_loss');
+        setIsPrivate(p.isPrivate);
       })
       .catch(() => setError('Không thể tải hồ sơ'));
   }, []);
@@ -86,6 +89,22 @@ export default function ProfilePage() {
   const onDelete = () => {
     setDeletePassword('');
     setDeleteOpen(true);
+  };
+
+  const togglePrivacy = async () => {
+    setPrivacySaving(true);
+    setError('');
+    try {
+      const res = await profileApi.updateProfile({ isPrivate: !isPrivate });
+      setIsPrivate(!isPrivate);
+      setProfile(res.profile);
+      setNotice('Đã cập nhật chế độ riêng tư.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(msg ?? 'Không thể đổi chế độ riêng tư');
+    } finally {
+      setPrivacySaving(false);
+    }
   };
 
   const confirmDelete = async () => {
@@ -198,6 +217,47 @@ export default function ProfilePage() {
             Lưu hồ sơ
           </Button>
         </form>
+      </div>
+
+      {/* Privacy toggle */}
+      <div className="card" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h3 style={{ marginBottom: 2 }}>Hồ sơ riêng tư</h3>
+            <p className="text-secondary text-sm">
+              Khi bật, người lạ chỉ thấy tên hiển thị. Bạn bè vẫn xem đầy đủ.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void togglePrivacy()}
+            disabled={privacySaving}
+            style={{
+              width: 44,
+              height: 24,
+              borderRadius: 12,
+              border: 'none',
+              cursor: privacySaving ? 'not-allowed' : 'pointer',
+              background: isPrivate ? 'var(--green)' : '#555',
+              position: 'relative',
+              transition: 'background 0.2s',
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                top: 2,
+                left: isPrivate ? 22 : 2,
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                background: '#fff',
+                transition: 'left 0.2s',
+              }}
+            />
+          </button>
+        </div>
       </div>
 
       {/* Danger zone */}

@@ -59,6 +59,8 @@ class ProfileControllerIntegrationTest {
     private com.workoutsmart.nutrition.repository.MealLogRepository mealLogRepository;
     @Autowired
     private com.workoutsmart.nutrition.repository.FoodItemRepository foodItemRepository;
+    @Autowired
+    private com.workoutsmart.social.repository.LeaderboardRepository leaderboardRepository;
 
     @BeforeEach
     void clean() {
@@ -67,6 +69,7 @@ class ProfileControllerIntegrationTest {
         mealEntryRepository.deleteAll();
         mealLogRepository.deleteAll();
         foodItemRepository.deleteAll();
+        leaderboardRepository.deleteAll();
         setRepository.deleteAll();
         sessionRepository.deleteAll();
         otpRepository.deleteAll();

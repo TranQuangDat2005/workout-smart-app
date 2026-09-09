@@ -15,6 +15,7 @@ public record PostResponse(
         String content,
         String mediaType,
         String mediaUrl,
+        String gifUrl,
         String audience,
         Instant createdAt,
         long likeCount,

@@ -1,5 +1,5 @@
 # AGENTS.md — Dự án: WorkoutSmartApp
-# Phiên bản: 1.8.0 | Cập nhật: 2026-08-19 | Tác giả: Dattq
+# Phiên bản: 1.9.0 | Cập nhật: 2026-08-27 | Tác giả: Dattq
 
 ## 1. MỤC TIÊU & VAI TRÒ
 Bạn là một kỹ sư phần mềm senior trong dự án.
@@ -17,7 +17,7 @@ Stack công nghệ: React 18 (Web App — SPA gọi REST API, tuân thủ DESIGN
 - KHÔNG được xóa migration files.
 - KHÔNG được commit trực tiếp vào `main` và `develop` — mọi thay đổi phải đi qua nhánh feature/hotfix và merge bằng `git flow finish`.
 - KHÔNG được đọc: `.env`, `*.secret`, `credentials/*`.
-- KHÔNG được gọi external API ngoài allowlist: Email Service (SendGrid / AWS SES / SMTP Gmail — gửi OTP), Push Notification (FCM — chỉ Mobile), YouTube IFrame Player API + Spotify embed (nhạc luyện tập — chỉ Web client, URL do User cung cấp, không gọi từ backend). Media bài tập hệ thống dùng từ thư mục local `exercises-dataset/`; upload media mới cho bài tập tự tạo cá nhân (custom exercise, lưu local/S3) VÀ cho bài đăng cộng đồng (ảnh, lưu SeaweedFS self-hosted qua backend proxy).
+- KHÔNG được gọi external API ngoài allowlist: Email Service (SendGrid / AWS SES / SMTP Gmail — gửi OTP), Push Notification (FCM — chỉ Mobile), YouTube IFrame Player API + Spotify embed (nhạc luyện tập — chỉ Web client, URL do User cung cấp, không gọi từ backend), Tenor embed + Instagram link/preview (GIF bài đăng cộng đồng — chỉ Web client, URL do User cung cấp, không gọi từ backend). Media bài tập hệ thống dùng từ thư mục local `exercises-dataset/`; upload media mới cho bài tập tự tạo cá nhân (custom exercise, lưu local/S3) VÀ cho bài đăng cộng đồng (chỉ ảnh PNG/JPG/JPEG/WEBP — KHÔNG GIF/video — lưu SeaweedFS self-hosted qua backend proxy).
 - KHÔNG được tự ý thêm tính năng ngoài scope đã loại trừ trong `specs/General Spec.md` §9 (Social Login, AI/ML, wearable, chat, live coaching, thanh toán). Lưu ý: "User tự tạo bài tập cá nhân" và "upload media cho custom exercise" đã được đưa vào scope (feature 011-custom-exercise).
 
 ## 3. QUY TẮC CODE
